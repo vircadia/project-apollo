@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Project Apollo": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "HIFI_METAVERSE_URL": "http://127.0.0.1:9400"
+      }
+    }
+  }
+}

@@ -20,13 +20,18 @@ namespace Project_Apollo
         {
             Session sess = Session.Instance;
             HttpListener listener = null;
-            Console.WriteLine("WELCOME TO PROJECT APOLLO");
+
+            String[] listenerPorts = { "http://*:9400/", "http://*:9401/" };
+
+            Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER");
             try
             {
                 Console.WriteLine("=> STARTUP");
                 listener = new HttpListener();
-                listener.Prefixes.Add("http://*:9400/");
-                listener.Prefixes.Add("http://*:9401/");
+                foreach (string prefix in listenerPorts)
+                {
+                    listener.Prefixes.Add(prefix);
+                }
                 listener.Start();
                 listener.BeginGetContext(OnWeb, null);
             } catch(Exception e)
@@ -35,7 +40,11 @@ namespace Project_Apollo
                 Console.WriteLine("\n" + e.StackTrace);
             }
             MRE.Reset();
-            Console.WriteLine("=> WAITING FOR REQUESTS");
+            Console.WriteLine("=> WAITING FOR REQUESTS ON:");
+            foreach (string prefix in listener.Prefixes)
+            {
+                Console.WriteLine(prefix);
+            }
             sess.ProductionListen = listener;
             sess.Registry = APIRegistry.Instance; // set !
             MRE.WaitOne();

@@ -13,7 +13,7 @@ namespace Project_Apollo.Hooks
 {
     public class users
     {
-
+        #region Create User
         public struct users_request
         {
             public Dictionary<string, string> user;
@@ -60,7 +60,9 @@ namespace Project_Apollo.Hooks
             }
 
         }
+        #endregion
 
+        #region /api/v1/user/locker
         [APIPath("/api/v1/user/locker", "POST", true)]
         public ReplyData user_locker_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
@@ -87,7 +89,14 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/user/locker", "GET", true)]
         public ReplyData user_locker_get(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
+            replyPacket not_found = new replyPacket();
+            not_found.status = "fail";
+            not_found.data = "";
             ReplyData rd = new ReplyData();
+            rd.Status = 200;
+            rd.Body = JsonConvert.SerializeObject(not_found);
+            string[] authHead = Headers["Authorization"].Split(new[] { ' ' });
+            if (authHead.Length == 1) return rd;
             string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
 
             UserAccounts UA = UserAccounts.GetAccounts();
@@ -103,6 +112,10 @@ namespace Project_Apollo.Hooks
             return rd;
         }
 
+
+        #endregion
+
+        #region User Location
         public struct LocationPacket
         {
             public string status;
@@ -127,6 +140,38 @@ namespace Project_Apollo.Hooks
             return rd;
         }
 
+
+        [APIPath("/api/v1/users/%/location", "GET", true)]
+        public ReplyData get_location(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        {
+            ReplyData rd = new ReplyData();
+            Console.WriteLine("====> Request: Get_Location");
+
+            UserAccounts UA = UserAccounts.GetAccounts();
+            UserAccounts.Location loc = UA.GetLocation(arguments[0]);
+
+            LocationPacket lp = new LocationPacket();
+            if (loc.network_address != "")
+            {
+
+                lp.status = "success";
+                lp.location = loc;
+            }
+            else
+            {
+                lp.status = "user has no location";
+
+            }
+
+            rd.Status = 200;
+            rd.Body = JsonConvert.SerializeObject(lp);
+            return rd;
+
+        }
+
+        #endregion
+
+        #region User Profile
         public struct user_profile_reply
         {
             public string status;
@@ -166,11 +211,17 @@ namespace Project_Apollo.Hooks
             rd.Body = JsonConvert.SerializeObject(upr);
             return rd;
         }
+        #endregion
 
+        #region Public Key
         [APIPath("/api/v1/user/public_key", "PUT", true)]
 
         public ReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
+            ReplyData rd = new ReplyData();
+            rd.Status = 404;
+            rd.Body = "{'status':'fail'}";
+            if (Headers.ContainsKey("Authorization") == false) return rd;
             string[] Lines = body.Split(new[] { '\n' });
 
             string Data = "";
@@ -191,7 +242,7 @@ namespace Project_Apollo.Hooks
             rp.status = UA.SetPublicKey(Data, Headers["Authorization"].Split(new[] { ' ' })[1]);
             rp.data = "no error";
 
-            ReplyData rd = new ReplyData();
+            
             if (rp.status == "fail") rd.Status = 401;
             else
                 rd.Status = 200;
@@ -224,34 +275,83 @@ namespace Project_Apollo.Hooks
 
             return rd;
         }
+        #endregion
 
-        [APIPath("/api/v1/users/%/location", "GET",true)]
-        public ReplyData get_location(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string,string> Headers)
+        #region User Tokens
+
+        [APIPath("/user/tokens/new", "GET", true)]
+        public ReplyData user_tokens(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
-            Console.WriteLine("====> Request: Get_Location");
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-            UserAccounts.Location loc = UA.GetLocation(arguments[0]);
-
-            LocationPacket lp = new LocationPacket();
-            if (loc.network_address!="")
+            if(Headers.ContainsKey("Authorization") == false)
             {
 
-                lp.status = "success";
-                lp.location = loc;
-            }
-            else
+                ReplyData rd = new ReplyData();
+                rd.Status = 401;
+                rd.Body = "";
+                Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
+                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
+                rd.Body = "<h2>You are not logged in!";
+                rd.CustomOutputHeaders.Add("Content-Type", "text/html");
+                return rd;
+            } else
             {
-                lp.status = "user has no location";
-                
+                // Validate login!
+                string[] req = arguments[0].Split(new[] { '?', '&', '=' });
+                string[] authHeader = Headers["Authorization"].Split(new[] { ' ' });
+
+                if(authHeader[0] == "Basic" && Session.Instance.TemporaryStackData.Contains(remoteIP.ToString()))
+                {
+                    // Validate credentials!
+                    UserAccounts ua = UserAccounts.GetAccounts();
+
+                    string[] auth = Tools.Base64Decode(authHeader[1]).Split(new[] { ':' });
+
+                    if(ua.Login(auth[0], auth[1], "web"))
+                    {
+                        // Continue to generate the token!
+                        UserAccounts.Account act = ua.AllAccounts[auth[0]]; 
+                        for (int i = 0; i < req.Length; i++)
+                        {
+                            if (req[i] == "for_domain_server" && req[i + 1] == "true")
+                            {
+                                // Generate the domain server token!
+                                int expiry = 1 * 24 * 60 * 60;
+                                int time = Tools.getTimestamp();
+                                string token_type = "domain";
+
+                                string Token = Tools.MD5Hash(expiry.ToString() + ":" + time.ToString() + "::" + token_type + ":" + act.name);
+                                // Token has now been issued!
+                                // Because you can obviously have more than 1 domain, this will save the token as : domain-timestamp
+
+                                act.ActiveTokens.Add(Token, "domain");
+                                ua.AllAccounts[auth[0]] = act;
+                                ua.save();
+
+                                // Exit this loop, and reply to the user!
+
+                                Session.Instance.TemporaryStackData.Remove(remoteIP.ToString());
+                                ReplyData rd1 = new ReplyData();
+                                rd1.Status = 200;
+                                rd1.Body = $"<center><h2>Your domain's access token is: {Token}</h2></center>";
+                                rd1.CustomOutputHeaders.Add("Content-Type", "text/html");
+
+                                return rd1;
+                            }
+                        }
+                    }
+                }
+
+                ReplyData rd = new ReplyData();
+                rd.Body = "Invalid authorization header was provided!<br/>If you were not prompted for credentials again, close the tab or the browser and try again";
+                rd.Status = 401;
+                if (Session.Instance.TemporaryStackData.Contains(remoteIP.ToString()) == false) Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
+                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
+                return rd;
             }
-
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(lp);
-            return rd;
-
         }
+
+        #endregion
+
     }
 
     public class token_oauth
@@ -335,22 +435,26 @@ namespace Project_Apollo.Hooks
             public string path;
         }
 
-        public struct Account
+        public class Account
         {
             public string name;
             public string email;
             public string pwSalt;
             public string pwHash;
-            public string access_token;
             public string account_settings;
             public string PubKey;
             public Location LastLocation;
+            public Dictionary<string, string> ActiveTokens;
             public void GenAccount(string A, string B, string C)
             {
                 name = A;
                 email = B;
                 pwSalt = Tools.SHA256Hash(Tools.getTimestamp().ToString() + ";" + (new Random().Next(99999999)).ToString());
                 pwHash = Tools.MD5Hash(Tools.MD5Hash(C) + ":" + Tools.MD5Hash(pwSalt));
+            }
+            public Account()
+            {
+                ActiveTokens = new Dictionary<string, string>();
             }
         }
         private bool LastStatus;
@@ -382,7 +486,14 @@ namespace Project_Apollo.Hooks
 
                 if (Tools.MD5Hash(Tools.MD5Hash(password) + ":" + Tools.MD5Hash(act.pwSalt)) == act.pwHash)
                 {
-                    act.access_token = access_token;
+                    if (access_token != "web")
+                    {
+
+                        if (act.ActiveTokens.ContainsKey(access_token))
+                            act.ActiveTokens[access_token] = "owner";
+                        else
+                            act.ActiveTokens.Add(access_token, "owner");
+                    }
                     Console.WriteLine("====> New Access Token: " + name + "; " + access_token);
                     AllAccounts[name] = act;
                     save();
@@ -400,7 +511,7 @@ namespace Project_Apollo.Hooks
             foreach (string user in AllAccounts.Keys)
             {
                 a = AllAccounts[user];
-                if(a.access_token == AccessToken)
+                if(a.ActiveTokens.ContainsKey(AccessToken))
                 {
                     return Tools.Base64Decode(a.account_settings);
                 }
@@ -415,7 +526,7 @@ namespace Project_Apollo.Hooks
             foreach(string user in AllAccounts.Keys)
             {
                 a = AllAccounts[user];
-                if (a.access_token == AccessToken)
+                if (a.ActiveTokens.ContainsKey(AccessToken))
                 {
                     a.account_settings = Tools.Base64Encode(AccountSettings);
                     AllAccounts[user] = a;
@@ -430,7 +541,7 @@ namespace Project_Apollo.Hooks
             foreach(string user in AllAccounts.Keys)
             {
                 a = AllAccounts[user];
-                if(a.access_token == AccessToken)
+                if(a.ActiveTokens.ContainsKey(AccessToken))
                 {
                     a.LastLocation = loc;
                     AllAccounts[user] = a;
@@ -455,7 +566,7 @@ namespace Project_Apollo.Hooks
             foreach(string user in AllAccounts.Keys)
             {
                 a = AllAccounts[user];
-                if(a.access_token == AccessToken)
+                if(a.ActiveTokens.ContainsKey(AccessToken))
                 {
                     return user;
                 }
@@ -470,7 +581,7 @@ namespace Project_Apollo.Hooks
             {
                 a = AllAccounts[key];
 
-                if (a.access_token == AccessToken)
+                if (a.ActiveTokens.ContainsKey(AccessToken))
                 {
                     ///////////////////
                     //// TODO: CHECK WHAT ENCODING IS EXPECTED BY THE CLIENT

@@ -9,6 +9,7 @@ To create a opensource metaverse server for Project-Athena
 ## Build Instructions
 
 ```
+dotnet restore
 dotnet build
 ```
 
@@ -17,6 +18,7 @@ dotnet build
 ```
 dotnet-core 3.1
 Newtonsoft.Json
+RandomNameGeneratorLibrary
 ```
 
 
@@ -35,6 +37,6 @@ NetworkingConstants.h
 ```c++
 
     const QUrl METAVERSE_SERVER_URL_STABLE { "http://127.0.0.1:9400" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "http://127.0.0.1:9401" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "http://127.0.0.1:9400" };
 
 ```

@@ -31,7 +31,6 @@ namespace Project_Apollo.Hooks
             _reply.Status = 200;
             _reply.Body = JsonConvert.SerializeObject(hbrd);
 
-            Console.WriteLine("====> heartbeat reply: " + _reply.Body);
 
             return _reply;
         }
@@ -39,15 +38,20 @@ namespace Project_Apollo.Hooks
 
     public class Heartbeat_Memory
     {
+        private static readonly object _lock = new object();
         public static Heartbeat_Memory GetHeartbeat()
         {
-            if (!File.Exists("presence.json"))
+            lock (_lock)
             {
-                Heartbeat_Memory hm = new Heartbeat_Memory();
-                return hm;
+
+                if (!File.Exists("presence.json"))
+                {
+                    Heartbeat_Memory hm = new Heartbeat_Memory();
+                    return hm;
+                }
+                string js = File.ReadAllText("presence.json");
+                return (Heartbeat_Memory)JsonConvert.DeserializeObject<Heartbeat_Memory>(js);
             }
-            string js = File.ReadAllText("presence.json");
-            return (Heartbeat_Memory)JsonConvert.DeserializeObject<Heartbeat_Memory>(js);
         }
         private static readonly object retr = new object();
         public Dictionary<string, string> _pres = new Dictionary<string, string>();
@@ -81,7 +85,11 @@ namespace Project_Apollo.Hooks
 
         public void Commit()
         {
-            File.WriteAllText("presence.json", JsonConvert.SerializeObject(this));
+            lock (_lock)
+            {
+
+                File.WriteAllText("presence.json", JsonConvert.SerializeObject(this));
+            }
         }
 
     }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Net;
 using Project_Apollo.Registry;
 using System.Text;
+using System.Threading;
+using Project_Apollo.Hooks;
 
 namespace Project_Apollo
 {
@@ -10,8 +12,11 @@ namespace Project_Apollo
     {
         private static readonly object _lock = new object();
         private static Session _inst;
-
-        static Session() { }
+        private APIRegistry _reg;
+        private DomainMemory _mem;
+        static Session() {
+            
+        }
         public static Session Instance
         {
             get
@@ -29,7 +34,40 @@ namespace Project_Apollo
 
         // Begin vars!
         public HttpListener ProductionListen;
-        public APIRegistry Registry;
+        public APIRegistry Registry
+        {
+            get
+            {
+                lock (_lock)
+                {
+
+                    if (Registry == null) _reg = new APIRegistry();
+                    return _reg;
+                }
+            }
+            set
+            {
+                _reg = value;
+            }
+        }
+        public DomainMemory DomainsMem
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    if (_mem == null) _mem = new DomainMemory();
+                    return _mem;
+                }
+            }
+            set
+            {
+                _mem = value;
+            }
+        }
+        public ManualResetEvent QuitWait;
+        public List<string> TemporaryStackData = new List<string>();
+        public Configuration CFG = Configuration.LoadConfig();
         // End vars!
     }
 }

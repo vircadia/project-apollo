@@ -15,18 +15,19 @@ namespace Project_Apollo
     class Program
     {
         public static ManualResetEvent MRE = new ManualResetEvent(false);
-
+        private static readonly object _logLock = new object();
         static void Main(string[] args)
         {
-            Session sess = Session.Instance;
             HttpListener listener = null;
             Console.WriteLine("WELCOME TO PROJECT APOLLO");
+            if (Directory.Exists("data") == false) Directory.CreateDirectory("data"); // don't store files in the same folder as binaries!
+            Directory.SetCurrentDirectory("data");
+            Session sess = Session.Instance;
             try
             {
                 Console.WriteLine("=> STARTUP");
                 listener = new HttpListener();
-                listener.Prefixes.Add("http://*:9400/");
-                listener.Prefixes.Add("http://*:9401/");
+                listener.Prefixes.Add($"http://*:{sess.CFG.Port}/");
                 listener.Start();
                 listener.BeginGetContext(OnWeb, null);
             } catch(Exception e)
@@ -38,7 +39,9 @@ namespace Project_Apollo
             Console.WriteLine("=> WAITING FOR REQUESTS");
             sess.ProductionListen = listener;
             sess.Registry = APIRegistry.Instance; // set !
-            MRE.WaitOne();
+            sess.QuitWait = MRE;
+            //MRE.WaitOne();
+            sess.QuitWait.WaitOne();
 
             listener.Stop();
 
@@ -66,7 +69,7 @@ namespace Project_Apollo
 
                 StreamReader sr = new StreamReader(body, ctx.Request.ContentEncoding);
                 string resp = sr.ReadToEnd();
-
+                string origresp = resp;
                 if (resp == "END")
                 {
                     MRE.Set();
@@ -84,9 +87,13 @@ namespace Project_Apollo
                 tmp = "";
                 string STR = "";
                 Console.WriteLine(STR);
+                resp = origresp;
                 STR = (new string('=', 10) + "\nBEGIN PROD REQUEST\n" + new string('=', 10) + "\n\nCONTENT TYPE: " + ctx.Request.ContentType + "\nMETHOD: " + ctx.Request.HttpMethod + "\nURL: " + ctx.Request.RawUrl + "\n\nREQUEST BODY: " + resp + "\nPORT: " + ctx.Request.LocalEndPoint.Port.ToString() + "\nUSER-AGENT: " + ctx.Request.UserAgent + "\nHeaders: \n" + JsonConvert.SerializeObject(Tools.NVC2Dict(ctx.Request.Headers), Formatting.Indented) + "\n\n" + new string('=', 10) + "\nEND PROD REQUEST\n" + new string('=', 10));
+                lock (_logLock)
+                {
+                    File.AppendAllText("RequestLog.txt", "\n\n" + STR + "\n\n");
 
-                File.AppendAllText("RequestLog.txt", "\n\n"+STR+"\n\n");
+                }
                 sr.Close();
                 body.Close();
 
@@ -95,11 +102,24 @@ namespace Project_Apollo
 
                 byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
                 ctx.Response.ContentLength64 = buffer.Length;
-                ctx.Response.AddHeader("Server", "1.5");
+                ctx.Response.Headers.Add("Server", "1.5");
+                
                 ctx.Response.StatusCode = _reply.Status;
+                if (_reply.CustomStatus != null) ctx.Response.StatusDescription = _reply.CustomStatus;
+                if(_reply.CustomOutputHeaders != null)
+                {
+                    ctx.Response.ContentType = "application/json";
+                    
+                    foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
+                    {
+                        ctx.Response.Headers[kvp.Key] = kvp.Value;
+                    }
+                }
                 Stream output = ctx.Response.OutputStream;
                 output.Write(buffer, 0, buffer.Length);
                 output.Close();
+                ctx.Response.Close();
+                
             }
             catch (Exception e)
             {
@@ -127,14 +147,17 @@ namespace Project_Apollo
 
         public static string MD5Hash(string ToHash)
         {
+            MD5 md = MD5.Create();
+            
             byte[] Source = UTF8Encoding.UTF8.GetBytes(ToHash);
-            byte[] Hash = new MD5CryptoServiceProvider().ComputeHash(Source);
+            byte[] Hash = md.ComputeHash(Source);
             return Tools.Hash2String(Hash);
         }
 
         public static string MD5Hash(byte[] ToHash)
         {
-            return Tools.Hash2String(new MD5CryptoServiceProvider().ComputeHash(ToHash));
+            MD5 md = MD5.Create();
+            return Tools.Hash2String(md.ComputeHash(ToHash));
         }
 
         public static string SHA256Hash(string ToHash)

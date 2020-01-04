@@ -1,1 +1,2 @@
-dotnet build
+dotnet restore
+dotnet build --configuration Debug

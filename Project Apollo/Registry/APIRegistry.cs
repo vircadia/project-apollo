@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
-using System.Text;
+using System.IO;
 using Newtonsoft.Json;
 
 namespace Project_Apollo.Registry
@@ -26,7 +26,6 @@ namespace Project_Apollo.Registry
                         _inst.LocateHooks();
 
                     }
-                    else _inst.LocateHooks(); // Rescan web hooks when singleton is requested
                     return _inst;
                 }
             }
@@ -92,19 +91,28 @@ namespace Project_Apollo.Registry
             }
         }
 
-        public struct ReplyData
+        public class ReplyData
         {
+            public ReplyData()
+            {
+                CustomOutputHeaders = new Dictionary<string, string>();
+            }
             public string Body;
             public int Status;
+            public string CustomStatus; // <-- Examples: OK, Not Found, Authorization Required, etc.
+            public Dictionary<string, string> CustomOutputHeaders;
         }
 
         public ReplyData ProcessInbound(string requestBody, string rawURL, string method, IPAddress remoteUser, int remotePort, Dictionary<string,string> headers, string consoleoutput)
         {
             ReplyData _ReplyData = new ReplyData();
-            _ReplyData.Status = 404;
+            _ReplyData.Status = 418;
+            
             Dictionary<string, string> notFoundDefault = new Dictionary<string, string>();
             notFoundDefault.Add("status", "not_found");
-            _ReplyData.Body = JsonConvert.SerializeObject(notFoundDefault, Formatting.Indented);
+            notFoundDefault.Add("data", "Needs more water!"); // joke... See 418 status code :P
+            string notFoundDef = JsonConvert.SerializeObject(notFoundDefault);
+            _ReplyData.Body = notFoundDef;
             foreach(APIPath zAPIPath in _discovered)
             {
                 // compare strings; If a % symbol is located, then skip that so long as the inbound string matches totally.
@@ -120,6 +128,19 @@ namespace Project_Apollo.Registry
 
                     string[] aCheck = sCheck.Split(new[] { '/' });
                     string[] actualRequest = rawURL.Split(new[] { '/','?' }); // if it contains a ?, we'll put that into the GETBody
+                    string theArgs = "";
+
+                    if (rawURL.Contains('?'))
+                    {
+                        // adjust the ActualRequest list to not contain the argument value, IF the allow arguments flag is set
+                        if (zAPIPath.AllowArgument)
+                        {
+                            // continue
+                            string[] tmp1 = rawURL.Split(new[] { '?' });
+                            theArgs = tmp1[1];
+                            actualRequest = tmp1[0].Split(new[] { '/' });
+                        }
+                    }
                     if (actualRequest.Length == aCheck.Length)
                     {
 
@@ -150,6 +171,7 @@ namespace Project_Apollo.Registry
                     }
                     else Found = false;
 
+                    arguments.Add(theArgs);
                 }
 
                 if (Found)
@@ -158,8 +180,27 @@ namespace Project_Apollo.Registry
                     Console.WriteLine("Running: " + zAPIPath.PathLike + "; " + zAPIPath.AssignedMethod.Name+"; For inbound: "+rawURL);
                     object _method = Activator.CreateInstance(zAPIPath.AssignedMethod.DeclaringType);
                     _ReplyData = (ReplyData)zAPIPath.AssignedMethod.Invoke(_method, new object[] { remoteUser, remotePort, arguments, requestBody, method, headers });
+
+                    Console.WriteLine("====> " + _ReplyData.Body);
+                    
                     return _ReplyData;
                 }
+            }
+            // an API Path wasn't found
+            // check the filesystem
+            string[] noArgPath = rawURL.Split(new[] { '?' });
+            if (File.Exists($"htdocs/{noArgPath[0]}"))  // This will provide a way to display HTML to the user. If the server must process data internally, please use a method & attribute. Nothing is stopping you from also loading in a HTML/js file and returning a stylized response.
+            {
+                _ReplyData.Status = 200;
+                _ReplyData.Body = File.ReadAllText($"htdocs/{noArgPath[0]}");
+                Dictionary<string, string> customHeaders = null; // This is mainly going to be used in instances where the domain-server needs a document but CORS isnt set
+                if (File.Exists($"htdocs/{noArgPath[0]}.headers"))
+                    customHeaders = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText($"htdocs/{noArgPath[0]}.headers"));
+
+                if (customHeaders != null)
+                    _ReplyData.CustomOutputHeaders = customHeaders;
+
+
             }
             Console.WriteLine(consoleoutput); // <--- We only echo on a not_found as this could get messy otherwise... 
             return _ReplyData;

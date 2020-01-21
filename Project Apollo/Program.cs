@@ -19,7 +19,7 @@ namespace Project_Apollo
         static void Main(string[] args)
         {
             HttpListener listener = null;
-            Console.WriteLine("WELCOME TO PROJECT APOLLO");
+            Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER");
             if (Directory.Exists("data") == false) Directory.CreateDirectory("data"); // don't store files in the same folder as binaries!
             Directory.SetCurrentDirectory("data");
             Session sess = Session.Instance;
@@ -36,7 +36,8 @@ namespace Project_Apollo
                 Console.WriteLine("\n" + e.StackTrace);
             }
             MRE.Reset();
-            Console.WriteLine("=> WAITING FOR REQUESTS");
+            Console.WriteLine("=> WAITING FOR REQUESTS ON:");
+            Console.WriteLine(@"http://*:{sess.CFG.Port.ToString()}/");
             sess.ProductionListen = listener;
             sess.Registry = APIRegistry.Instance; // set !
             sess.QuitWait = MRE;

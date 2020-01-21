@@ -37,7 +37,7 @@ namespace Project_Apollo
             }
             MRE.Reset();
             Console.WriteLine("=> WAITING FOR REQUESTS ON:");
-            Console.WriteLine(@"http://*:{sess.CFG.Port.ToString()}/");
+            Console.WriteLine($"http://*:{sess.CFG.Port.ToString()}/");
             sess.ProductionListen = listener;
             sess.Registry = APIRegistry.Instance; // set !
             sess.QuitWait = MRE;

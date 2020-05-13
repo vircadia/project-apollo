@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29519.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project Apollo", "Project Apollo\Project Apollo.csproj", "{A8448B6B-4AE8-4EEA-A2EC-424F01550DFC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProjectApollo", "ProjectApollo\ProjectApollo.csproj", "{A8448B6B-4AE8-4EEA-A2EC-424F01550DFC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

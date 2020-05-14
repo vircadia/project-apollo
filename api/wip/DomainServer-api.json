@@ -1,0 +1,1195 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0.1",
+        "title": "Vircadia Domain Server API",
+        "description": "Definition of the Domain Server API. The Interface communicates with the Domain server for all interactions with the virtual world. This is a very early version of the definition. Missing: authentication, ??",
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "paths": {
+        "/api/metaverse_info": {
+            "get": {
+                "tags": [ "info" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "metaverse_url": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/domains/{metaverseID}": {
+            "get": {
+                "tags": [ "domains" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "metaverseID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "$ref": "#/definitions/Domain"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Send heartbeat to Metaverse. Not included is PUT used for DomainMetadata (see 'domain-server/src/DomainMetadata.cpp')",
+                "tags": [ "domains" ],
+                "consumes": [ "application/json", "text/json" ],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "metaverseID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "heartbeat",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "version": {
+                                    "description": "BuildInfo::VERSION",
+                                    "type": "string"
+                                },
+                                "protocol": {
+                                    "description": "protocolVersionSignatureBase64()",
+                                    "type": "string"
+                                },
+                                "network_address": {
+                                    "type": "string"
+                                },
+                                "automatic_networking": {
+                                    "type": "string"
+                                },
+                                "restricted": {
+                                    "description": "domain is 'restricted' if anonymous connections are disallowed",
+                                    "type": "boolean"
+                                },
+                                "api_key": {
+                                    "description": "api token if temporary domain",
+                                    "type": "string"
+                                },
+                                "heart_beat": {
+                                    "description": "DomainMetadata::USERS",
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/domains/{metaverseID}": {
+            "get": {
+                "description": "Fetch domain information. Doesn't have '/v1/'. Is this a bug? See 'domain-server/resources/web/js/shared.js'",
+                "tags": [ "domains" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "metaverseID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "$ref": "#/definitions/Domain"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/domains/{metaverseID}/public_key": {
+            "get": {
+                "description": "Get domain public key for user. Somehow sets 'user' into request",
+                "tags": [ "domains" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "metaverseID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "public_key": {
+                                                "description": "Base64 encoded",
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/domains/temporary": {
+            "get": {
+                "description": "Get domain info for temporary domain",
+                "tags": [ "domains" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "$ref": "#/definitions/Domain"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/groups/members/{username}": {
+            "get": {
+                "tags": [ "groups" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/groups/names/{groupname}": {
+            "get": {
+                "tags": [ "groups" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "groupname",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/groups/{groupID}/ranks": {
+            "get": {
+                "tags": [ "groups" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "groupID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/users": {
+            "get": {
+                "tags": [ "users" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/users/{username}/public_key": {
+            "get": {
+                "tags": [ "users" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "username",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/profile": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/locker": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/public_key": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/friends": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/friends/{friendusername}": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "friendusername",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/places": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user/places/{placeID}": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "placeID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/user_stories": {
+            "get": {
+                "tags": [ "user", "stories"
+                ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user_stories/{storyID}": {
+            "get": {
+                "tags": [ "user", "stories"
+                ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "storyID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/user_activities": {
+            "get": {
+                "tags": [ "user" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/snapshots": {
+            "get": {
+                "tags": [ "snapshots" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/transactions": {
+            "get": {
+                "tags": [ "transactions" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/marketplace/": {
+            "get": {
+                "tags": [ "marketplace" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "type": "integer"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/marketplace/items": {
+            "get": {
+                "tags": [ "marketplace" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/marketplace/items/{marketID}": {
+            "get": {
+                "tags": [ "marketplace" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {
+                        "name": "marketID",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/marketplace/categories": {
+            "get": {
+                "tags": [ "marketplace" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+
+        "/api/v1/commerce/": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/inventory": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/available_updates": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {   "$ref": "#/parameters/per_page" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/history": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "parameters": [
+                    {   "$ref": "#/parameters/per_page" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/marketplace_key": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/proof_of_purchase_status/location": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/commerce/proof_of_purchase_status/transfer": {
+            "get": {
+                "tags": [ "commerce" ],
+                "consumes": [],
+                "produces": [ "application/json", "text/json" ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "allOf": [
+                                "$ref": "#/definitions/SuccessError",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "domain": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "SuccessError": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [ "success", "fail" ]
+                }
+            }
+        },
+        "User": {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string"
+                },
+                "online": {
+                    "type": "boolean"
+                },
+                "connection": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/Location"
+                },
+                "images": {
+                    "$ref": "#/definitions/Images"
+                }
+            }
+        },
+        "Location": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "root": {
+                    "$ref": "#/definitions/Root"
+                },
+                "online": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Images": {
+            "type": "object",
+            "properties": {
+                "hero": {
+                    "type": "string"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "tiny": {
+                    "type": "string"
+                }
+            }
+        },
+        "Root": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "domain": {
+                    "$ref": "#/definitions/Domain"
+                }
+            }
+        },
+        "Domain": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "ice_server_address": {
+                    "type": "string"
+                },
+                "network_address": {
+                    "type": "string"
+                },
+                "network_port": {
+                    "format": "int32",
+                    "type": "integer"
+                },
+                "online": {
+                    "type": "boolean"
+                },
+                "default_place_name": {
+                    "type": "string"
+                },
+                "cloud_domain": {
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "parameters": {
+        "per_page": {
+            "name": "per_page",
+            "required": false,
+            "in": "query",
+            "type": "integer"
+        }
+    }
+}

@@ -81,7 +81,7 @@ namespace Project_Apollo
         }
         public ManualResetEvent QuitWait;
         public List<string> TemporaryStackData = new List<string>();
-        public Configuration CFG = Configuration.LoadConfig();
+        public XXConfiguration CFG = XXConfiguration.LoadConfig();
         // End vars!
     }
 }

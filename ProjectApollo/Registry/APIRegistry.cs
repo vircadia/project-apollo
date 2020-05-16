@@ -23,50 +23,41 @@ namespace Project_Apollo.Registry
 {
     public sealed class APIRegistry
     {
-        // BEGIN SINGLETON!
+        private static readonly string _logHeader = "[APIRegistry]";
 
-        private static readonly object _lock = new object();
-        private static APIRegistry _inst;
-        static APIRegistry () { }
-        public static APIRegistry Instance
+        // Pointers to all the paths specified in the Hooks
+        public List<APIPath> _apiPaths;
+
+        public APIRegistry()
         {
-            get
-            {
-                lock (_lock)
-                {
-                    if (_inst == null)
-                    {
-                        _inst = new APIRegistry();
-                        _inst.LocateHooks();
-
-                    }
-                    return _inst;
-                }
-            }
+            // Find all the path hooks and add them to '_apiPaths'
+            this.LocateHooks();
         }
-
-        // END SINGLETON INVOKE!
-
-        public List<APIPath> _discovered;
+        /// <summary>
+        /// Use app reflection to find all the methods decorated with "[APIPath]".
+        /// This routine searches all of the application, finds all the APIPath
+        ///     decorations and puts them in '_apiPaths' for searching through
+        ///     when requests are received.
+        /// </summary>
         public void LocateHooks()
         {
-            _discovered = new List<APIPath>(); // Always reset this list at the start of this method!
+            _apiPaths = new List<APIPath>(); // Always reset this list at the start of this method!
             try
             {
                 int i = 0;
                 for (i = 0; i < AppDomain.CurrentDomain.GetAssemblies().Length; i++)
                 {
                     Assembly asm = null;
-
                     try
                     {
                         asm = AppDomain.CurrentDomain.GetAssemblies()[i];
-                    } catch(Exception e)
+                    }
+                    catch(Exception e)
                     {
                         // nothing needs be done here
                     }
 
-                    if(asm != null)
+                    if (asm != null)
                     {
                         int ii = 0;
                         for (ii = 0; ii < asm.GetTypes().Length; ii++)
@@ -75,23 +66,28 @@ namespace Project_Apollo.Registry
                             try
                             {
                                 _type = asm.GetTypes()[ii];
-                            }catch(Exception E) { }
-                            if(_type != null)
+                            }
+                            catch(Exception e)
+                            {
+                                Context.Log.Error("{0} Exception getting types: {1}", _logHeader, e.ToString());
+                            }
+                            if (_type != null)
                             {
                                 if (_type.IsClass)
                                 {
-                                    foreach(MethodInfo MI in _type.GetMethods())
+                                    foreach(MethodInfo mi in _type.GetMethods())
                                     {
-                                        APIPath[] paths = (APIPath[])MI.GetCustomAttributes(typeof(APIPath), true);
+                                        APIPath[] paths = (APIPath[])mi.GetCustomAttributes(typeof(APIPath), true);
 
                                         int ix = 0;
                                         for(ix = 0; ix<paths.Length; ix++)
                                         {
                                             APIPath _path = paths[ix];
-                                            _path.AssignedMethod = MI;
-                                            _discovered.Add(_path);
+                                            _path.AssignedMethod = mi;
+                                            _apiPaths.Add(_path);
 
-                                            Console.WriteLine("Discovered: " + _path.PathLike + "; " + MI.Name);
+                                            Context.Log.Debug("{0} Discovered: {1}; {2}",
+                                                        _logHeader, _path.PathLike, mi.Name);
                                         }
                                     }
                                 }
@@ -99,12 +95,18 @@ namespace Project_Apollo.Registry
                         }
                     }
                 }
-            }catch(Exception e)
+            }
+            catch(Exception e)
             {
+                Context.Log.Error("{0} Exception collecting APIPath: {1}", _logHeader, e.ToString());
 
             }
         }
 
+        /// <summary>
+        /// Structure used to return a requests reply.
+        /// Constructed to hide the HTTP hair from the processing routines.
+        /// </summary>
         public class ReplyData
         {
             public ReplyData()
@@ -117,17 +119,35 @@ namespace Project_Apollo.Registry
             public Dictionary<string, string> CustomOutputHeaders;
         }
 
-        public ReplyData ProcessInbound(string requestBody, string rawURL, string method, IPAddress remoteUser, int remotePort, Dictionary<string,string> headers, string consoleoutput)
+        /// <summary>
+        /// Process an inboound request.
+        /// Search the collected APIPaths for a path match and do the operation
+        ///     appropriate for that request.
+        /// </summary>
+        /// <param name="requestBody"></param>
+        /// <param name="rawURL"></param>
+        /// <param name="method"></param>
+        /// <param name="remoteUser"></param>
+        /// <param name="remotePort"></param>
+        /// <param name="headers"></param>
+        /// <returns></returns>
+        public ReplyData ProcessInbound(string requestBody, string rawURL,
+                        string method, IPAddress remoteUser, int remotePort,
+                        Dictionary<string,string> headers)
         {
-            ReplyData _ReplyData = new ReplyData();
-            _ReplyData.Status = 418;
-            
-            Dictionary<string, string> notFoundDefault = new Dictionary<string, string>();
-            notFoundDefault.Add("status", "not_found");
-            notFoundDefault.Add("data", "Needs more water!"); // joke... See 418 status code :P
+            ReplyData _ReplyData = new ReplyData
+            {
+                Status = 418
+            };
+
+            Dictionary<string, string> notFoundDefault = new Dictionary<string, string>
+            {
+                { "status", "not_found" },
+                { "data", "Needs more water!" } // joke... See 418 status code :P
+            };
             string notFoundDef = JsonConvert.SerializeObject(notFoundDefault);
             _ReplyData.Body = notFoundDef;
-            foreach(APIPath zAPIPath in _discovered)
+            foreach(APIPath zAPIPath in _apiPaths)
             {
                 // compare strings; If a % symbol is located, then skip that so long as the inbound string matches totally.
                 // Append the value of % in the inbound request to the array passed to the function
@@ -216,7 +236,6 @@ namespace Project_Apollo.Registry
 
 
             }
-            Console.WriteLine(consoleoutput); // <--- We only echo on a not_found as this could get messy otherwise... 
             return _ReplyData;
         }
     }

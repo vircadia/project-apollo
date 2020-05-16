@@ -27,6 +27,8 @@ namespace Project_Apollo.Hooks
 {
     public class users
     {
+        private static readonly string _logHeader = "[User]";
+
         #region Create User
         public struct users_request
         {
@@ -46,11 +48,11 @@ namespace Project_Apollo.Hooks
             // This specific endpoint only creates a user
             try
             {
-
                 usreq = JsonConvert.DeserializeObject<users_request>(body);
             }
             catch (Exception e)
             {
+                Context.Log.Error("{0} Malformed reception: {1}", _logHeader, e.ToString());
                 throw new NotImplementedException(); // if this fails then the request is malformed!
             }
             UserAccounts UA = UserAccounts.GetAccounts();

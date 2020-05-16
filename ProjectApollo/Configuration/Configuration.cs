@@ -22,21 +22,21 @@ using System.Net;
 
 namespace Project_Apollo
 {
-    public class Configuration
+    public class XXConfiguration
     {
         [JsonProperty(PropertyName = "Default ICE Server")]
         public string DefaultIceServerAddress;
-        public static Configuration LoadConfig()
+        public static XXConfiguration LoadConfig()
         {
             if (File.Exists("config.json"))
             {
-                return JsonConvert.DeserializeObject<Configuration>(File.ReadAllText("config.json"));
+                return JsonConvert.DeserializeObject<XXConfiguration>(File.ReadAllText("config.json"));
             }else
             {
                 try
                 {
 
-                    Configuration cfg = new Configuration();
+                    XXConfiguration cfg = new XXConfiguration();
                     HttpWebRequest hwr = HttpWebRequest.CreateHttp("https://api.ipify.org");
                     while (hwr.HaveResponse) { }
                     HttpWebResponse hwresp = (HttpWebResponse)hwr.GetResponse();
@@ -50,7 +50,8 @@ namespace Project_Apollo
                     
                     File.WriteAllText("config.json", JsonConvert.SerializeObject(cfg, Formatting.Indented));
                     return cfg;
-                } catch(Exception e)
+                }
+                catch(Exception e)
                 {
                     throw new Exception();
                 }

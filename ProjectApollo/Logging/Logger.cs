@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 using NUnit.Framework.Internal;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Project_Apollo.Logging
@@ -32,16 +33,40 @@ namespace Project_Apollo.Logging
         public LogLevels LogLevel { get; set; }
 
         private readonly LogWriter _logWriter;
+        /// <summary>
+        /// Create a logger taht writes to a file.
+        /// There will be multiple files (rotated the number of minutes specified)
+        ///     and each filename will begin with "MetaverseServer-".
+        /// The target directory is created if it doesn't exist.
+        /// </summary>
+        /// <param name="pLogDirectory"></param>
         public Logger(string pLogDirectory)
         {
-            _logWriter = new LogWriter(pLogDirectory, "MetaverseServer", 60);
+            // Verify the log directory exists
+            if (!Directory.Exists(pLogDirectory))
+            {
+                Directory.CreateDirectory(pLogDirectory);
+            }
+
+            // Initialize the logger with a default log level.
+            _logWriter = new LogWriter(pLogDirectory, "MetaverseServer-", 60);
             LogLevel = LogLevels.Info;
+        }
+
+        /// <summary>
+        /// Version of logger that returns a stub that doesn't do any logging.
+        /// Use this for no logging but allowing all the log statements to
+        /// exist in the code.
+        /// </summary>
+        public Logger()
+        {
+            _logWriter = null;
         }
 
         // Set the log level from a string
         public void SetLogLevel(string pLevel)
         {
-            var val = (pLevel.ToLower()) switch
+            LogLevel = (pLevel.ToLower()) switch
             {
                 "error" => LogLevels.Info,
                 "info" => LogLevels.Info,
@@ -49,15 +74,14 @@ namespace Project_Apollo.Logging
                 "debug" => LogLevels.Debug,
                 _ => LogLevels.Info,
             };
-            LogLevel = val;
         }
 
         public void Info(string pMsg, params string[] pParms)
         {
             if (_logWriter != null
-                && LogLevel == LogLevels.Info
-                && LogLevel == LogLevels.Warn
-                && LogLevel == LogLevels.Debug)
+                && ( LogLevel == LogLevels.Info
+                    || LogLevel == LogLevels.Warn
+                    || LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
             }
@@ -65,8 +89,8 @@ namespace Project_Apollo.Logging
         public void Warn(string pMsg, params string[] pParms)
         {
             if (_logWriter != null
-                && LogLevel == LogLevels.Warn
-                && LogLevel == LogLevels.Debug)
+                && (LogLevel == LogLevels.Warn
+                    || LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
             }
@@ -74,7 +98,7 @@ namespace Project_Apollo.Logging
         public void Debug(string pMsg, params string[] pParms)
         {
             if (_logWriter != null
-                && LogLevel == LogLevels.Debug)
+                && ( LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
             }

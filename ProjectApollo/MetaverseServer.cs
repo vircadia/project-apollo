@@ -72,16 +72,22 @@ namespace Project_Apollo
         static void Main(string[] args)
         {
 
-            Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER");
-
             Context.Params = new AppParams(args);
             Context.Log = new Logger(Context.Params.P<string>("MetaverseServer.LogDirectory"));
             Context.Log.SetLogLevel(Context.Params.P<string>("LogLevel"));
+
+            if (Context.Params.P<bool>("Verbose") || !Context.Params.P<bool>("Quiet"))
+            {
+                Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER");
+            }
+            // This log message has a UTC time header and a local time message
+            Context.Log.Info("{0} Started at {1}", _logHeader, DateTime.Now.ToString());
 
             Context.KeepRunning = new CancellationTokenSource();
 
             MetaverseServer server = new MetaverseServer();
             server.Start();
+
             return;
         }
 
@@ -90,6 +96,7 @@ namespace Project_Apollo
             // Collect all the HTTP request path handlers in the registry
             Context.PathRegistry = new APIRegistry();
 
+            // Database
             try
             {
                 Context.Db = ConnectToDatabase();
@@ -97,19 +104,24 @@ namespace Project_Apollo
             catch (Exception e)
             {
                 Context.Log.Error("{0} Exception connecting to database: {1}", _logHeader, e.ToString());
-                return;
+                Context.KeepRunning.Cancel();
             }
 
+            // HttpListener
             try
             {
-                Context.Listener = StartHttpListener();
+                if (!Context.KeepRunning.IsCancellationRequested)
+                {
+                    Context.Listener = StartHttpListener();
+                }
             }
             catch (Exception e)
             {
                 Context.Log.Error("{0} Exception starting HttpListener: {1}", _logHeader, e.ToString());
-                return;
+                Context.KeepRunning.Cancel();
             }
 
+            // Wait until someone tells us to stop
             while (!Context.KeepRunning.IsCancellationRequested)
             {
                 Thread.Sleep(100);
@@ -131,6 +143,10 @@ namespace Project_Apollo
             {
                 Context.Listener.Stop();
                 Context.Listener = null;
+            }
+            if (Context.Log != null)
+            {
+                Context.Log.Flush();
             }
         }
 
@@ -157,7 +173,7 @@ namespace Project_Apollo
 
             string prefix = String.Format("http://{0}:{1}/",
                             Context.Params.P<string>("Listener.Host"),
-                            Context.Params.P<string>("Listener.Port"));
+                            Context.Params.P<int>("Listener.Port"));
             Context.Log.Debug("{0} HttpListener listening on '{1}", _logHeader, prefix);
             listener.Prefixes.Add(prefix);
 

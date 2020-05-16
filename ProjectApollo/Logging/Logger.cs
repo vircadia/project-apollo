@@ -76,6 +76,17 @@ namespace Project_Apollo.Logging
             };
         }
 
+        /// <summary>
+        /// See that the log file is flushed out
+        /// </summary>
+        public void Flush()
+        {
+            if (_logWriter != null)
+            {
+                _logWriter.Flush();
+            }
+        }
+
         public void Info(string pMsg, params string[] pParms)
         {
             if (_logWriter != null

@@ -208,12 +208,11 @@ namespace Project_Apollo
                 // If the processing created any error, it will return reply data with the error.
                 RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
 
-                byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
-                pCtx.Response.ContentLength64 = buffer.Length;
                 pCtx.Response.Headers.Add("Server", Context.Params.P<string>("Listener.Response.Header.Server"));
                 
                 pCtx.Response.StatusCode = _reply.Status;
                 if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;
+
                 if(_reply.CustomOutputHeaders != null)
                 {
                     pCtx.Response.ContentType = "application/json";
@@ -224,9 +223,14 @@ namespace Project_Apollo
                     }
                 }
 
-                using (Stream output = pCtx.Response.OutputStream)
+                if (_reply.Body != null)
                 {
-                    output.Write(buffer, 0, buffer.Length);
+                    byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
+                    pCtx.Response.ContentLength64 = buffer.Length;
+                    using (Stream output = pCtx.Response.OutputStream)
+                    {
+                        output.Write(buffer, 0, buffer.Length);
+                    }
                 }
             }
             else

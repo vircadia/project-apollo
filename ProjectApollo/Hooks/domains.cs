@@ -14,19 +14,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using Newtonsoft.Json;
+
+using Project_Apollo.Entities;
 using Project_Apollo.Registry;
+
+using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
-using static Project_Apollo.Registry.APIRegistry;
 
 namespace Project_Apollo.Hooks
 {
     public class domains
     {
-
-        #region PUT Ice Address
 
         public struct PutIceServerRequest
         {
@@ -72,7 +70,7 @@ namespace Project_Apollo.Hooks
 
 
             drd.id = domainID;
-            DomainMemory.DomainObject dobj = Session.Instance.DomainsMem.Itms[domainID].Obj;
+            DomainObject dobj = Session.Instance.DomainsMem.Itms[domainID].Obj;
             drd.ice_server_address = dobj.IPAddr;
             drd.name = dobj.PlaceName;
 
@@ -82,11 +80,6 @@ namespace Project_Apollo.Hooks
 
             return rd;
         }
-
-
-        #endregion
-
-        #region Get Domain
 
         public struct GetDomainError
         {
@@ -101,7 +94,7 @@ namespace Project_Apollo.Hooks
             DomainReplyData drd = new DomainReplyData();
             PutIceServerResponse isres = new PutIceServerResponse();
             isres.status = "success";
-            DomainMemory.DomainObject dobj = new DomainMemory.DomainObject();
+            DomainObject dobj = new DomainObject();
             drd.id = domainID;
             if (Session.Instance.DomainsMem.Itms.ContainsKey(domainID))
             {
@@ -130,11 +123,6 @@ namespace Project_Apollo.Hooks
             return rd;
         }
 
-        #endregion
-
-        #region Temporary Place Name Generate
-
-
         public struct TemporaryPlaceNameReply
         {
             public string status;
@@ -149,7 +137,7 @@ namespace Project_Apollo.Hooks
             PersonNameGenerator png = new PersonNameGenerator();
             PlaceNameGenerator plng = new PlaceNameGenerator();
             // We're generating the entire domain entry in the data store
-            DomainMemory.DomainObject DO = new DomainMemory.DomainObject()
+            DomainObject DO = new DomainObject()
             {
                 PlaceName = png.GenerateRandomFirstName() + "-" + plng.GenerateRandomPlaceName() + "-" + new Random().Next(500, 9000).ToString(),
                 DomainID = Guid.NewGuid().ToString(),
@@ -183,9 +171,6 @@ namespace Project_Apollo.Hooks
             return rd;
         }
 
-        #endregion
-
-        #region Public Key
         [APIPath("/api/v1/domains/%/public_key", "PUT", true)]
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
@@ -204,55 +189,46 @@ namespace Project_Apollo.Hooks
                 index++;
             }
 
-            RESTReplyData rd = new RESTReplyData();
-            users.replyPacket rp = new users.replyPacket();
-            if (Session.Instance.DomainsMem.SetPublicKey(pReq.RemoteUser.ToString(), Tools.Base64Encode(Data), pArgs[0]))
+            ResponseBody respBody = new ResponseBody();
+
+            string domainID = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject aDomain))
             {
-                rd.Status = 200;
-                rp.status = "success";
+                if (aDomain.SetPublicKey(pReq.RemoteUser.ToString(), Tools.Base64Encode(Data)))
+                {
+                    // success
+                }
+                else
+                {
+                    // failure
+                    // rd.Status = 403;
+                    // rp.status = "fail";
+                }
             }
             else
             {
-                rd.Status = 403;
-                rp.status = "fail";
+                respBody.Status = "fail";
             }
-
-            rp.data = "";
-            rd.Body = JsonConvert.SerializeObject(rp);
-
-
-
-            return rd;
-
-
+            return new RESTReplyData(respBody);
         }
 
         // TODO: CHANGE TO REGEX
         [APIPath("/api/v1/domains/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
+            ResponseBody respBody = new ResponseBody();
 
-            Console.WriteLine("====> Request: Get_Public_Key (domain)");
-
-            string pub = Session.Instance.DomainsMem.Itms[pArgs[0]].Obj.Public_Key;
-
-
-            users.users_reply ur = new users.users_reply();
-            if (pub == "") ur.status = "fail";
-            else ur.status = "success";
-
-            ur.data = new Dictionary<string, string>();
-            ur.data.Add("public_key", pub);
-
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(ur);
-
-            return rd;
+            string domainID = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject aDomain))
+            {
+                // return domains public_key in "public_key" field of response
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
-        #endregion
-
-        #region Heartbeat
 
         public struct HeartbeatPacket // Put this inside a Dictionary, key being "domain"
         {
@@ -298,7 +274,7 @@ namespace Project_Apollo.Hooks
                             // start
 
                             DomainMemory.MemoryItem mi = mem.Itms[pArgs[0]];
-                            DomainMemory.DomainObject obj = mi.Obj;
+                            DomainObject obj = mi.Obj;
                             // First check that there is a API Key
                             if(obj.API_Key == "" || obj.API_Key == null)
                             {
@@ -335,190 +311,5 @@ namespace Project_Apollo.Hooks
             return rd;
 
         }
-
-
-        #endregion
-
-    }
-
-
-
-    public class DomainMemory // <--- This is to be used to keep only recently accessed domains in memory!
-        // Anything accessed within... the last 2 hours should stay in cached memory, after that it should be unloaded
-    {
-        #region Base Definitions
-        private static readonly object _lck = new object();
-        public struct DomainObject
-        {
-            public string DomainID;
-            public string PlaceName;
-            public string IPAddr;
-            public string API_Key;
-            public string Public_Key;
-            public string Protocol;
-            public string Version;
-            public bool Restricted;
-            public int TotalUsers;
-            public int Anon;
-            public int LoggedIn;
-            public string NetworkingMode;
-        }
-
-
-        public struct MemoryItem
-        {
-            private DomainObject _obj;
-            public DateTime LastAccessed;
-            public DomainObject Obj
-            {
-                get
-                {
-                    LastAccessed = DateTime.Now;
-                    return _obj;
-                }
-                set
-                {
-                    _obj = value;
-                    LastAccessed = DateTime.Now;
-                    SaveItem();
-                }
-            }
-
-            public void SaveItem()
-            {
-                lock (_lck)
-                {
-                    if (!Directory.Exists("domains")) Directory.CreateDirectory("domains");
-                    File.WriteAllText("domains/" + Obj.DomainID + ".json", JsonConvert.SerializeObject(Obj, Formatting.Indented));
-                }
-            }
-            
-        }
-
-
-        public Dictionary<string, MemoryItem> Itms = new Dictionary<string, MemoryItem>();
-        private void Scan()
-        {
-            List<string> ToRemove = new List<string>();
-
-            foreach (KeyValuePair<string, MemoryItem> kvp in Itms)
-            {
-                if (kvp.Value.LastAccessed.AddHours(2) < DateTime.Now)
-                {
-                    ToRemove.Add(kvp.Key);
-                }
-            }
-            foreach (string rem in ToRemove)
-            {
-                Itms.Remove(rem);
-            }
-        }
-        public void LoadDomain(string ID, string api_key="")
-        {
-            if (Directory.Exists("domains"))
-            {
-                if (File.Exists($"domains/{ID}.json"))
-                {
-                    lock (_lck)
-                    {
-
-                        MemoryItem mi1 = new MemoryItem();
-                        DomainObject obj1 = JsonConvert.DeserializeObject<DomainObject>(File.ReadAllText($"domains/{ID}.json"));
-                        mi1.Obj = obj1;
-                        Itms.Add(obj1.DomainID, mi1);
-                        return;
-                    }
-                }
-            }
-
-            MemoryItem mi = new MemoryItem();
-            DomainObject obj = new DomainObject
-            {
-                DomainID = ID
-            };
-            PlaceNameGenerator pngl = new PlaceNameGenerator();
-            obj.PlaceName = pngl.GenerateRandomPlaceName()+"-"+pngl.GenerateRandomPlaceName()+"-"+(new Random()).Next(500, 8000).ToString(); //<-- Does this need to be changed in the future??
-            obj.IPAddr = Session.Instance.CFG.DefaultIceServerAddress;
-            obj.API_Key = api_key;
-            mi.Obj = obj;
-
-            Itms.Add(obj.DomainID, mi);
-        }
-        #endregion
-
-        #region Set Info
-        public bool SetPlaceName(string DomainID, string PlaceName, string APIKey="")
-        {
-            Scan();
-
-            if (Itms.ContainsKey(DomainID))
-            {
-                MemoryItem mi = Itms[DomainID];
-                DomainObject obj = mi.Obj;
-                if (obj.API_Key != APIKey) return false;
-                obj.PlaceName = PlaceName;
-                mi.Obj = obj;
-                Itms[DomainID] = mi;
-                return true;
-            }
-            else
-            {
-                // Load to memory
-                LoadDomain(DomainID);
-                return SetPlaceName(DomainID, PlaceName);
-                
-            }
-        }
-
-
-        public bool SetIP(string DomainID, string IP, string APIKey="")
-        {
-            Scan();
-
-            if (Itms.ContainsKey(DomainID))
-            {
-                MemoryItem mi = Itms[DomainID];
-                DomainObject obj = mi.Obj;
-                if (obj.API_Key != APIKey) return false;
-                obj.IPAddr = IP;
-                mi.Obj = obj;
-                Itms[DomainID] = mi;
-                return true;
-            }
-            else
-            {
-                LoadDomain(DomainID);
-                return SetIP(DomainID, IP);
-            }
-        }
-
-        public bool SetPublicKey(string IP, string Key, string ID)
-        {
-            Scan();
-
-            if (Itms.ContainsKey(ID))
-            {
-                MemoryItem mi = Itms[ID];
-                DomainObject obj = mi.Obj;
-                if(obj.IPAddr == IP)
-                {
-                    obj.Public_Key = Key;
-                    mi.Obj = obj;
-                    Itms[ID] = mi;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                LoadDomain(ID);
-                return SetPublicKey(IP, Key, ID);
-            }
-        }
-
-        #endregion
     }
 }

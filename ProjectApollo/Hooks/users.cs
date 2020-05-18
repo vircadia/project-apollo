@@ -17,11 +17,11 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.IO;
-using Newtonsoft.Json;
-using Project_Apollo.Registry;
-using static Project_Apollo.Registry.APIRegistry;
-using System.Security.Cryptography;
 
+using Newtonsoft.Json;
+
+using Project_Apollo.Entities;
+using Project_Apollo.Registry;
 
 namespace Project_Apollo.Hooks
 {
@@ -29,109 +29,79 @@ namespace Project_Apollo.Hooks
     {
         private static readonly string _logHeader = "[User]";
 
-        #region Create User
+        // ===========================================================================
+        // TODO: move this to 'admin' section
         public struct users_request
         {
-            public Dictionary<string, string> user;
-        }
-        public struct users_reply
-        {
-            public string status;
-            public Dictionary<string, string> data;
+            public Dictionary<string, string> User;
         }
         [APIPath("/api/v1/users", "POST", true)]
         public RESTReplyData user_create(RESTRequestData pReq, List<string> pArgs)
         {
-
-            RESTReplyData data = new RESTReplyData();
-            users_request usreq = new users_request();
             // This specific endpoint only creates a user
+            users_request usreq;
             try
             {
-                usreq = JsonConvert.DeserializeObject<users_request>(pReq.RequestBody);
+                usreq = pReq.RequestBodyObject<users_request>();
             }
             catch (Exception e)
             {
                 Context.Log.Error("{0} Malformed reception: {1}", _logHeader, e.ToString());
-                throw new NotImplementedException(); // if this fails then the request is malformed!
+                throw new Exception("Malformed content");
             }
-            UserAccounts UA = UserAccounts.GetAccounts();
-            UA.CreateAccount(usreq.user["username"], usreq.user["email"], usreq.user["password"]);
-            if (UA.GetStatus())
+
+            string userName = usreq.User["username"];
+            string userPW = usreq.User["password"];
+            string userEmail = usreq.User["email"];
+
+            ResponseBody respBody = new ResponseBody();
+            if (!Users.Instance().CreateAccountPW(userName, userPW, userEmail))
             {
-                // success return nothing
-                data.Status = 200;
-                data.Body = "";
-                return data;
+                // If didn't create, return a fail
+                respBody = new ResponseBody("fail", new Dictionary<string, string>()
+                {
+                    { "username", "already exists" }
+                });
             }
-            else
-            {
-                data.Status = 200;
-                users_reply ur = new users_reply();
-                ur.status = "fail";
-                ur.data = new Dictionary<string, string>();
-                ur.data.Add("username", "already exists!");
-                data.Body = JsonConvert.SerializeObject(ur);
-                return data;
-            }
+
+            return new RESTReplyData(respBody);
 
         }
-        #endregion
 
-        #region /api/v1/user/locker
+        // =============================================================================
         [APIPath("/api/v1/user/locker", "POST", true)]
         public RESTReplyData user_locker_set(RESTRequestData pReq, List<string> pArgs)
         {
-            UserAccounts UA = UserAccounts.GetAccounts();
-            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
-
-            UA.SetAccountSettings(AccessToken, pReq.RequestBody);
-
-            users_reply ur = new users_reply();
-            ur.status = "success";
-            ur.data = new Dictionary<string, string>();
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(ur);
-            return rd;
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
+            {
+                // TODO: do whatever one does with a locker
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
 
-        public struct replyPacket
-        {
-            public string status;
-            public string data;
-        }
-
+        // =============================================================================
         [APIPath("/api/v1/user/locker", "GET", true)]
         public RESTReplyData user_locker_get(RESTRequestData pReq, List<string> pArgs)
         {
-            replyPacket not_found = new replyPacket();
-            not_found.status = "fail";
-            not_found.data = "";
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(not_found);
-            string[] authHead = pReq.Headers["Authorization"].Split(new[] { ' ' });
-            if (authHead.Length == 1) return rd;
-            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-            string settings = UA.GetAccountSettings(AccessToken);
-
-
-            replyPacket rp = new replyPacket();
-            rp.status = "success";
-            rp.data = settings;
-
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(rp);
-            return rd;
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
+            {
+                // TODO: do whatever one does with a locker
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
 
 
-        #endregion
-
-        #region User Location
+        // =============================================================================
         public struct LocationPacket
         {
             public string status;
@@ -140,54 +110,42 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/user/location", "PUT", true)]
         public RESTReplyData user_location_set(RESTRequestData pReq, List<string> pArgs)
         {
-            LocationPacket loc = JsonConvert.DeserializeObject<LocationPacket>(pReq.RequestBody);
-            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-            UA.UpdateLocation(loc.location, AccessToken);
-
-            replyPacket rp = new replyPacket();
-            rp.status = "success";
-            rp.data = "no error";
-
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(rp);
-            return rd;
-        }
-
-
-        [APIPath("/api/v1/users/%/location", "GET", true)]
-        public RESTReplyData get_location(RESTRequestData pReq, List<string> pArgs)
-        {
-            RESTReplyData rd = new RESTReplyData();
-            Console.WriteLine("====> Request: Get_Location");
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-            UserAccounts.Location loc = UA.GetLocation(pArgs[0]);
-
-            LocationPacket lp = new LocationPacket();
-            if (loc.network_address != "")
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
             {
-
-                lp.status = "success";
-                lp.location = loc;
+                LocationPacket loc = pReq.RequestBodyObject<LocationPacket>();
+                // TODO: do whatever putting the location does
             }
             else
             {
-                lp.status = "user has no location";
-
+                respBody.Status = "fail";
             }
-
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(lp);
-            return rd;
-
+            return new RESTReplyData(respBody);
         }
 
-        #endregion
 
-        #region User Profile
+        // ==================================================================================
+        [APIPath("/api/v1/users/%/location", "GET", true)]
+        public RESTReplyData get_location(RESTRequestData pReq, List<string> pArgs)
+        {
+            ResponseBody respBody = new ResponseBody();
+
+            string userID = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Users.Instance().TryGetUserWithID(userID, out UserObject aUser))
+            {
+                if (aUser.Location != null)
+                {
+                    respBody = new ResponseBody(aUser.Location);
+                }
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
+        }
+
+        // ==================================================================================
         public struct user_profile_reply
         {
             public string status;
@@ -209,102 +167,65 @@ namespace Project_Apollo.Hooks
             }
         }
 
-
-
         [APIPath("/api/v1/user/profile", "GET", true)]
         public RESTReplyData user_profile_gen(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 200;
-
-
-            UserProfile up = new UserProfile(UserAccounts.GetAccounts().GetAccountName(pReq.Headers["Authorization"].Split(new[] { ' ' })[1]));
-            user_profile_reply upr = new user_profile_reply();
-            upr.status = "success";
-            upr.data = new Dictionary<string, UserProfile>();
-            upr.data.Add("user", up);
-
-            rd.Body = JsonConvert.SerializeObject(upr);
-            return rd;
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
+            {
+                // TODO: do whatever about returning a profile
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
-        #endregion
 
-        #region Public Key
+        // ==================================================================================
         [APIPath("/api/v1/user/public_key", "PUT", true)]
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 404;
-            rd.Body = "{'status':'fail'}";
-            if (pReq.Headers.ContainsKey("Authorization") == false) return rd;
-            string[] Lines = pReq.RequestBody.Split(new[] { '\n' });
-
-            string Data = "";
-
-            int index=0;
-            foreach(string S in Lines)
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
             {
-                if (index > 3 && S.IndexOf("boundary")==-1)
-                {
-                    Data += S + "\n";
-                }
-                index++;
+                // TODO: do whatever about setting the user public_key
             }
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-
-            replyPacket rp = new replyPacket();
-            rp.status = UA.SetPublicKey(Data, pReq.Headers["Authorization"].Split(new[] { ' ' })[1]);
-            rp.data = "no error";
-
-            
-            if (rp.status == "fail") rd.Status = 401;
             else
-                rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(rp);
-            return rd;
-
-
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
 
-        // TODO: CHANGE TO REGEX
+        // ==================================================================================
         [APIPath("/api/v1/users/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
-
-            Console.WriteLine("====> Request: Get_Public_Key");
-
-            UserAccounts UA = UserAccounts.GetAccounts();
-            string pub=UA.GetPublicKey(pArgs[0]);
-
-            users_reply ur = new users_reply();
-            if (pub == "no such users") ur.status = "fail";
-            else ur.status = "success";
-
-            ur.data = new Dictionary<string, string>();
-            ur.data.Add("public_key", pub);
-
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(ur);
-
-            return rd;
+            ResponseBody respBody = new ResponseBody();
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
+            {
+                // TODO: do whatever about returning the user public_key
+            }
+            else
+            {
+                respBody.Status = "fail";
+            }
+            return new RESTReplyData(respBody);
         }
-        #endregion
 
-        #region User Tokens
 
         [APIPath("/user/tokens/new", "GET", true)]
-        public RESTReplyData user_tokens(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_tokens(RESTRequestData pReq, List<string> pArgs)
         {
-            if(Headers.ContainsKey("Authorization") == false)
+            if(pReq.Headers.ContainsKey("Authorization") == false)
             {
 
                 RESTReplyData rd = new RESTReplyData();
                 rd.Status = 401;
                 rd.Body = "";
-                Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
+                Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
                 rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
                 rd.Body = "<h2>You are not logged in!";
                 rd.CustomOutputHeaders.Add("Content-Type", "text/html");
@@ -312,10 +233,10 @@ namespace Project_Apollo.Hooks
             } else
             {
                 // Validate login!
-                string[] req = arguments[0].Split(new[] { '?', '&', '=' });
-                string[] authHeader = Headers["Authorization"].Split(new[] { ' ' });
+                string[] req = pArgs[0].Split(new[] { '?', '&', '=' });
+                string[] authHeader = pReq.Headers["Authorization"].Split(new[] { ' ' });
 
-                if(authHeader[0] == "Basic" && Session.Instance.TemporaryStackData.Contains(remoteIP.ToString()))
+                if(authHeader[0] == "Basic" && Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()))
                 {
                     // Validate credentials!
                     UserAccounts ua = UserAccounts.GetAccounts();
@@ -345,7 +266,7 @@ namespace Project_Apollo.Hooks
 
                                 // Exit this loop, and reply to the user!
 
-                                Session.Instance.TemporaryStackData.Remove(remoteIP.ToString());
+                                Session.Instance.TemporaryStackData.Remove(pReq.RemoteUser.ToString());
                                 RESTReplyData rd1 = new RESTReplyData();
                                 rd1.Status = 200;
                                 rd1.Body = $"<center><h2>Your domain's access token is: {Token}</h2></center>";
@@ -360,13 +281,13 @@ namespace Project_Apollo.Hooks
                 RESTReplyData rd = new RESTReplyData();
                 rd.Body = "Invalid authorization header was provided!<br/>If you were not prompted for credentials again, close the tab or the browser and try again";
                 rd.Status = 401;
-                if (Session.Instance.TemporaryStackData.Contains(remoteIP.ToString()) == false) Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
+                if (Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()) == false)
+                    Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
                 rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
                 return rd;
             }
         }
 
-        #endregion
 
     }
 
@@ -408,223 +329,15 @@ namespace Project_Apollo.Hooks
             else
             {
                 Console.WriteLine("====> Login failed");
-                users.users_reply failreply = new users.users_reply();
-                failreply.status = "fail";
-                failreply.data = new Dictionary<string, string>();
-                failreply.data.Add("reason", "Unknown");
+                // users.users_reply failreply = new users.users_reply();
+                // failreply.status = "fail";
+                // failreply.data = new Dictionary<string, string>();
+                // failreply.data.Add("reason", "Unknown");
                 data.Status = 200;
-                data.Body = JsonConvert.SerializeObject(failreply);
+                // data.Body = JsonConvert.SerializeObject(failreply);
                 return data;
             }
 
-        }
-
-        
-    }
-
-    public class UserAccounts
-    {
-        private static readonly object _lock = new object();
-        public static UserAccounts GetAccounts()
-        {
-            lock (_lock)
-            {
-
-                if (!File.Exists("accounts.json"))
-                {
-                    UserAccounts ua = new UserAccounts();
-                    return ua;
-                }
-                string js = File.ReadAllText("accounts.json");
-                return (UserAccounts)JsonConvert.DeserializeObject<UserAccounts>(js);
-            }
-        }
-
-        public struct Location
-        {
-            public bool connected;
-            public string network_address;
-            public string availability;
-            public int network_port;
-            public string node_id;
-            public string domain_id;
-            public string path;
-        }
-
-        public class Account
-        {
-            public string name;
-            public string email;
-            public string pwSalt;
-            public string pwHash;
-            public string account_settings;
-            public string PubKey;
-            public Location LastLocation;
-            public Dictionary<string, string> ActiveTokens;
-            public void GenAccount(string A, string B, string C)
-            {
-                name = A;
-                email = B;
-                pwSalt = Tools.SHA256Hash(Tools.getTimestamp().ToString() + ";" + (new Random().Next(99999999)).ToString());
-                pwHash = Tools.MD5Hash(Tools.MD5Hash(C) + ":" + Tools.MD5Hash(pwSalt));
-            }
-            public Account()
-            {
-                ActiveTokens = new Dictionary<string, string>();
-            }
-        }
-        private bool LastStatus;
-        public bool GetStatus()
-        {
-            return LastStatus;
-        }
-        public Dictionary<string, Account> AllAccounts = new Dictionary<string, Account>();
-        public void CreateAccount(string name,string email, string password)
-        {
-            Account a = new Account();
-            a.GenAccount(name, email, password);
-            LastStatus = true;
-            if (!AllAccounts.ContainsKey(name))
-                AllAccounts.Add(name, a);
-            else
-                LastStatus = false; // set to false IF the creation fails!
-
-            save();
-        }
-
-
-        public bool Login(string name, string password, string access_token)
-        {
-
-            if (AllAccounts.ContainsKey(name))
-            {
-                Account act = AllAccounts[name];
-
-                if (Tools.MD5Hash(Tools.MD5Hash(password) + ":" + Tools.MD5Hash(act.pwSalt)) == act.pwHash)
-                {
-                    if (access_token != "web")
-                    {
-
-                        if (act.ActiveTokens.ContainsKey(access_token))
-                            act.ActiveTokens[access_token] = "owner";
-                        else
-                            act.ActiveTokens.Add(access_token, "owner");
-                    }
-                    Console.WriteLine("====> New Access Token: " + name + "; " + access_token);
-                    AllAccounts[name] = act;
-                    save();
-                    return true;
-                }
-                else return false;
-            }
-            else return false;
-        }
-
-        public string GetAccountSettings(string AccessToken)
-        {
-            Account a = new Account();
-            int i = 0;
-            foreach (string user in AllAccounts.Keys)
-            {
-                a = AllAccounts[user];
-                if(a.ActiveTokens.ContainsKey(AccessToken))
-                {
-                    return Tools.Base64Decode(a.account_settings);
-                }
-            }
-
-            return "";
-        }
-
-        public void SetAccountSettings(string AccessToken, string AccountSettings)
-        {
-            Account a = new Account();
-            foreach(string user in AllAccounts.Keys)
-            {
-                a = AllAccounts[user];
-                if (a.ActiveTokens.ContainsKey(AccessToken))
-                {
-                    a.account_settings = Tools.Base64Encode(AccountSettings);
-                    AllAccounts[user] = a;
-                    save();
-                    return;
-                }
-            }
-        }
-        public void UpdateLocation(Location loc, string AccessToken)
-        {
-            Account a = new Account();
-            foreach(string user in AllAccounts.Keys)
-            {
-                a = AllAccounts[user];
-                if(a.ActiveTokens.ContainsKey(AccessToken))
-                {
-                    a.LastLocation = loc;
-                    AllAccounts[user] = a;
-                    save();
-                    return;
-                }
-            }
-        }
-
-        public Location GetLocation(string user)
-        {
-            if (AllAccounts.ContainsKey(user))
-            {
-                return AllAccounts[user].LastLocation;
-            }
-            else return new Location();
-        }
-
-        public string GetAccountName(string AccessToken)
-        {
-            Account a = new Account();
-            foreach(string user in AllAccounts.Keys)
-            {
-                a = AllAccounts[user];
-                if(a.ActiveTokens.ContainsKey(AccessToken))
-                {
-                    return user;
-                }
-            }
-            return "not_found";
-        }
-
-        public string SetPublicKey(string PubKey, string AccessToken)
-        {
-            Account a = new Account();
-            foreach(string key in AllAccounts.Keys)
-            {
-                a = AllAccounts[key];
-
-                if (a.ActiveTokens.ContainsKey(AccessToken))
-                {
-                    ///////////////////
-                    //// TODO: CHECK WHAT ENCODING IS EXPECTED BY THE CLIENT
-                    //// 2: CHANGE EXPECTED POST HANDLING, I HATE DEALING WITH OCTET STREAMS EVEN ON A PHP SERVER!
-                    ///
-                    /// SAMPLE REPLY FROM ORIGINAL METAVERSE SERVER
-                    /// {"status":"success","data":{"public_key":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3KTcsZZ1qLbtFAeP\njksyoTGk6cU/kUDf98Vo1otWFI0erVmJI0Sf4Ukv1fIMlIRoke8k2fIyefAt\nCJ2cDvNkEOPCgV0ibcOx/P/sEdlSBm8Ke+Sk5Ov3TQyFlsOPRrtL7mJtnVpd\nqoxc+Arsi3UIuOp0YhyLm5HFyaQQr4gnKrPb7jqjBag7BGlb59zH7cc2X7Fr\nTm6DR7bhWG8XGZZ5yT6SjZjDq93vhOTBr5tMc8g/wg/irPsgHMf+SEpSZzRK\nJXuEXE4Jn6SHAFJ0emhLfIIpeXHEDHtFDJyhFt0HeVWFW9QqylxY+cTN/y6L\n1/7EPoWIwFFQQUxRTdNTKKnVKQIDAQAB\n"}}
-                    /// 
-                    /// 
-                    a.PubKey = Tools.Base64Encode(PubKey);
-                    AllAccounts[key] = a;
-                    save();
-                    return "success";
-                }
-            }
-            return "fail";
-        }
-
-        public string GetPublicKey(string user)
-        {
-            if (AllAccounts.ContainsKey(user)) return AllAccounts[user].PubKey;
-            return "no such user";
-        }
-
-        public void save()
-        {
-            File.WriteAllText("accounts.json", JsonConvert.SerializeObject(this, Formatting.Indented));
         }
     }
 }

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -120,23 +120,48 @@ namespace Project_Apollo.Registry
                 return _headers;
             }
         }
+        // Return the authorization token from the request. Return 'null' if no token
+        public string AuthToken
+        {
+            get
+            {
+                string token = _listenerContext.Request.Headers["Authorization"];
+                return token;
+            }
+        }
 
     }
     
     /// <summary>
     /// Structure used to return a requests reply.
     /// Constructed to hide the HTTP hair from the processing routines.
+    ///
+    /// While one can fill all the individual fields for the HTTP response,
+    /// there are some helper functions that return in the body the usual
+    /// construction -- JSON string of "{ "status": "success", "data", RESPONSE }"
     /// </summary>
     public class RESTReplyData
     {
+        // String body to serialize into the response
+        public string Body;
+        // HTTP reply status code (200, etc)
+        public int Status;
+        // If defined, added to the status response code 
+        public string CustomStatus; // <-- Examples: OK, Not Found, Authorization Required, etc.
+        // Header fields to add to the response
+        public Dictionary<string, string> CustomOutputHeaders;
         public RESTReplyData()
         {
+            Status = 200;   // Assume successful response
             CustomOutputHeaders = new Dictionary<string, string>();
         }
-        public string Body;
-        public int Status;
-        public string CustomStatus; // <-- Examples: OK, Not Found, Authorization Required, etc.
-        public Dictionary<string, string> CustomOutputHeaders;
+        public RESTReplyData(string pBody)
+        {
+            Status = 200;   // Assume successful response
+            CustomOutputHeaders = new Dictionary<string, string>();
+            Body = pBody;
+        }
+
     }
 
 }

@@ -167,6 +167,7 @@ namespace Project_Apollo
             Context.Log.Debug("{0} Creating HttpListener", _logHeader);
             listener = new HttpListener();
 
+            // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:19400/ user=everyone
             string prefix = String.Format("http://{0}:{1}/",
                             Context.Params.P<string>("Listener.Host"),
                             Context.Params.P<int>("Listener.Port"));

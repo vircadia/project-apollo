@@ -53,9 +53,9 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/domains/%/ice_server_address", "PUT", true)]
-        public ReplyData put_ice_address(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData put_ice_address(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             string domainID = arguments[0];
             DomainReplyData drd = new DomainReplyData();
             PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(body);
@@ -94,9 +94,9 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/domains/%", "GET", true)]
-        public ReplyData get_domain(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_domain(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             string domainID = arguments[0];
             DomainReplyData drd = new DomainReplyData();
             PutIceServerResponse isres = new PutIceServerResponse();
@@ -142,9 +142,9 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/domains/temporary", "POST", true)]
-        public ReplyData get_temporary_name(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_temporary_name(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
 
             PersonNameGenerator png = new PersonNameGenerator();
             PlaceNameGenerator plng = new PlaceNameGenerator();
@@ -188,7 +188,7 @@ namespace Project_Apollo.Hooks
         #region Public Key
         [APIPath("/api/v1/domains/%/public_key", "PUT", true)]
 
-        public ReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             string[] Lines = body.Split(new[] { '\n' });
 
@@ -204,7 +204,7 @@ namespace Project_Apollo.Hooks
                 index++;
             }
 
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             users.replyPacket rp = new users.replyPacket();
             if (Session.Instance.DomainsMem.SetPublicKey(remoteIP.ToString(), Tools.Base64Encode(Data), arguments[0]))
             {
@@ -229,9 +229,9 @@ namespace Project_Apollo.Hooks
 
         // TODO: CHANGE TO REGEX
         [APIPath("/api/v1/domains/%/public_key", "GET", true)]
-        public ReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
 
             Console.WriteLine("====> Request: Get_Public_Key (domain)");
 
@@ -272,11 +272,11 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/domains/%", "PUT", true)]
-        public ReplyData domain_heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData domain_heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             // Check the Authorization header for a valid Access token
             // If token is valid, begin updating stuff
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = "";
             if (Headers.ContainsKey("Authorization"))

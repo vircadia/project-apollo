@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -40,10 +40,10 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/users", "POST", true)]
-        public ReplyData user_create(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_create(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
 
-            ReplyData data = new ReplyData();
+            RESTReplyData data = new RESTReplyData();
             users_request usreq = new users_request();
             // This specific endpoint only creates a user
             try
@@ -80,7 +80,7 @@ namespace Project_Apollo.Hooks
 
         #region /api/v1/user/locker
         [APIPath("/api/v1/user/locker", "POST", true)]
-        public ReplyData user_locker_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_locker_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             UserAccounts UA = UserAccounts.GetAccounts();
             string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
@@ -90,7 +90,7 @@ namespace Project_Apollo.Hooks
             users_reply ur = new users_reply();
             ur.status = "success";
             ur.data = new Dictionary<string, string>();
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = JsonConvert.SerializeObject(ur);
             return rd;
@@ -103,12 +103,12 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/user/locker", "GET", true)]
-        public ReplyData user_locker_get(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_locker_get(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             replyPacket not_found = new replyPacket();
             not_found.status = "fail";
             not_found.data = "";
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = JsonConvert.SerializeObject(not_found);
             string[] authHead = Headers["Authorization"].Split(new[] { ' ' });
@@ -138,7 +138,7 @@ namespace Project_Apollo.Hooks
             public UserAccounts.Location location;
         }
         [APIPath("/api/v1/user/location", "PUT", true)]
-        public ReplyData user_location_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_location_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             LocationPacket loc = JsonConvert.DeserializeObject<LocationPacket>(body);
             string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
@@ -150,7 +150,7 @@ namespace Project_Apollo.Hooks
             rp.status = "success";
             rp.data = "no error";
 
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = JsonConvert.SerializeObject(rp);
             return rd;
@@ -158,9 +158,9 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/users/%/location", "GET", true)]
-        public ReplyData get_location(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_location(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             Console.WriteLine("====> Request: Get_Location");
 
             UserAccounts UA = UserAccounts.GetAccounts();
@@ -212,9 +212,9 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/user/profile", "GET", true)]
-        public ReplyData user_profile_gen(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_profile_gen(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
 
 
@@ -232,9 +232,9 @@ namespace Project_Apollo.Hooks
         #region Public Key
         [APIPath("/api/v1/user/public_key", "PUT", true)]
 
-        public ReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 404;
             rd.Body = "{'status':'fail'}";
             if (Headers.ContainsKey("Authorization") == false) return rd;
@@ -270,9 +270,9 @@ namespace Project_Apollo.Hooks
 
         // TODO: CHANGE TO REGEX
         [APIPath("/api/v1/users/%/public_key", "GET", true)]
-        public ReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string,string> Headers)
+        public RESTReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string,string> Headers)
         {
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
 
             Console.WriteLine("====> Request: Get_Public_Key");
 
@@ -296,12 +296,12 @@ namespace Project_Apollo.Hooks
         #region User Tokens
 
         [APIPath("/user/tokens/new", "GET", true)]
-        public ReplyData user_tokens(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_tokens(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             if(Headers.ContainsKey("Authorization") == false)
             {
 
-                ReplyData rd = new ReplyData();
+                RESTReplyData rd = new RESTReplyData();
                 rd.Status = 401;
                 rd.Body = "";
                 Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
@@ -346,7 +346,7 @@ namespace Project_Apollo.Hooks
                                 // Exit this loop, and reply to the user!
 
                                 Session.Instance.TemporaryStackData.Remove(remoteIP.ToString());
-                                ReplyData rd1 = new ReplyData();
+                                RESTReplyData rd1 = new RESTReplyData();
                                 rd1.Status = 200;
                                 rd1.Body = $"<center><h2>Your domain's access token is: {Token}</h2></center>";
                                 rd1.CustomOutputHeaders.Add("Content-Type", "text/html");
@@ -357,7 +357,7 @@ namespace Project_Apollo.Hooks
                     }
                 }
 
-                ReplyData rd = new ReplyData();
+                RESTReplyData rd = new RESTReplyData();
                 rd.Body = "Invalid authorization header was provided!<br/>If you were not prompted for credentials again, close the tab or the browser and try again";
                 rd.Status = 401;
                 if (Session.Instance.TemporaryStackData.Contains(remoteIP.ToString()) == false) Session.Instance.TemporaryStackData.Add(remoteIP.ToString());
@@ -383,11 +383,11 @@ namespace Project_Apollo.Hooks
             public int created_at;
         }
         [APIPath("/oauth/token", "POST", true)]
-        public ReplyData user_login(IPAddress remoteIP, int remotePort, List<string> args, string body, string method, Dictionary<string,string> Headers)
+        public RESTReplyData user_login(IPAddress remoteIP, int remotePort, List<string> args, string body, string method, Dictionary<string,string> Headers)
         {
             Console.WriteLine("====> Starting User Login <=====");
 
-            ReplyData data = new ReplyData();
+            RESTReplyData data = new RESTReplyData();
             Login_Reply lr = new Login_Reply();
             Dictionary<string, string> arguments = Tools.PostBody2Dict(body);
             lr.created_at = Tools.getTimestamp();

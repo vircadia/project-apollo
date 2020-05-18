@@ -31,9 +31,9 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/user/heartbeat", "PUT", true)]
-        public ReplyData Heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData Heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
-            ReplyData _reply = new ReplyData();
+            RESTReplyData _reply = new RESTReplyData();
 
             Heartbeat_Memory mem = Heartbeat_Memory.GetHeartbeat();
             if (mem.Contains(remoteIP.ToString())) mem.Set(remoteIP.ToString(), Guid.NewGuid().ToString());

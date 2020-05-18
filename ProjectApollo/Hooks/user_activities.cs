@@ -35,11 +35,11 @@ namespace Project_Apollo.Hooks
             public string action_name;
         }
         [APIPath("/api/v1/user_activities", "POST", true)]
-        public ReplyData user_activity (IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_activity (IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
         {
             Heartbeat_Memory hbmem = new Heartbeat_Memory();
             user_activity_input uai = (user_activity_input)JsonConvert.DeserializeObject<user_activity_input>(body);
-            ReplyData rd = new ReplyData();
+            RESTReplyData rd = new RESTReplyData();
             rd.Status = 404;
             rd.Body = "{\"status\":\"notfound\"}";
             if(uai.action_name == "quit")
@@ -47,7 +47,7 @@ namespace Project_Apollo.Hooks
 
                 
                 if (hbmem.Contains(remoteIP.ToString())) hbmem.Rem(remoteIP.ToString());
-                rd = new ReplyData();
+                rd = new RESTReplyData();
                 rd.Status = 200;
                 user_activities_reply uar = new user_activities_reply();
                 uar.status = "success";

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,22 +15,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Data;
+using System.Data.Common;
 using System.IO;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-
-using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 using Project_Apollo.Logging;
 using Project_Apollo.Configuration;
 using Project_Apollo.Registry;
-
-using static Project_Apollo.Registry.APIRegistry;
-using System.Data.Common;
-using NUnit.Framework.Constraints;
 
 namespace Project_Apollo
 {
@@ -57,6 +51,7 @@ namespace Project_Apollo
         // All the request path handles are registered in the registry
         static public APIRegistry PathRegistry;
     }
+
     /// <summary>
     /// MetaverseServer entry.
     /// This sets up the global context, fetches parameters (from
@@ -71,9 +66,9 @@ namespace Project_Apollo
 
         static void Main(string[] args)
         {
-
+            // Setup global Context
             Context.Params = new AppParams(args);
-            Context.Log = new Logger(Context.Params.P<string>("MetaverseServer.LogDirectory"));
+            Context.Log = new LogFileLogger(Context.Params.P<string>("MetaverseServer.LogDirectory"));
             Context.Log.SetLogLevel(Context.Params.P<string>("LogLevel"));
 
             if (Context.Params.P<bool>("Verbose") || !Context.Params.P<bool>("Quiet"))
@@ -83,6 +78,7 @@ namespace Project_Apollo
             // This log message has a UTC time header and a local time message
             Context.Log.Info("{0} Started at {1}", _logHeader, DateTime.Now.ToString());
 
+            // Everything will keep running until this TokenSource is cancelled
             Context.KeepRunning = new CancellationTokenSource();
 
             MetaverseServer server = new MetaverseServer();
@@ -178,177 +174,69 @@ namespace Project_Apollo
             listener.Prefixes.Add(prefix);
 
             listener.Start();
-            // Call 'OnWeb' when request received
-            listener.BeginGetContext(OnWeb, null);
+
+            // Start a task to read and process all HTTP requests
+            Task.Run(() =>
+                {
+                    // Common token that is used to stop processing tasks that have not started
+                    CancellationToken keepRunningToken = Context.KeepRunning.Token;
+
+                    while (!Context.KeepRunning.IsCancellationRequested)
+                    {
+                        // Wait for a request
+                        HttpListenerContext ctx = listener.GetContext();
+                        // Queue the request processing on the system task queue
+                        Task.Run(() => { ProcessHttpRequest(ctx); }, keepRunningToken);
+                    }
+                }, Context.KeepRunning.Token
+            );
 
             return listener;
         }
 
         /// <summary>
-        /// Do the async request processing.
+        /// Process a received HTTP request.
+        /// We are on our own thread.
         /// </summary>
-        /// <param name="ar"></param>
-        private static void OnWeb(IAsyncResult ar)
+        /// <param name="pCtx"></param>
+        private void ProcessHttpRequest(HttpListenerContext pCtx)
         {
-            try
+            if (pCtx.Request.ContentType == "application/json" || pCtx.Request.ContentType == "text/html")
             {
-                HttpListenerContext ctx = null;
-                try
+                // Find the processor for this request and do the operation
+                // If the processing created any error, it will return reply data with the error.
+                RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
+
+                byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
+                pCtx.Response.ContentLength64 = buffer.Length;
+                pCtx.Response.Headers.Add("Server", Context.Params.P<string>("Listener.Response.Header.Server"));
+                
+                pCtx.Response.StatusCode = _reply.Status;
+                if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;
+                if(_reply.CustomOutputHeaders != null)
                 {
-                    ctx = Context.Listener.EndGetContext(ar);
-                }
-                catch (Exception e)
-                {
-                    Context.Log.Error("{0} Error getting context\n{1}\n{2}",
-                                _logHeader, e.StackTrace, e.Message);
-                    //TODO: should some sort of response be created?
-                    return;
-                }
-
-                Context.Listener.BeginGetContext(OnWeb, null);
-
-                string reqBody;
-                using (Stream body = ctx.Request.InputStream)
-                {
-                    using (StreamReader sr = new StreamReader(body, ctx.Request.ContentEncoding))
-                    {
-                        reqBody = sr.ReadToEnd();
-                    }
-                }
-
-                // TODO: figure out if this is from the HTTPListener as I don't want
-                //    just anyone sending a message to shut us down
-                if (reqBody == "END")
-                {
-                    Context.KeepRunning.Cancel();
-                    return;
-                }
-
-                if (ctx.Request.ContentType == "application/json" || ctx.Request.ContentType == "text/html")
-                {
-                    Context.Log.Debug("{0} received: {1}", _logHeader, reqBody);
-
-                    ReplyData _reply = Context.PathRegistry.ProcessInbound(reqBody,
-                                ctx.Request.RawUrl,
-                                ctx.Request.HttpMethod,
-                                ctx.Request.RemoteEndPoint.Address,
-                                ctx.Request.RemoteEndPoint.Port,
-                                Tools.NVC2Dict(ctx.Request.Headers));
-
-                    byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
-                    ctx.Response.ContentLength64 = buffer.Length;
-                    ctx.Response.Headers.Add("Server", "1.5");
+                    pCtx.Response.ContentType = "application/json";
                     
-                    ctx.Response.StatusCode = _reply.Status;
-                    if (_reply.CustomStatus != null) ctx.Response.StatusDescription = _reply.CustomStatus;
-                    if(_reply.CustomOutputHeaders != null)
+                    foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
                     {
-                        ctx.Response.ContentType = "application/json";
-                        
-                        foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
-                        {
-                            ctx.Response.Headers[kvp.Key] = kvp.Value;
-                        }
+                        pCtx.Response.Headers[kvp.Key] = kvp.Value;
                     }
-                    using (Stream output = ctx.Response.OutputStream)
-                    {
-                        output.Write(buffer, 0, buffer.Length);
-                    }
-                    ctx.Response.Close();
                 }
-                else
+
+                using (Stream output = pCtx.Response.OutputStream)
                 {
-                    // Got a content type we don't handle
+                    output.Write(buffer, 0, buffer.Length);
                 }
-                
-                
             }
-            catch (Exception e)
+            else
             {
-                Console.WriteLine(e.StackTrace + "\n\n" + e.Message);
-            }
-        }
-    }
-
-    public class Tools
-    {
-        public static Int32 getTimestamp()
-        {
-            return int.Parse(DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
-        }
-
-        public static string Hash2String(byte[] Hash)
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (byte b in Hash)
-            {
-                sb.Append(b.ToString("X2"));
-            }
-            return sb.ToString();
-        }
-
-        public static string MD5Hash(string ToHash)
-        {
-            MD5 md = MD5.Create();
-            
-            byte[] Source = UTF8Encoding.UTF8.GetBytes(ToHash);
-            byte[] Hash = md.ComputeHash(Source);
-            return Tools.Hash2String(Hash);
-        }
-
-        public static string MD5Hash(byte[] ToHash)
-        {
-            MD5 md = MD5.Create();
-            return Tools.Hash2String(md.ComputeHash(ToHash));
-        }
-
-        public static string SHA256Hash(string ToHash)
-        {
-            SHA256 hasher = SHA256.Create();
-            return Tools.Hash2String(hasher.ComputeHash(UTF8Encoding.UTF8.GetBytes(ToHash)));
-        }
-
-        public static string SHA256Hash(byte[] ToHash)
-        {
-            SHA256 Hasher = SHA256.Create();
-            return Tools.Hash2String(Hasher.ComputeHash(ToHash));
-        }
-        
-        public static Dictionary<string,string> PostBody2Dict(string body)
-        {
-            Dictionary<string, string> ReplyData = new Dictionary<string, string>();
-            string[] args = body.Split(new[] { '?', '&' });
-            foreach(string arg in args)
-            {
-                string[] kvp = arg.Split(new[] { '=' });
-
-                ReplyData.Add(kvp[0], kvp[1]);
+                // Got a content type we don't handle
+                Context.Log.Error("{0} Received REST request with unknown body type. Type={1}, URL={2}",
+                            _logHeader, pCtx.Request.ContentType, pCtx.Request.RawUrl);
+                pCtx.Response.StatusCode = 415; // unsupported media type
             }
 
-            return ReplyData;
-        }
-
-        public static Dictionary<string,string> NVC2Dict(NameValueCollection nvc)
-        {
-            Dictionary<string, string> reply = new Dictionary<string, string>();
-
-            foreach(var k in nvc.AllKeys)
-            {
-                reply.Add(k, nvc[k]);
-            }
-
-            return reply;
-        }
-        public static string Base64Encode(string plainText)
-        {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            return System.Convert.ToBase64String(plainTextBytes);
-        }
-        public static string Base64Decode(string base64EncodedData)
-        {
-            if(base64EncodedData==null)return "";
-            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+            pCtx.Response.Close();
         }
     }
 }

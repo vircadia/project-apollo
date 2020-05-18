@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,11 +27,13 @@ namespace Project_Apollo.Registry
 
         // Pointers to all the paths specified in the Hooks
         public List<APIPath> _apiPaths;
+        public APIPath[] _apiPathsArray;
 
         public APIRegistry()
         {
             // Find all the path hooks and add them to '_apiPaths'
-            this.LocateHooks();
+            _apiPaths = LocateHooks();
+            _apiPathsArray = _apiPaths.ToArray();
         }
         /// <summary>
         /// Use app reflection to find all the methods decorated with "[APIPath]".
@@ -39,9 +41,9 @@ namespace Project_Apollo.Registry
         ///     decorations and puts them in '_apiPaths' for searching through
         ///     when requests are received.
         /// </summary>
-        public void LocateHooks()
+        private List<APIPath> LocateHooks()
         {
-            _apiPaths = new List<APIPath>(); // Always reset this list at the start of this method!
+            List<APIPath> foundPaths = new List<APIPath>(); // Always reset this list at the start of this method!
             try
             {
                 int i = 0;
@@ -55,6 +57,7 @@ namespace Project_Apollo.Registry
                     catch(Exception e)
                     {
                         // nothing needs be done here
+                        Context.Log.Error("{0} No assemblies found", _logHeader);
                     }
 
                     if (asm != null)
@@ -79,12 +82,11 @@ namespace Project_Apollo.Registry
                                     {
                                         APIPath[] paths = (APIPath[])mi.GetCustomAttributes(typeof(APIPath), true);
 
-                                        int ix = 0;
-                                        for(ix = 0; ix<paths.Length; ix++)
+                                        for(int ix = 0; ix<paths.Length; ix++)
                                         {
                                             APIPath _path = paths[ix];
                                             _path.AssignedMethod = mi;
-                                            _apiPaths.Add(_path);
+                                            foundPaths.Add(_path);
 
                                             Context.Log.Debug("{0} Discovered: {1}; {2}",
                                                         _logHeader, _path.PathLike, mi.Name);
@@ -99,24 +101,105 @@ namespace Project_Apollo.Registry
             catch(Exception e)
             {
                 Context.Log.Error("{0} Exception collecting APIPath: {1}", _logHeader, e.ToString());
-
             }
+            return foundPaths;
         }
 
         /// <summary>
-        /// Structure used to return a requests reply.
-        /// Constructed to hide the HTTP hair from the processing routines.
+        /// Given an URL and a method, find he APIPath processor for this request.
         /// </summary>
-        public class ReplyData
+        /// <param name="pRawURL">the url for the request (like "/api/v1/user")</param>
+        /// <param name="pMethod">the HTTP method of the request</param>
+        /// <param name="oArguments">output the list of "%" parameters in the request</param>
+        /// <param name="oQueryArguments">output the query parameters in the request</param>
+        /// <returns></returns>
+        public APIPath FindPathProcessor(string pRawURL, string pMethod,
+                        out List<string> oArguments, out Dictionary<string, string> oQueryArguments)
         {
-            public ReplyData()
+            APIPath ret = null;
+            Dictionary<string, string> queryArguments = new Dictionary<string, string>();
+            // compare strings; If a % symbol is located, then skip that so long as
+            //      the inbound string matches totally.
+            // Append the value of % in the inbound request to the array passed to the function
+            List<string> arguments = new List<string>();
+
+            for (int pathIndex = 0; pathIndex < _apiPathsArray.Length; pathIndex++)
             {
-                CustomOutputHeaders = new Dictionary<string, string>();
+                APIPath apiPath = _apiPathsArray[pathIndex];
+
+                arguments.Clear();
+
+                if (pMethod == apiPath.HTTPMethod)
+                {
+                    string requestString = pRawURL;
+                    string queryString = null;
+
+                    // See if the request has a query part. If so, extract same
+                    int queryIndex = requestString.IndexOf('?');
+                    if (queryIndex != -1)
+                    {
+                        queryString = requestString.Substring(queryIndex + 1);
+                        requestString = requestString.Substring(0, queryIndex);
+                    }
+
+                    string[] matchPieces = apiPath.PathLike.Split(new[] { '/' });
+                    string[] reqPieces = requestString.ToLower().Split(new[] { '/' });
+
+                    bool matchFound = true;
+                    // if the length doesn't match, this cannot match
+                    if (matchPieces.Length == reqPieces.Length)
+                    {
+                        // Loop through the pieces and verify they match
+                        for (int ii = 0; ii < matchPieces.Length; ii++)
+                        {
+                            if (matchPieces[ii] == "%")
+                            {
+                                // The request has a match field. Save value in 'arguments'
+                                arguments.Add(reqPieces[ii]);
+                            }
+                            else
+                            {
+                                // the pieces must match
+                                if (matchPieces[ii] != reqPieces[ii])
+                                {
+                                    matchFound = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (matchFound)
+                        {
+                            // The request matches the APIPath.
+                            // Package up any query parameters
+                            if (!String.IsNullOrEmpty(queryString))
+                            {
+                                string[] queryPieces = queryString.Split(new[] { '&' });
+                                foreach (var piece in queryPieces)
+                                {
+                                    string[] keyval = piece.Split(new[] { '=' });
+                                    if (keyval.Length == 2)
+                                    {
+                                        queryArguments.Add(keyval[0].ToLower(), keyval[1]);
+                                    }
+                                    if (keyval.Length == 1)
+                                    {
+                                        // A query argument with no value is passed with a value 'null'
+                                        queryArguments.Add(keyval[0].ToLower(), null);
+                                    }
+                                }
+                            }
+                            // don't need to look at any more APIPath entries
+                            ret = apiPath;
+                            break;
+                        }
+                    }
+                }
             }
-            public string Body;
-            public int Status;
-            public string CustomStatus; // <-- Examples: OK, Not Found, Authorization Required, etc.
-            public Dictionary<string, string> CustomOutputHeaders;
+
+            oArguments = arguments;
+            oQueryArguments = queryArguments;
+            return ret;
         }
 
         /// <summary>
@@ -124,119 +207,51 @@ namespace Project_Apollo.Registry
         /// Search the collected APIPaths for a path match and do the operation
         ///     appropriate for that request.
         /// </summary>
-        /// <param name="requestBody"></param>
-        /// <param name="rawURL"></param>
-        /// <param name="method"></param>
-        /// <param name="remoteUser"></param>
-        /// <param name="remotePort"></param>
-        /// <param name="headers"></param>
+        /// <param name="pReq">The wrapper for ListernerHttpContext</param>
         /// <returns></returns>
-        public ReplyData ProcessInbound(string requestBody, string rawURL,
-                        string method, IPAddress remoteUser, int remotePort,
-                        Dictionary<string,string> headers)
+        public RESTReplyData ProcessInbound(RESTRequestData pReq)
         {
-            ReplyData _ReplyData = new ReplyData
-            {
-                Status = 418
-            };
+            RESTReplyData _replyData = null;
 
-            Dictionary<string, string> notFoundDefault = new Dictionary<string, string>
+            APIPath foundPath = FindPathProcessor(pReq.RawURL, pReq.Method,
+                    out List<string> oArguments, out Dictionary<string, string> oQueryArguments);
+
+            if (foundPath != null)
             {
-                { "status", "not_found" },
-                { "data", "Needs more water!" } // joke... See 418 status code :P
-            };
-            string notFoundDef = JsonConvert.SerializeObject(notFoundDefault);
-            _ReplyData.Body = notFoundDef;
-            foreach(APIPath zAPIPath in _apiPaths)
-            {
-                // compare strings; If a % symbol is located, then skip that so long as the inbound string matches totally.
-                // Append the value of % in the inbound request to the array passed to the function
-                List<string> arguments = new List<string>();
-                string sCheck = zAPIPath.PathLike;
-                bool Found = true; // Default to true
-                if (method != zAPIPath.HTTPMethod) Found = false;
-                if(rawURL.IndexOf('?')!=-1 && !zAPIPath.AllowArgument) { 
-                }
-                else
+                // Found the matching, process the request
+                Context.Log.Debug("{0} Processing '{1}:{2}' with {3}", _logHeader,
+                                            pReq.Method, pReq.RawURL, foundPath.AssignedMethod.Name);
+                try
                 {
-
-                    string[] aCheck = sCheck.Split(new[] { '/' });
-                    string[] actualRequest = rawURL.Split(new[] { '/','?' }); // if it contains a ?, we'll put that into the GETBody
-                    string theArgs = "";
-
-                    if (rawURL.Contains('?'))
-                    {
-                        // adjust the ActualRequest list to not contain the argument value, IF the allow arguments flag is set
-                        if (zAPIPath.AllowArgument)
-                        {
-                            // continue
-                            string[] tmp1 = rawURL.Split(new[] { '?' });
-                            theArgs = tmp1[1];
-                            actualRequest = tmp1[0].Split(new[] { '/' });
-                        }
-                    }
-                    if (actualRequest.Length == aCheck.Length)
-                    {
-
-                        int i = 0;
-
-                        for (i = 0; i < aCheck.Length; i++)
-                        {
-                            // TODO: CHANGE THIS SLOPPY MESS TO REGEX.. FOR NOW IT WORKS!
-                            if (aCheck[i] == "%")
-                            {
-                                arguments.Add(actualRequest[i]);
-                            }
-                            else
-                            {
-
-                                if (aCheck[i] == actualRequest[i])
-                                {
-                                    // we're good!
-
-                                }
-                                else
-                                {
-                                    // check other path hooks before returning 404!
-                                    Found = false;
-                                }
-                            }
-                        }
-                    }
-                    else Found = false;
-
-                    arguments.Add(theArgs);
+                    object _method = Activator.CreateInstance(foundPath.AssignedMethod.DeclaringType);
+                    _replyData = (RESTReplyData)foundPath.AssignedMethod.Invoke(_method,
+                                new object[] { pReq, oArguments, oQueryArguments });
                 }
-
-                if (Found)
+                catch (Exception e)
                 {
-                    // Run the method
-                    Console.WriteLine("Running: " + zAPIPath.PathLike + "; " + zAPIPath.AssignedMethod.Name+"; For inbound: "+rawURL);
-                    object _method = Activator.CreateInstance(zAPIPath.AssignedMethod.DeclaringType);
-                    _ReplyData = (ReplyData)zAPIPath.AssignedMethod.Invoke(_method, new object[] { remoteUser, remotePort, arguments, requestBody, method, headers });
-
-                    Console.WriteLine("====> " + _ReplyData.Body);
-                    
-                    return _ReplyData;
+                    Context.Log.Error("{0} Exception processing: {1}", _logHeader, e.ToString());
+                    _replyData = null;
                 }
-            }
-            // an API Path wasn't found
-            // check the filesystem
-            string[] noArgPath = rawURL.Split(new[] { '?' });
-            if (File.Exists($"htdocs/{noArgPath[0]}"))  // This will provide a way to display HTML to the user. If the server must process data internally, please use a method & attribute. Nothing is stopping you from also loading in a HTML/js file and returning a stylized response.
-            {
-                _ReplyData.Status = 200;
-                _ReplyData.Body = File.ReadAllText($"htdocs/{noArgPath[0]}");
-                Dictionary<string, string> customHeaders = null; // This is mainly going to be used in instances where the domain-server needs a document but CORS isnt set
-                if (File.Exists($"htdocs/{noArgPath[0]}.headers"))
-                    customHeaders = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText($"htdocs/{noArgPath[0]}.headers"));
-
-                if (customHeaders != null)
-                    _ReplyData.CustomOutputHeaders = customHeaders;
-
 
             }
-            return _ReplyData;
+            // If we didn't get a reply constructed, tell the requestor some error nonsense.
+            if (_replyData == null)
+            {
+                // The request does not match any path, return error
+                _replyData = new RESTReplyData
+                {
+                    Status = 200
+                };
+                Dictionary<string, string> notFoundDefault = new Dictionary<string, string>
+                {
+                    { "status", "not_found" },
+                    { "data", "Needs more water!" }
+                };
+                string notFoundDef = JsonConvert.SerializeObject(notFoundDefault);
+                _replyData.Body = notFoundDef;
+            }
+
+            return _replyData;
         }
     }
 }

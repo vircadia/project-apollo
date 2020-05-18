@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -77,8 +77,9 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.LogDirectory", "Directory to put logs into", "Logs"));
             ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "config.json"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "*"));
+            ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "+"));
             ret.Add(new ParamBlock.ParameterDefn<int>("Listener.Port", "HttpListener port", 9400));
+            ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Response.Header.Server", "What to return as 'Server: header field", "1.5"));
 
             ret.SetParameterDefaultValues();
 

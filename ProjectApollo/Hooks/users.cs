@@ -40,7 +40,7 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/users", "POST", true)]
-        public RESTReplyData user_create(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_create(RESTRequestData pReq, List<string> pArgs)
         {
 
             RESTReplyData data = new RESTReplyData();
@@ -48,7 +48,7 @@ namespace Project_Apollo.Hooks
             // This specific endpoint only creates a user
             try
             {
-                usreq = JsonConvert.DeserializeObject<users_request>(body);
+                usreq = JsonConvert.DeserializeObject<users_request>(pReq.RequestBody);
             }
             catch (Exception e)
             {
@@ -80,12 +80,12 @@ namespace Project_Apollo.Hooks
 
         #region /api/v1/user/locker
         [APIPath("/api/v1/user/locker", "POST", true)]
-        public RESTReplyData user_locker_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_locker_set(RESTRequestData pReq, List<string> pArgs)
         {
             UserAccounts UA = UserAccounts.GetAccounts();
-            string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
+            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
 
-            UA.SetAccountSettings(AccessToken, body);
+            UA.SetAccountSettings(AccessToken, pReq.RequestBody);
 
             users_reply ur = new users_reply();
             ur.status = "success";
@@ -103,7 +103,7 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/user/locker", "GET", true)]
-        public RESTReplyData user_locker_get(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_locker_get(RESTRequestData pReq, List<string> pArgs)
         {
             replyPacket not_found = new replyPacket();
             not_found.status = "fail";
@@ -111,9 +111,9 @@ namespace Project_Apollo.Hooks
             RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = JsonConvert.SerializeObject(not_found);
-            string[] authHead = Headers["Authorization"].Split(new[] { ' ' });
+            string[] authHead = pReq.Headers["Authorization"].Split(new[] { ' ' });
             if (authHead.Length == 1) return rd;
-            string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
+            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
 
             UserAccounts UA = UserAccounts.GetAccounts();
             string settings = UA.GetAccountSettings(AccessToken);
@@ -138,10 +138,10 @@ namespace Project_Apollo.Hooks
             public UserAccounts.Location location;
         }
         [APIPath("/api/v1/user/location", "PUT", true)]
-        public RESTReplyData user_location_set(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_location_set(RESTRequestData pReq, List<string> pArgs)
         {
-            LocationPacket loc = JsonConvert.DeserializeObject<LocationPacket>(body);
-            string AccessToken = Headers["Authorization"].Split(new[] { ' ' })[1];
+            LocationPacket loc = JsonConvert.DeserializeObject<LocationPacket>(pReq.RequestBody);
+            string AccessToken = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
 
             UserAccounts UA = UserAccounts.GetAccounts();
             UA.UpdateLocation(loc.location, AccessToken);
@@ -158,13 +158,13 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/users/%/location", "GET", true)]
-        public RESTReplyData get_location(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_location(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
             Console.WriteLine("====> Request: Get_Location");
 
             UserAccounts UA = UserAccounts.GetAccounts();
-            UserAccounts.Location loc = UA.GetLocation(arguments[0]);
+            UserAccounts.Location loc = UA.GetLocation(pArgs[0]);
 
             LocationPacket lp = new LocationPacket();
             if (loc.network_address != "")
@@ -212,13 +212,13 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/user/profile", "GET", true)]
-        public RESTReplyData user_profile_gen(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_profile_gen(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
 
 
-            UserProfile up = new UserProfile(UserAccounts.GetAccounts().GetAccountName(Headers["Authorization"].Split(new[] { ' ' })[1]));
+            UserProfile up = new UserProfile(UserAccounts.GetAccounts().GetAccountName(pReq.Headers["Authorization"].Split(new[] { ' ' })[1]));
             user_profile_reply upr = new user_profile_reply();
             upr.status = "success";
             upr.data = new Dictionary<string, UserProfile>();
@@ -232,13 +232,13 @@ namespace Project_Apollo.Hooks
         #region Public Key
         [APIPath("/api/v1/user/public_key", "PUT", true)]
 
-        public RESTReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
             rd.Status = 404;
             rd.Body = "{'status':'fail'}";
-            if (Headers.ContainsKey("Authorization") == false) return rd;
-            string[] Lines = body.Split(new[] { '\n' });
+            if (pReq.Headers.ContainsKey("Authorization") == false) return rd;
+            string[] Lines = pReq.RequestBody.Split(new[] { '\n' });
 
             string Data = "";
 
@@ -255,7 +255,7 @@ namespace Project_Apollo.Hooks
             UserAccounts UA = UserAccounts.GetAccounts();
 
             replyPacket rp = new replyPacket();
-            rp.status = UA.SetPublicKey(Data, Headers["Authorization"].Split(new[] { ' ' })[1]);
+            rp.status = UA.SetPublicKey(Data, pReq.Headers["Authorization"].Split(new[] { ' ' })[1]);
             rp.data = "no error";
 
             
@@ -270,14 +270,14 @@ namespace Project_Apollo.Hooks
 
         // TODO: CHANGE TO REGEX
         [APIPath("/api/v1/users/%/public_key", "GET", true)]
-        public RESTReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string,string> Headers)
+        public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
 
             Console.WriteLine("====> Request: Get_Public_Key");
 
             UserAccounts UA = UserAccounts.GetAccounts();
-            string pub=UA.GetPublicKey(arguments[0]);
+            string pub=UA.GetPublicKey(pArgs[0]);
 
             users_reply ur = new users_reply();
             if (pub == "no such users") ur.status = "fail";
@@ -383,18 +383,18 @@ namespace Project_Apollo.Hooks
             public int created_at;
         }
         [APIPath("/oauth/token", "POST", true)]
-        public RESTReplyData user_login(IPAddress remoteIP, int remotePort, List<string> args, string body, string method, Dictionary<string,string> Headers)
+        public RESTReplyData user_login(RESTRequestData pReq, List<string> pArgs)
         {
             Console.WriteLine("====> Starting User Login <=====");
 
             RESTReplyData data = new RESTReplyData();
             Login_Reply lr = new Login_Reply();
-            Dictionary<string, string> arguments = Tools.PostBody2Dict(body);
+            Dictionary<string, string> arguments = Tools.PostBody2Dict(pReq.RequestBody);
             lr.created_at = Tools.getTimestamp();
             lr.expires_in = 1 * 24 * 60 * 60; // 1 DAY
             lr.token_type = "Bearer";
             lr.scope = arguments["scope"];
-            lr.refresh_token = Tools.SHA256Hash(lr.expires_in.ToString() + ";" + remoteIP.ToString() + ";" + arguments["username"]);
+            lr.refresh_token = Tools.SHA256Hash(lr.expires_in.ToString() + ";" + pReq.RemoteUser.ToString() + ";" + arguments["username"]);
             lr.access_token = Tools.SHA256Hash(Tools.getTimestamp() + ";" + lr.refresh_token);
 
             UserAccounts uac = UserAccounts.GetAccounts();

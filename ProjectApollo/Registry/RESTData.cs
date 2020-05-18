@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace Project_Apollo.Registry
 {
@@ -43,11 +44,14 @@ namespace Project_Apollo.Registry
                 {
                     try
                     {
-                        using (Stream body = _listenerContext.Request.InputStream)
+                        if (_listenerContext.Request.HasEntityBody)
                         {
-                            using (StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding))
+                            using (Stream body = _listenerContext.Request.InputStream)
                             {
-                                _requestBody = sr.ReadToEnd();
+                                using (StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding))
+                                {
+                                    _requestBody = sr.ReadToEnd();
+                                }
                             }
                         }
                     }
@@ -60,6 +64,9 @@ namespace Project_Apollo.Registry
                 }
                 return _requestBody;
             }
+        }
+        public T RequestBodyObject<T>() {
+            return (T)JsonConvert.DeserializeObject<T>(this.RequestBody);
         }
         public string RawURL
         {
@@ -89,7 +96,30 @@ namespace Project_Apollo.Registry
                 return _listenerContext.Request.RemoteEndPoint.Port;
             }
         }
-        // Something for accessing headers
+        private Dictionary<string, string> _headers;
+        public Dictionary<string, string> Headers
+        {
+            get
+            {
+                if (_headers == null)
+                {
+                    _headers = Tools.NVC2Dict(_listenerContext.Request.Headers);
+                }
+                return _headers;
+            }
+        }
+        private Dictionary<string, string> _queryParameters;
+        public Dictionary<string, string> Queries
+        {
+            get
+            {
+                if (_queryParameters == null)
+                {
+                    _queryParameters = Tools.NVC2Dict(_listenerContext.Request.QueryString);
+                }
+                return _headers;
+            }
+        }
 
     }
     

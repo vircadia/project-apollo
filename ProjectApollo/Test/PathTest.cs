@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,10 +45,8 @@ namespace Project_Apollo.Test
 
             APIRegistry registry = new APIRegistry();
 
-            APIPath foundAPIPath = registry.FindPathProcessor(pPath, pMethod,
-                        out List<string> oArguments, out Dictionary<string, string> oQueryArguments);
+            APIPath foundAPIPath = registry.FindPathProcessor(pPath, pMethod, out List<string> oArguments);
             Assert.That(oArguments.Count == 0, "FindPathProcessor found arguments should be zero");
-            Assert.That(oQueryArguments.Count == 0, "FindPathProcessor found query arguments should be zero");
             Assert.That((foundAPIPath != null) == pResult, "FindPathProcessor did/didn't find " + pPath);
         }
 
@@ -61,36 +59,10 @@ namespace Project_Apollo.Test
 
             APIRegistry registry = new APIRegistry();
 
-            APIPath foundAPIPath = registry.FindPathProcessor(pPath, pMethod,
-                        out List<string> oArguments, out Dictionary<string, string> oQueryArguments);
+            APIPath foundAPIPath = registry.FindPathProcessor(pPath, pMethod, out List<string> oArguments);
             Assert.That(foundAPIPath != null, "Didn't find path for " + pPath);
-            Assert.That(oQueryArguments.Count == 0, "FindPathProcessor found query arguments should be zero");
             Assert.That(oArguments.Count == 1, "FindPathProcessor did not find argument");
             Assert.That(oArguments[0] == pResult, "FindPathProcessor did not collect argument value");
-        }
-
-        [TestCase("/api/v1/user/profile?page=5&per_page=10&shuffle&last_request=44", "GET")]
-        public void PathWithQueryTest(string pPath, string pMethod)
-        {
-            Context.Params = new AppParams(new string[] { });
-            Context.Log = new ConsoleLogger();
-            Context.Log.SetLogLevel("Info");
-
-            APIRegistry registry = new APIRegistry();
-
-            APIPath foundAPIPath = registry.FindPathProcessor(pPath, pMethod,
-                        out List<string> oArguments, out Dictionary<string, string> oQueryArguments);
-            Assert.That(foundAPIPath != null, "Didn't find path for " + pPath);
-            Assert.That(oArguments.Count == 0, "FindPathProcessor found arguments should be zero");
-            Assert.That(oQueryArguments.Count == 4, "FindPathProcessor found query arguments should be four");
-            Assert.That(oQueryArguments.ContainsKey("page"));
-            Assert.That(oQueryArguments["page"] == "5");
-            Assert.That(oQueryArguments.ContainsKey("per_page"));
-            Assert.That(oQueryArguments["per_page"] == "10");
-            Assert.That(oQueryArguments.ContainsKey("shuffle"));
-            Assert.That(oQueryArguments["shuffle"] == null);
-            Assert.That(oQueryArguments.ContainsKey("last_request"));
-            Assert.That(oQueryArguments["last_request"] == "44");
         }
     }
 }

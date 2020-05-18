@@ -21,7 +21,7 @@ namespace Project_Apollo.Registry
 {
 
     // The processing routines must match this signature
-    public delegate RESTReplyData APIPathProcess(RESTRequestData pReq, List<string> pArgs, Dictionary<string, string> pQueryArgs);
+    public delegate RESTReplyData APIPathProcess(RESTRequestData pReq, List<string> pArgs);
 
     [AttributeUsage(AttributeTargets.Method, AllowMultiple =false)]
     public class APIPath : Attribute

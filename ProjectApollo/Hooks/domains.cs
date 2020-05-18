@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -53,15 +53,15 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/domains/%/ice_server_address", "PUT", true)]
-        public RESTReplyData put_ice_address(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData put_ice_address(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
-            string domainID = arguments[0];
+            string domainID = pArgs[0];
             DomainReplyData drd = new DomainReplyData();
-            PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(body);
+            PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(pReq.RequestBody);
             PutIceServerResponse isres = new PutIceServerResponse();
 
-            if (Session.Instance.DomainsMem.SetIP(domainID, remoteIP.ToString(), isr.api_key))
+            if (Session.Instance.DomainsMem.SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
             {
                 isres.status = "success";
             }
@@ -94,10 +94,10 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/domains/%", "GET", true)]
-        public RESTReplyData get_domain(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_domain(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
-            string domainID = arguments[0];
+            string domainID = pArgs[0];
             DomainReplyData drd = new DomainReplyData();
             PutIceServerResponse isres = new PutIceServerResponse();
             isres.status = "success";
@@ -142,7 +142,7 @@ namespace Project_Apollo.Hooks
         }
 
         [APIPath("/api/v1/domains/temporary", "POST", true)]
-        public RESTReplyData get_temporary_name(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_temporary_name(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
 
@@ -153,7 +153,7 @@ namespace Project_Apollo.Hooks
             {
                 PlaceName = png.GenerateRandomFirstName() + "-" + plng.GenerateRandomPlaceName() + "-" + new Random().Next(500, 9000).ToString(),
                 DomainID = Guid.NewGuid().ToString(),
-                IPAddr = remoteIP.ToString()
+                IPAddr = pReq.RemoteUser.ToString()
             };
 
 
@@ -188,9 +188,9 @@ namespace Project_Apollo.Hooks
         #region Public Key
         [APIPath("/api/v1/domains/%/public_key", "PUT", true)]
 
-        public RESTReplyData set_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            string[] Lines = body.Split(new[] { '\n' });
+            string[] Lines = pReq.RequestBody.Split(new[] { '\n' });
 
             string Data = "";
 
@@ -206,7 +206,7 @@ namespace Project_Apollo.Hooks
 
             RESTReplyData rd = new RESTReplyData();
             users.replyPacket rp = new users.replyPacket();
-            if (Session.Instance.DomainsMem.SetPublicKey(remoteIP.ToString(), Tools.Base64Encode(Data), arguments[0]))
+            if (Session.Instance.DomainsMem.SetPublicKey(pReq.RemoteUser.ToString(), Tools.Base64Encode(Data), pArgs[0]))
             {
                 rd.Status = 200;
                 rp.status = "success";
@@ -229,13 +229,13 @@ namespace Project_Apollo.Hooks
 
         // TODO: CHANGE TO REGEX
         [APIPath("/api/v1/domains/%/public_key", "GET", true)]
-        public RESTReplyData get_public_key(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData rd = new RESTReplyData();
 
             Console.WriteLine("====> Request: Get_Public_Key (domain)");
 
-            string pub = Session.Instance.DomainsMem.Itms[arguments[0]].Obj.Public_Key;
+            string pub = Session.Instance.DomainsMem.Itms[pArgs[0]].Obj.Public_Key;
 
 
             users.users_reply ur = new users.users_reply();
@@ -272,31 +272,32 @@ namespace Project_Apollo.Hooks
 
 
         [APIPath("/api/v1/domains/%", "PUT", true)]
-        public RESTReplyData domain_heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData domain_heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
             // Check the Authorization header for a valid Access token
             // If token is valid, begin updating stuff
             RESTReplyData rd = new RESTReplyData();
             rd.Status = 200;
             rd.Body = "";
-            if (Headers.ContainsKey("Authorization"))
+            if (pReq.Headers.ContainsKey("Authorization"))
             {
-                string Token = Headers["Authorization"].Split(new[] { ' ' })[1];
+                string Token = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
                 UserAccounts ua = UserAccounts.GetAccounts();
                 foreach (KeyValuePair<string, UserAccounts.Account> kvp in ua.AllAccounts)
                 {
                     if (kvp.Value.ActiveTokens.ContainsKey(Token))
                     {
                         // Start updating shit
-                        Dictionary<string, HeartbeatPacket> requestData = JsonConvert.DeserializeObject<Dictionary<string, HeartbeatPacket>>(body);
+                        Dictionary<string, HeartbeatPacket> requestData =
+                                    JsonConvert.DeserializeObject<Dictionary<string, HeartbeatPacket>>(pReq.RequestBody);
 
                         DomainMemory mem = Session.Instance.DomainsMem;
                         // Check if this domain is in memory!
-                        if (mem.Itms.ContainsKey(arguments[0]))
+                        if (mem.Itms.ContainsKey(pArgs[0]))
                         {
                             // start
 
-                            DomainMemory.MemoryItem mi = mem.Itms[arguments[0]];
+                            DomainMemory.MemoryItem mi = mem.Itms[pArgs[0]];
                             DomainMemory.DomainObject obj = mi.Obj;
                             // First check that there is a API Key
                             if(obj.API_Key == "" || obj.API_Key == null)
@@ -314,7 +315,7 @@ namespace Project_Apollo.Hooks
                             obj.TotalUsers = dat.num_anon_users + dat.num_users;
                             mi.Obj = obj;
 
-                            Session.Instance.DomainsMem.Itms[arguments[0]] = mi;
+                            Session.Instance.DomainsMem.Itms[pArgs[0]] = mi;
 
 
                             rd.Status = 200;
@@ -330,7 +331,7 @@ namespace Project_Apollo.Hooks
 
 
             // fallback
-            if (Session.Instance.DomainsMem.Itms.ContainsKey(arguments[0]) == false) rd.Status = 404;
+            if (Session.Instance.DomainsMem.Itms.ContainsKey(pArgs[0]) == false) rd.Status = 404;
             return rd;
 
         }

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,17 +31,17 @@ namespace Project_Apollo.Hooks
             public Dictionary<string, string> data;
         }
         [APIPath("/api/v1/user/heartbeat", "PUT", true)]
-        public RESTReplyData Heartbeat(IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData Heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData _reply = new RESTReplyData();
 
             Heartbeat_Memory mem = Heartbeat_Memory.GetHeartbeat();
-            if (mem.Contains(remoteIP.ToString())) mem.Set(remoteIP.ToString(), Guid.NewGuid().ToString());
-            else mem.Add(remoteIP.ToString(), Guid.NewGuid().ToString());
+            if (mem.Contains(pReq.RemoteUser.ToString())) mem.Set(pReq.RemoteUser.ToString(), Guid.NewGuid().ToString());
+            else mem.Add(pReq.RemoteUser.ToString(), Guid.NewGuid().ToString());
             heartbeat_ReplyData hbrd = new heartbeat_ReplyData();
             hbrd.status = "success";
             hbrd.data = new Dictionary<string, string>();
-            hbrd.data.Add("session_id", mem.Get(remoteIP.ToString()));
+            hbrd.data.Add("session_id", mem.Get(pReq.RemoteUser.ToString()));
             _reply.Status = 200;
             _reply.Body = JsonConvert.SerializeObject(hbrd);
 

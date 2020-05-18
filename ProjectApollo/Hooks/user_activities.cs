@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@ namespace Project_Apollo.Hooks
             public string action_name;
         }
         [APIPath("/api/v1/user_activities", "POST", true)]
-        public RESTReplyData user_activity (IPAddress remoteIP, int remotePort, List<string> arguments, string body, string method, Dictionary<string, string> Headers)
+        public RESTReplyData user_activity (RESTRequestData pReq, List<string> pArgs)
         {
             Heartbeat_Memory hbmem = new Heartbeat_Memory();
-            user_activity_input uai = (user_activity_input)JsonConvert.DeserializeObject<user_activity_input>(body);
+            user_activity_input uai = pReq.RequestBodyObject<user_activity_input>();
             RESTReplyData rd = new RESTReplyData();
             rd.Status = 404;
             rd.Body = "{\"status\":\"notfound\"}";
@@ -46,13 +46,13 @@ namespace Project_Apollo.Hooks
             {
 
                 
-                if (hbmem.Contains(remoteIP.ToString())) hbmem.Rem(remoteIP.ToString());
+                if (hbmem.Contains(pReq.RemoteUser.ToString())) hbmem.Rem(pReq.RemoteUser.ToString());
                 rd = new RESTReplyData();
                 rd.Status = 200;
                 user_activities_reply uar = new user_activities_reply();
                 uar.status = "success";
                 rd.Body = JsonConvert.SerializeObject(uar);
-                Console.WriteLine("=====> user_action: quit; "+remoteIP.ToString());
+                Console.WriteLine("=====> user_action: quit; "+pReq.RemoteUser.ToString());
                 return rd;
             }
             return rd;

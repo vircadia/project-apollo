@@ -113,8 +113,7 @@ namespace Project_Apollo.Registry
         /// <param name="oArguments">output the list of "%" parameters in the request</param>
         /// <param name="oQueryArguments">output the query parameters in the request</param>
         /// <returns></returns>
-        public APIPath FindPathProcessor(string pRawURL, string pMethod,
-                        out List<string> oArguments, out Dictionary<string, string> oQueryArguments)
+        public APIPath FindPathProcessor(string pRawURL, string pMethod, out List<string> oArguments)
         {
             APIPath ret = null;
             Dictionary<string, string> queryArguments = new Dictionary<string, string>();
@@ -170,25 +169,6 @@ namespace Project_Apollo.Registry
 
                         if (matchFound)
                         {
-                            // The request matches the APIPath.
-                            // Package up any query parameters
-                            if (!String.IsNullOrEmpty(queryString))
-                            {
-                                string[] queryPieces = queryString.Split(new[] { '&' });
-                                foreach (var piece in queryPieces)
-                                {
-                                    string[] keyval = piece.Split(new[] { '=' });
-                                    if (keyval.Length == 2)
-                                    {
-                                        queryArguments.Add(keyval[0].ToLower(), keyval[1]);
-                                    }
-                                    if (keyval.Length == 1)
-                                    {
-                                        // A query argument with no value is passed with a value 'null'
-                                        queryArguments.Add(keyval[0].ToLower(), null);
-                                    }
-                                }
-                            }
                             // don't need to look at any more APIPath entries
                             ret = apiPath;
                             break;
@@ -198,7 +178,6 @@ namespace Project_Apollo.Registry
             }
 
             oArguments = arguments;
-            oQueryArguments = queryArguments;
             return ret;
         }
 
@@ -213,8 +192,7 @@ namespace Project_Apollo.Registry
         {
             RESTReplyData _replyData = null;
 
-            APIPath foundPath = FindPathProcessor(pReq.RawURL, pReq.Method,
-                    out List<string> oArguments, out Dictionary<string, string> oQueryArguments);
+            APIPath foundPath = FindPathProcessor(pReq.RawURL, pReq.Method, out List<string> oArguments);
 
             if (foundPath != null)
             {
@@ -225,7 +203,7 @@ namespace Project_Apollo.Registry
                 {
                     object _method = Activator.CreateInstance(foundPath.AssignedMethod.DeclaringType);
                     _replyData = (RESTReplyData)foundPath.AssignedMethod.Invoke(_method,
-                                new object[] { pReq, oArguments, oQueryArguments });
+                                new object[] { pReq, oArguments });
                 }
                 catch (Exception e)
                 {

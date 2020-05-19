@@ -38,7 +38,9 @@ namespace Project_Apollo.Logging
             }
 
             // Initialize the logger with a default log level.
-            _logWriter = new LogWriter(pLogDirectory, "MetaverseServer-", 60);
+            int rotateMinutes = Context.Params.P<int>("Logger.RotateMins");
+            bool forceFlush = Context.Params.P<bool>("Logger.ForceFlush");
+            _logWriter = new LogWriter(pLogDirectory, "MetaverseServer-", rotateMinutes, forceFlush);
         }
 
         /// <summary>

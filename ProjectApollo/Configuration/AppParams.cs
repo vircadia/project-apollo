@@ -70,11 +70,14 @@ namespace Project_Apollo.Configuration
         {
             ParamBlock ret = new ParamBlock();
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
             ret.Add(new ParamBlock.ParameterDefn<bool>("Quiet", "Quiet console output", false));
             ret.Add(new ParamBlock.ParameterDefn<bool>("Verbose", "Excessive console output", false));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.LogDirectory", "Directory to put logs into", "Logs"));
+            ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
+            ret.Add(new ParamBlock.ParameterDefn<int>("Logger.RotateMins", "Minutes to write to log file before starting next", 60));
+            ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
+            ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
+
             ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "config.json"));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:19400/ user=everyone

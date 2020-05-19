@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -44,6 +44,16 @@ namespace Project_Apollo.Entities
         public bool TryGetDomainWithID(string pDomainID, out DomainObject oDomain)
         {
             oDomain = null;
+            return false;
+        }
+
+        public void AddDomain(string pDomainID, DomainMemory.MemoryItem pMI)
+        {
+        }
+
+        // Store the ICE server API key for this domain
+        public bool SetIP(string pDomainID, string pRequestorAddr, string pIceServerAPIKey)
+        {
             return false;
         }
     }
@@ -150,7 +160,7 @@ namespace Project_Apollo.Entities
             };
             PlaceNameGenerator pngl = new PlaceNameGenerator();
             obj.PlaceName = pngl.GenerateRandomPlaceName()+"-"+pngl.GenerateRandomPlaceName()+"-"+(new Random()).Next(500, 8000).ToString(); //<-- Does this need to be changed in the future??
-            obj.IPAddr = Session.Instance.CFG.DefaultIceServerAddress;
+            // obj.IPAddr = Session.Instance.CFG.DefaultIceServerAddress;
             obj.API_Key = api_key;
             mi.Obj = obj;
 

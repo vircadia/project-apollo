@@ -219,6 +219,7 @@ namespace Project_Apollo.Hooks
         [APIPath("/user/tokens/new", "GET", true)]
         public RESTReplyData user_tokens(RESTRequestData pReq, List<string> pArgs)
         {
+        /*
             if(pReq.Headers.ContainsKey("Authorization") == false)
             {
 
@@ -286,9 +287,10 @@ namespace Project_Apollo.Hooks
                 rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
                 return rd;
             }
+            */
+                RESTReplyData rd = new RESTReplyData();
+                return rd;
         }
-
-
     }
 
     public class token_oauth

@@ -59,7 +59,7 @@ namespace Project_Apollo.Hooks
             PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(pReq.RequestBody);
             PutIceServerResponse isres = new PutIceServerResponse();
 
-            if (Session.Instance.DomainsMem.SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
+            if (Domains.Instance().SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
             {
                 isres.status = "success";
             }
@@ -69,14 +69,16 @@ namespace Project_Apollo.Hooks
             }
 
 
-            drd.id = domainID;
-            DomainObject dobj = Session.Instance.DomainsMem.Itms[domainID].Obj;
-            drd.ice_server_address = dobj.IPAddr;
-            drd.name = dobj.PlaceName;
+            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
+            {
+                drd.id = domainID;
+                drd.ice_server_address = dobj.IPAddr;
+                drd.name = dobj.PlaceName;
 
-            isres.domain = drd;
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(isres);
+                isres.domain = drd;
+                rd.Status = 200;
+                rd.Body = JsonConvert.SerializeObject(isres);
+            }
 
             return rd;
         }
@@ -94,12 +96,15 @@ namespace Project_Apollo.Hooks
             DomainReplyData drd = new DomainReplyData();
             PutIceServerResponse isres = new PutIceServerResponse();
             isres.status = "success";
-            DomainObject dobj = new DomainObject();
             drd.id = domainID;
-            if (Session.Instance.DomainsMem.Itms.ContainsKey(domainID))
+            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
             {
+                drd.ice_server_address = dobj.IPAddr;
+                drd.name = dobj.PlaceName;
 
-                dobj = Session.Instance.DomainsMem.Itms[domainID].Obj;
+                isres.domain = drd;
+                rd.Status = 200;
+                rd.Body = JsonConvert.SerializeObject(isres);
             }
             else
             {
@@ -110,15 +115,7 @@ namespace Project_Apollo.Hooks
                 gde.data.Add("domain", "there is no domain with that ID");
                 rd.Status = 404;
                 rd.Body = JsonConvert.SerializeObject(gde);
-                return rd;
-
             }
-            drd.ice_server_address = dobj.IPAddr;
-            drd.name = dobj.PlaceName;
-
-            isres.domain = drd;
-            rd.Status = 200;
-            rd.Body = JsonConvert.SerializeObject(isres);
 
             return rd;
         }
@@ -163,7 +160,7 @@ namespace Project_Apollo.Hooks
 
             DomainMemory.MemoryItem mi = new DomainMemory.MemoryItem();
             mi.Obj = DO;
-            Session.Instance.DomainsMem.Itms.Add(DO.DomainID, mi);
+            Domains.Instance().AddDomain(DO.DomainID, mi);
 
             rd.CustomOutputHeaders = new Dictionary<string, string>();
             rd.CustomOutputHeaders.Add("X-Rack-CORS", "miss; no-origin");
@@ -250,66 +247,47 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/domains/%", "PUT", true)]
         public RESTReplyData domain_heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();
+
             // Check the Authorization header for a valid Access token
             // If token is valid, begin updating stuff
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 200;
-            rd.Body = "";
-            if (pReq.Headers.ContainsKey("Authorization"))
+            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
             {
-                string Token = pReq.Headers["Authorization"].Split(new[] { ' ' })[1];
-                UserAccounts ua = UserAccounts.GetAccounts();
-                foreach (KeyValuePair<string, UserAccounts.Account> kvp in ua.AllAccounts)
+                // Start updating shit
+                Dictionary<string, HeartbeatPacket> requestData =
+                            JsonConvert.DeserializeObject<Dictionary<string, HeartbeatPacket>>(pReq.RequestBody);
+
+                string domainID = pArgs.Count == 1 ? pArgs[0] : null;
+                if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
                 {
-                    if (kvp.Value.ActiveTokens.ContainsKey(Token))
+                    // First check that there is a API Key
+                    if (dobj.API_Key == "" || dobj.API_Key == null)
                     {
-                        // Start updating shit
-                        Dictionary<string, HeartbeatPacket> requestData =
-                                    JsonConvert.DeserializeObject<Dictionary<string, HeartbeatPacket>>(pReq.RequestBody);
+                        replyData.Status = 401;
+                    }
+                    else
+                    {
+                        dobj.NetworkingMode = requestData["domain"].automatic_networking;
+                        HeartbeatData dat = requestData["domain"].heartbeat;
+                        dobj.Protocol = dat.protocol;
+                        dobj.Restricted = dat.restricted;
+                        dobj.Version = dat.version;
+                        dobj.LoggedIn = dat.num_users;
+                        dobj.Anon = dat.num_anon_users;
+                        dobj.TotalUsers = dat.num_anon_users + dat.num_users;
 
-                        DomainMemory mem = Session.Instance.DomainsMem;
-                        // Check if this domain is in memory!
-                        if (mem.Itms.ContainsKey(pArgs[0]))
-                        {
-                            // start
+                        // Update domain info
+                        // Session.Instance.DomainsMem.Itms[pArgs[0]] = mi;
 
-                            DomainMemory.MemoryItem mi = mem.Itms[pArgs[0]];
-                            DomainObject obj = mi.Obj;
-                            // First check that there is a API Key
-                            if(obj.API_Key == "" || obj.API_Key == null)
-                            {
-                                rd.Status = 401;
-                                break;
-                            }
-                            obj.NetworkingMode = requestData["domain"].automatic_networking;
-                            HeartbeatData dat = requestData["domain"].heartbeat;
-                            obj.Protocol = dat.protocol;
-                            obj.Restricted = dat.restricted;
-                            obj.Version = dat.version;
-                            obj.LoggedIn = dat.num_users;
-                            obj.Anon = dat.num_anon_users;
-                            obj.TotalUsers = dat.num_anon_users + dat.num_users;
-                            mi.Obj = obj;
-
-                            Session.Instance.DomainsMem.Itms[pArgs[0]] = mi;
-
-
-                            rd.Status = 200;
-                            rd.Body = "";
-                            
-                        } else
-                        {
-                            rd.Status = 404; // this will trigger a new temporary domain name
-                        }
+                        // construct reply
                     }
                 }
+
+            } else
+            {
+                replyData.Status = 404; // this will trigger a new temporary domain name
             }
-
-
-            // fallback
-            if (Session.Instance.DomainsMem.Itms.ContainsKey(pArgs[0]) == false) rd.Status = 404;
-            return rd;
-
+            return replyData;
         }
     }
 }

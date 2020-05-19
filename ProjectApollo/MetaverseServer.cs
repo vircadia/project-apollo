@@ -202,6 +202,13 @@ namespace Project_Apollo
         /// <param name="pCtx"></param>
         private void ProcessHttpRequest(HttpListenerContext pCtx)
         {
+            if (Context.Log.LogLevel.ToString() == "Debug")
+            {
+                RESTRequestData req = new RESTRequestData(pCtx);
+                Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, req.Method, pCtx.Request.RawUrl);
+                Context.Log.Debug("{0}    type={1} body={2}", _logHeader, pCtx.Request.ContentType, req.RequestBody);
+            }
+
             if (pCtx.Request.ContentType == "application/json" || pCtx.Request.ContentType == "text/html")
             {
                 // Find the processor for this request and do the operation

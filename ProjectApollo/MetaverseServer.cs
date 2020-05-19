@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ using System.Threading.Tasks;
 using Project_Apollo.Logging;
 using Project_Apollo.Configuration;
 using Project_Apollo.Registry;
+using Project_Apollo.Entities;
+using System.Text.RegularExpressions;
 
 namespace Project_Apollo
 {
@@ -50,6 +52,12 @@ namespace Project_Apollo
 
         // All the request path handles are registered in the registry
         static public APIRegistry PathRegistry;
+
+        // Handler for Domain Entities
+        static public Domains DomainEntities;
+
+        // Handler for User Entities
+        static public Users UserEntities;
     }
 
     /// <summary>
@@ -103,7 +111,12 @@ namespace Project_Apollo
                 Context.KeepRunning.Cancel();
             }
 
-            // HttpListener
+            // Create instances of the various Entity managers.
+            // This is done here so various parameters can be passed
+            Context.DomainEntities = new Domains();
+            Context.UserEntities = new Users();
+
+            // HttpListener and start accepting requests
             try
             {
                 if (!Context.KeepRunning.IsCancellationRequested)
@@ -130,6 +143,10 @@ namespace Project_Apollo
 
         private void Stop()
         {
+            if (Context.KeepRunning != null)
+            {
+                Context.KeepRunning.Cancel();
+            }
             if (Context.Db != null)
             {
                 Context.Db.Close();
@@ -202,14 +219,10 @@ namespace Project_Apollo
         /// <param name="pCtx"></param>
         private void ProcessHttpRequest(HttpListenerContext pCtx)
         {
-            if (Context.Log.LogLevel.ToString() == "Debug")
-            {
-                RESTRequestData req = new RESTRequestData(pCtx);
-                Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, req.Method, pCtx.Request.RawUrl);
-                Context.Log.Debug("{0}    type={1} body={2}", _logHeader, pCtx.Request.ContentType, req.RequestBody);
-            }
+            Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, pCtx.Request.HttpMethod, pCtx.Request.RawUrl);
 
-            if (pCtx.Request.ContentType == "application/json" || pCtx.Request.ContentType == "text/html")
+            string contentType = pCtx.Request.ContentType;
+            if (contentType == "application/json" || contentType == "text/html")
             {
                 // Find the processor for this request and do the operation
                 // If the processing created any error, it will return reply data with the error.
@@ -242,10 +255,16 @@ namespace Project_Apollo
             }
             else
             {
-                // Got a content type we don't handle
-                Context.Log.Error("{0} Received REST request with unknown body type. Type={1}, URL={2}",
-                            _logHeader, pCtx.Request.ContentType, pCtx.Request.RawUrl);
-                pCtx.Response.StatusCode = 415; // unsupported media type
+                if (contentType.StartsWith("multipart/form-data;"))
+                {
+                }
+                else
+                {
+                    // Got a content type we don't handle
+                    Context.Log.Error("{0} Received REST request with unknown body type. Type={1}, URL={2}",
+                                _logHeader, pCtx.Request.ContentType, pCtx.Request.RawUrl);
+                    pCtx.Response.StatusCode = 415; // unsupported media type
+                }
             }
 
             pCtx.Response.Close();

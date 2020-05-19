@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ namespace Project_Apollo.Hooks
 {
     public class domains
     {
+        public static readonly string _logHeader = "[APIDomains]";
 
         public struct PutIceServerRequest
         {
@@ -59,7 +60,7 @@ namespace Project_Apollo.Hooks
             PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(pReq.RequestBody);
             PutIceServerResponse isres = new PutIceServerResponse();
 
-            if (Domains.Instance().SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
+            if (Context.DomainEntities.SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
             {
                 isres.status = "success";
             }
@@ -69,7 +70,7 @@ namespace Project_Apollo.Hooks
             }
 
 
-            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
             {
                 drd.id = domainID;
                 drd.ice_server_address = dobj.IPAddr;
@@ -97,7 +98,7 @@ namespace Project_Apollo.Hooks
             PutIceServerResponse isres = new PutIceServerResponse();
             isres.status = "success";
             drd.id = domainID;
-            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
             {
                 drd.ice_server_address = dobj.IPAddr;
                 drd.name = dobj.PlaceName;
@@ -160,7 +161,7 @@ namespace Project_Apollo.Hooks
 
             DomainMemory.MemoryItem mi = new DomainMemory.MemoryItem();
             mi.Obj = DO;
-            Domains.Instance().AddDomain(DO.DomainID, mi);
+            Context.DomainEntities.AddDomain(DO.DomainID, mi);
 
             rd.CustomOutputHeaders = new Dictionary<string, string>();
             rd.CustomOutputHeaders.Add("X-Rack-CORS", "miss; no-origin");
@@ -189,7 +190,7 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject aDomain))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject aDomain))
             {
                 if (aDomain.SetPublicKey(pReq.RemoteUser.ToString(), Tools.Base64Encode(Data)))
                 {
@@ -216,7 +217,7 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject aDomain))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject aDomain))
             {
                 // return domains public_key in "public_key" field of response
             }
@@ -251,14 +252,14 @@ namespace Project_Apollo.Hooks
 
             // Check the Authorization header for a valid Access token
             // If token is valid, begin updating stuff
-            if (Users.Instance().TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
+            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserObject aUser))
             {
                 // Start updating shit
                 Dictionary<string, HeartbeatPacket> requestData =
                             JsonConvert.DeserializeObject<Dictionary<string, HeartbeatPacket>>(pReq.RequestBody);
 
                 string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-                if (Domains.Instance().TryGetDomainWithID(domainID, out DomainObject dobj))
+                if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
                 {
                     // First check that there is a API Key
                     if (dobj.API_Key == "" || dobj.API_Key == null)
@@ -282,9 +283,14 @@ namespace Project_Apollo.Hooks
                         // construct reply
                     }
                 }
+                else
+                {
+                    Context.Log.Debug("{0} domain_heartbeat: no user auth. Returning 404", _logHeader);
+                }
 
             } else
             {
+                Context.Log.Debug("{0} domain_heartbeat: no user auth. Returning 404", _logHeader);
                 replyData.Status = 404; // this will trigger a new temporary domain name
             }
             return replyData;

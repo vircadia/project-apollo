@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,19 +32,8 @@ namespace Project_Apollo.Entities
     {
         private static readonly string _logHeader = "[Users]";
 
-        private static Users _instance;
-        public static Users Instance()
-        {
-            if (_instance == null)
-            {
-                Context.Log.Error("{0} Access of Users Instance when not defined", _logHeader);
-                throw new Exception("Access of Users Instance when not defined");
-            }
-            return _instance;
-        }
         public Users()
         {
-            _instance = this;
         }
 
         /// <summary>

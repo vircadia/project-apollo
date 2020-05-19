@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,23 +22,12 @@ using RandomNameGeneratorLibrary;
 
 namespace Project_Apollo.Entities
 {
-    class Domains
+    public class Domains
     {
         private static readonly string _logHeader = "[Domains]";
 
-        private static Domains _instance;
-        public static Domains Instance()
-        {
-            if (_instance == null)
-            {
-                Context.Log.Error("{0} Access of Users Instance when not defined", _logHeader);
-                throw new Exception("Access of Users Instance when not defined");
-            }
-            return _instance;
-        }
         public Domains()
         {
-            _instance = this;
         }
 
         public bool TryGetDomainWithID(string pDomainID, out DomainObject oDomain)

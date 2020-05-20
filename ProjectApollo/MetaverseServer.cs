@@ -221,49 +221,34 @@ namespace Project_Apollo
         {
             Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, pCtx.Request.HttpMethod, pCtx.Request.RawUrl);
 
-            string contentType = pCtx.Request.ContentType;
-            if (contentType == "application/json" || contentType == "text/html")
+
+            // Find the processor for this request and do the operation
+            // If the processing created any error, it will return reply data with the error.
+            RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
+
+            pCtx.Response.Headers.Add("Server", Context.Params.P<string>("Listener.Response.Header.Server"));
+            
+            pCtx.Response.StatusCode = _reply.Status;
+            if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;
+
+            if(_reply.CustomOutputHeaders != null)
             {
-                // Find the processor for this request and do the operation
-                // If the processing created any error, it will return reply data with the error.
-                RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
-
-                pCtx.Response.Headers.Add("Server", Context.Params.P<string>("Listener.Response.Header.Server"));
+                pCtx.Response.ContentType = "application/json";
                 
-                pCtx.Response.StatusCode = _reply.Status;
-                if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;
-
-                if(_reply.CustomOutputHeaders != null)
+                foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
                 {
-                    pCtx.Response.ContentType = "application/json";
-                    
-                    foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
-                    {
-                        pCtx.Response.Headers[kvp.Key] = kvp.Value;
-                    }
-                }
-
-                if (_reply.Body != null)
-                {
-                    byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
-                    pCtx.Response.ContentLength64 = buffer.Length;
-                    using (Stream output = pCtx.Response.OutputStream)
-                    {
-                        output.Write(buffer, 0, buffer.Length);
-                    }
+                    pCtx.Response.Headers[kvp.Key] = kvp.Value;
                 }
             }
-            else
+
+            if (_reply.Body != null)
             {
-                if (contentType.StartsWith("multipart/form-data;"))
+                // This resumes that all requests only return text
+                byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
+                pCtx.Response.ContentLength64 = buffer.Length;
+                using (Stream output = pCtx.Response.OutputStream)
                 {
-                }
-                else
-                {
-                    // Got a content type we don't handle
-                    Context.Log.Error("{0} Received REST request with unknown body type. Type={1}, URL={2}",
-                                _logHeader, pCtx.Request.ContentType, pCtx.Request.RawUrl);
-                    pCtx.Response.StatusCode = 415; // unsupported media type
+                    output.Write(buffer, 0, buffer.Length);
                 }
             }
 

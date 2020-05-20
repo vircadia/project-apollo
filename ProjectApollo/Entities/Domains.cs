@@ -22,12 +22,16 @@ using RandomNameGeneratorLibrary;
 
 namespace Project_Apollo.Entities
 {
-    public class Domains
+    public class Domains : EntityStorage
     {
         private static readonly string _logHeader = "[Domains]";
 
-        public Domains()
+        // this keeps a list of active domains. Entries age out if not used.
+        private Dictionary<string, DomainObject> ActiveDomains = new Dictionary<string, DomainObject>();
+
+        public Domains() : base()
         {
+
         }
 
         public bool TryGetDomainWithID(string pDomainID, out DomainObject oDomain)
@@ -50,8 +54,11 @@ namespace Project_Apollo.Entities
     /// <summary>
     /// Variables and operations on a domain
     /// </summary>
-    public class DomainObject
+    public class DomainObject : EntityMem
     {
+        public DomainObject() : base()
+        {
+        }
         public string DomainID;
         public string PlaceName;
         public string IPAddr;
@@ -65,7 +72,20 @@ namespace Project_Apollo.Entities
         public int LoggedIn;
         public string NetworkingMode;
 
-        public bool SetPublicKey(string pRemoteUser, string pPublicKey)
+        // The name to index this entity with
+        public override string EntityType()
+        {
+            return "Domain";
+        }
+        public override string StorageName()
+        {
+            return DomainID;
+        }
+        public bool SetPublicKey(string pRemoteUser, byte[] pPublicKey)
+        {
+            return false;
+        }
+        public bool SetApiKey(string pRemoteUser, byte[] pPublicKey)
         {
             return false;
         }

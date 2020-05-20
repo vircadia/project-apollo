@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
+using HttpUtils;
 
 namespace Project_Apollo.Registry
 {
@@ -36,6 +39,8 @@ namespace Project_Apollo.Registry
         }
 
         private string _requestBody;
+        // Returns the body of the  requests as a string.
+        // This will throw an exception if the body is not text (ie, form data, ...)
         public string RequestBody
         {
             get
@@ -46,11 +51,15 @@ namespace Project_Apollo.Registry
                     {
                         if (_listenerContext.Request.HasEntityBody)
                         {
-                            using (Stream body = _listenerContext.Request.InputStream)
+                            string contentType = _listenerContext.Request.ContentType;
+                            if (contentType == "application/json" || contentType == "text/html")
                             {
-                                using (StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding))
+                                using (Stream body = _listenerContext.Request.InputStream)
                                 {
-                                    _requestBody = sr.ReadToEnd();
+                                    using (StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding))
+                                    {
+                                        _requestBody = sr.ReadToEnd();
+                                    }
                                 }
                             }
                         }
@@ -65,9 +74,63 @@ namespace Project_Apollo.Registry
                 return _requestBody;
             }
         }
+        /// <summary>
+        /// Return the JSON deserialized object.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T RequestBodyObject<T>() {
-            return (T)JsonConvert.DeserializeObject<T>(this.RequestBody);
+            return (T)JsonConvert.DeserializeObject<T>(this.RequestBody,
+                    new JsonSerializerSettings
+                    {
+                        MissingMemberHandling = MissingMemberHandling.Ignore,
+                        NullValueHandling = NullValueHandling.Include
+                    }
+            );
         }
+        /// <summary>
+        /// Return the request body as a parsed Newtonsoft.JSON object.
+        /// This enables detailed grubbing through the received structure.
+        /// </summary>
+        /// <returns></returns>
+        public JObject RequestBodyJSON()
+        {
+            return JObject.Parse(this.RequestBody);
+        }
+        /// <summary>
+        /// If the request contents is multipart, return just the named part.
+        /// This returns 'null' if the multipart piece is not found.
+        /// This throws an exception if the body contents are not multipart.
+        /// </summary>
+        /// <param name="pPartname"></param>
+        /// <returns></returns>
+        public byte[] RequestBodyFile(string pPartname)
+        {
+            string contentType = _listenerContext.Request.ContentType;
+            if (contentType.StartsWith("multipart/form-data;"))
+            {
+                HttpMultipartParser mpParser = new HttpMultipartParser(_listenerContext.Request.InputStream, pPartname);
+                if (mpParser.Success) {
+                    return mpParser.FileContents;
+                }
+                return null;
+            }
+            else
+            {
+                throw new Exception("Requested Http body as multipart but it wasn't");
+            }
+        }
+        /// <summary>
+        /// Return 'true' if request has a multipart body
+        /// </summary>
+        public bool HasMultipartBody
+        {
+            get
+            {
+                return _listenerContext.Request.ContentType.ToLower().StartsWith("multipart/form-data;");
+            }
+        }
+
         public string RawURL
         {
             get

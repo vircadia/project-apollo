@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using static Project_Apollo.Registry.APIRegistry;
 
 namespace Project_Apollo.Hooks
 {
-    public class user_activities
+    public class APIUserActivities
     {
 
         public struct user_activities_reply

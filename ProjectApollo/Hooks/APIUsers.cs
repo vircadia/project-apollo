@@ -25,7 +25,7 @@ using Project_Apollo.Registry;
 
 namespace Project_Apollo.Hooks
 {
-    public class users
+    public class APIUsers
     {
         private static readonly string _logHeader = "[User]";
 

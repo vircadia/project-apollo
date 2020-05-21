@@ -80,6 +80,7 @@ namespace Project_Apollo.Hooks
                     if (filename.EndsWith(".json")) mimeType = "text/json";
                     if (filename.EndsWith(".yaml")) mimeType = "text/yaml";
                     if (filename.EndsWith(".html")) mimeType = "text/html";
+                    if (filename.EndsWith(".js")) mimeType = "text/javascript";
                     replyData.MIMEType = mimeType;
                 }
                 else

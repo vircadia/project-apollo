@@ -28,11 +28,11 @@ namespace Project_Apollo.Entities
     /// NOTE: the instance is referenced by many threads so be careful of
     /// locking and sharing variables.
     /// </summary>
-    public class Users
+    public class Users : EntityStorage
     {
         private static readonly string _logHeader = "[Users]";
 
-        public Users()
+        public Users() : base(UserEntity.UserEntityTypeName)
         {
         }
 
@@ -41,14 +41,14 @@ namespace Project_Apollo.Entities
         /// </summary>
         /// <param name="pAuthToken"></param>
         /// <returns>User information access class or 'null' if no authorized user</returns>
-        public UserObject FindUserWithAuth(string pAuthToken)
+        public UserEntity FindUserWithAuth(string pAuthToken)
         {
-            return new UserObject();
+            return new UserEntity();
         }
-        public bool TryGetUserWithAuth(string pAuthToken, out UserObject oUser)
+        public bool TryGetUserWithAuth(string pAuthToken, out UserEntity oUser)
         {
             bool ret = false;
-            UserObject retUser = null;
+            UserEntity retUser = null;
             if (pAuthToken != null)
             {
                 ret = true;
@@ -56,14 +56,14 @@ namespace Project_Apollo.Entities
             oUser = retUser;
             return ret;
         }
-        public UserObject FindUserWithID(string pUserID)
+        public UserEntity FindUserWithID(string pUserID)
         {
-            return new UserObject();
+            return new UserEntity();
         }
-        public bool TryGetUserWithID(string pUserID, out UserObject oUser)
+        public bool TryGetUserWithID(string pUserID, out UserEntity oUser)
         {
             bool ret = false;
-            UserObject retUser = null;
+            UserEntity retUser = null;
             if (pUserID != null)
             {
                 ret = true;
@@ -88,8 +88,25 @@ namespace Project_Apollo.Entities
     /// <summary>
     /// Wrapper for accessing per-user information
     /// </summary>
-    public class UserObject
+    public class UserEntity : EntityMem
     {
+        public static readonly string UserEntityTypeName = "User";
+
+        public UserEntity() : base()
+        {
+        }
+        // EntityMem.EntityType()
+        public override string EntityType()
+        {
+            return DomainEntity.DomainEntityTypeName;
+        }
+        // EntityMem.StorageName()
+        public override string StorageName()
+        {
+            return UserID;
+        }
+
+        public string UserID;
         public string Username;
         public bool Online;
         public string Connection;

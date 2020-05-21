@@ -27,21 +27,47 @@ namespace Project_Apollo.Entities
         private static readonly string _logHeader = "[Domains]";
 
         // this keeps a list of active domains. Entries age out if not used.
-        private Dictionary<string, DomainObject> ActiveDomains = new Dictionary<string, DomainObject>();
+        private Dictionary<string, DomainEntity> ActiveDomains = new Dictionary<string, DomainEntity>();
 
-        public Domains() : base()
+        private object domainLock = new object();
+
+        public Domains() : base(DomainEntity.DomainEntityTypeName)
         {
 
         }
 
-        public bool TryGetDomainWithID(string pDomainID, out DomainObject oDomain)
+        /// <summary>
+        /// Get domain information based on ID.
+        /// Looks for information in memory list and, if not found, tries
+        ///     to get the data from storage.
+        /// </summary>
+        /// <param name="pDomainID"></param>
+        /// <param name="oDomain"></param>
+        /// <returns></returns>
+        public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain)
         {
-            oDomain = null;
-            return false;
+            bool ret = false;
+            DomainEntity retDomain = null;
+            lock (domainLock)
+            {
+                ret = ActiveDomains.TryGetValue(pDomainID, out retDomain);
+                if (!ret)
+                {
+                    if (ExistsInStorage(pDomainID))
+                    {
+                        retDomain = FetchFromStorage<DomainEntity>(pDomainID);
+                        AddDomain(pDomainID, retDomain);
+                    }
+                }
+            }
+            oDomain = retDomain;
+            return ret;
         }
 
-        public void AddDomain(string pDomainID, DomainMemory.MemoryItem pMI)
+        public void AddDomain(string pDomainID, DomainEntity pDomainEntity)
         {
+            ActiveDomains.Add(pDomainID, pDomainEntity);
+            pDomainEntity.Touch();
         }
 
         // Store the ICE server API key for this domain
@@ -54,9 +80,10 @@ namespace Project_Apollo.Entities
     /// <summary>
     /// Variables and operations on a domain
     /// </summary>
-    public class DomainObject : EntityMem
+    public class DomainEntity : EntityMem
     {
-        public DomainObject() : base()
+        public static readonly string DomainEntityTypeName = "Domain";
+        public DomainEntity() : base()
         {
         }
         public string DomainID;
@@ -72,11 +99,12 @@ namespace Project_Apollo.Entities
         public int LoggedIn;
         public string NetworkingMode;
 
-        // The name to index this entity with
+        // EntityMem.EntityType()
         public override string EntityType()
         {
-            return "Domain";
+            return DomainEntity.DomainEntityTypeName;
         }
+        // EntityMem.StorageName()
         public override string StorageName()
         {
             return DomainID;
@@ -91,6 +119,9 @@ namespace Project_Apollo.Entities
         }
     }
 
+    // ====================================================================
+    // After this is all old code that will be thrown away when all
+    //   the interesting logic insights have been extracted.
     public class DomainMemory // <--- This is to be used to keep only recently accessed domains in memory!
         // Anything accessed within... the last 2 hours should stay in cached memory, after that it should be unloaded
     {
@@ -98,9 +129,9 @@ namespace Project_Apollo.Entities
         private static readonly object _lck = new object();
         public struct MemoryItem
         {
-            private DomainObject _obj;
+            private DomainEntity _obj;
             public DateTime LastAccessed;
-            public DomainObject Obj
+            public DomainEntity Obj
             {
                 get
                 {
@@ -154,7 +185,7 @@ namespace Project_Apollo.Entities
                     {
 
                         MemoryItem mi1 = new MemoryItem();
-                        DomainObject obj1 = JsonConvert.DeserializeObject<DomainObject>(File.ReadAllText($"domains/{ID}.json"));
+                        DomainEntity obj1 = JsonConvert.DeserializeObject<DomainEntity>(File.ReadAllText($"domains/{ID}.json"));
                         mi1.Obj = obj1;
                         Itms.Add(obj1.DomainID, mi1);
                         return;
@@ -163,7 +194,7 @@ namespace Project_Apollo.Entities
             }
 
             MemoryItem mi = new MemoryItem();
-            DomainObject obj = new DomainObject
+            DomainEntity obj = new DomainEntity
             {
                 DomainID = ID
             };
@@ -185,7 +216,7 @@ namespace Project_Apollo.Entities
             if (Itms.ContainsKey(DomainID))
             {
                 MemoryItem mi = Itms[DomainID];
-                DomainObject obj = mi.Obj;
+                DomainEntity obj = mi.Obj;
                 if (obj.API_Key != APIKey) return false;
                 obj.PlaceName = PlaceName;
                 mi.Obj = obj;
@@ -209,7 +240,7 @@ namespace Project_Apollo.Entities
             if (Itms.ContainsKey(DomainID))
             {
                 MemoryItem mi = Itms[DomainID];
-                DomainObject obj = mi.Obj;
+                DomainEntity obj = mi.Obj;
                 if (obj.API_Key != APIKey) return false;
                 obj.IPAddr = IP;
                 mi.Obj = obj;
@@ -230,7 +261,7 @@ namespace Project_Apollo.Entities
             if (Itms.ContainsKey(ID))
             {
                 MemoryItem mi = Itms[ID];
-                DomainObject obj = mi.Obj;
+                DomainEntity obj = mi.Obj;
                 if(obj.IPAddr == IP)
                 {
                     obj.Public_Key = Key;

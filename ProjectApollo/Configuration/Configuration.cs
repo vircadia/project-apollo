@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -22,6 +22,10 @@ using System.Net;
 
 namespace Project_Apollo
 {
+/// <summary>
+/// This is old code that is kept around until I figure out what this does,
+/// Once the functionality is duplicated, this file will be deleted.
+/// </summary>
     public class XXConfiguration
     {
         [JsonProperty(PropertyName = "Default ICE Server")]

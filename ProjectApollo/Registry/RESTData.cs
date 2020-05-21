@@ -213,18 +213,21 @@ namespace Project_Apollo.Registry
         public string CustomStatus; // <-- Examples: OK, Not Found, Authorization Required, etc.
         // Header fields to add to the response
         public Dictionary<string, string> CustomOutputHeaders;
+        // If there are contents, the MIME type
+        public string MIMEType;
         public RESTReplyData()
         {
             Status = 200;   // Assume successful response
+            MIMEType = "text/json";
             CustomOutputHeaders = new Dictionary<string, string>();
         }
         public RESTReplyData(string pBody)
         {
             Status = 200;   // Assume successful response
+            MIMEType = "text/json";
             CustomOutputHeaders = new Dictionary<string, string>();
             Body = pBody;
         }
-
     }
 
 }

@@ -22,6 +22,7 @@ namespace Project_Apollo.Entities
 {
     /// <summary>
     /// Base class for all entities stored in memory.
+    /// This provides a common wrapper for storing and fetching the entities.
     /// </summary>
     public abstract class EntityMem
     {
@@ -42,31 +43,50 @@ namespace Project_Apollo.Entities
         public abstract string StorageName();
     }
 
-    public class EntityStorage
+    /// <summary>
+    /// Store entities in a directory.
+    /// Entities are stored as JSON files in the directory "entityType/entityStorageName".
+    /// Entities are kept in memory for quick reference and read or
+    ///     written out as needed.
+    /// Entities are flushed from in memory after "Storage.IdleMinutes" minutes.
+    /// </summary>
+    public abstract class EntityStorage
     {
         private static readonly string _logHeader = "[EntityStorage]";
 
         // Used to lock across storage checking and updates.
-        protected object storageLock = new object();
+        protected static object storageLock = new object();
+
+        protected string StorageEntityType;
 
         protected string entityStorageDir;
         protected int minutesToKeepIdleEntities;
 
-        public EntityStorage()
+        public EntityStorage(string pEntityType)
         {
+            StorageEntityType = pEntityType;
+
             entityStorageDir = Context.Params.P<string>("Storage.Dir");
             minutesToKeepIdleEntities = Context.Params.P<int>("Storage.IdleMinutes");
+
+            lock (storageLock)
+            {
+                if (!Directory.Exists(entityStorageDir))
+                {
+                    Directory.CreateDirectory(entityStorageDir);
+                }
+            }
         }
 
         // Return true if the named entity exists in the storage system
-        public bool ExistsInStorage(string pEntityType, string pStorageName)
+        public bool ExistsInStorage(string pStorageName)
         {
-            return false;
+            return File.Exists(EntityFilename(pStorageName));
         }
 
-        public T FetchFromStorage<T>(string pEntityType, string pStorageName)
+        public T FetchFromStorage<T>(string pStorageName)
         {
-            T entity = JsonConvert.DeserializeObject<T>(File.ReadAllText(EntityFilename(pEntityType, pStorageName)));
+            T entity = JsonConvert.DeserializeObject<T>(File.ReadAllText(EntityFilename(pStorageName)));
             return entity;
         }
 
@@ -82,11 +102,11 @@ namespace Project_Apollo.Entities
             }
         }
 
-        protected string EntityFilename(string pEntityType, string pStorageName)
+        protected string EntityFilename(string pStorageName)
         {
             return entityStorageDir
                         + Path.DirectorySeparatorChar
-                        + pEntityType
+                        + StorageEntityType
                         + Path.DirectorySeparatorChar
                         + pStorageName
                         + ".json";

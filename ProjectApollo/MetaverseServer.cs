@@ -233,8 +233,6 @@ namespace Project_Apollo
 
             if(_reply.CustomOutputHeaders != null)
             {
-                pCtx.Response.ContentType = "application/json";
-                
                 foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
                 {
                     pCtx.Response.Headers[kvp.Key] = kvp.Value;
@@ -250,6 +248,7 @@ namespace Project_Apollo
                 {
                     output.Write(buffer, 0, buffer.Length);
                 }
+                pCtx.Response.ContentType = _reply.MIMEType;
             }
 
             pCtx.Response.Close();

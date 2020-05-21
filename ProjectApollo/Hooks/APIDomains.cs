@@ -29,6 +29,8 @@ namespace Project_Apollo.Hooks
         public static readonly string _logHeader = "[APIDomains]";
 
         // ===GET /api/v1/domains/% =================================================
+
+        // the following structure defns don't seem right for this request
         public struct DomainReplyData
         {
             public string id;
@@ -50,36 +52,38 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/domains/%", "GET", true)]
         public RESTReplyData get_domain(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-
-            DomainReplyData drd = new DomainReplyData();
-
-            PutIceServerResponse isres = new PutIceServerResponse();
-            isres.status = "success";
-            drd.id = domainID;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
             {
-                drd.ice_server_address = dobj.IPAddr;
-                drd.name = dobj.PlaceName;
+                PutIceServerResponse isres = new PutIceServerResponse();
+                isres.status = "success";
 
-                isres.domain = drd;
-                rd.Status = 200;
-                rd.Body = JsonConvert.SerializeObject(isres);
+                DomainReplyData dReplyData = new DomainReplyData();
+                dReplyData.id = domainID;
+                dReplyData.ice_server_address = dobj.IPAddr;
+                dReplyData.name = dobj.PlaceName;
+
+                isres.domain = dReplyData;
+
+                respBody.Data = isres;
+                replyData.Body = respBody;
             }
             else
             {
                 // return nothing!
-                GetDomainError gde = new GetDomainError();
-                gde.status = "fail";
-                gde.data = new Dictionary<string, string>();
-                gde.data.Add("domain", "there is no domain with that ID");
-                rd.Status = 404;
-                rd.Body = JsonConvert.SerializeObject(gde);
+                respBody.RespondFailure();
+                respBody.Data = new Dictionary<string, string>()
+                {
+                    {  "domain", "there is no domain with that ID" }
+                };
+                replyData.Status = 404;
+                replyData.Body = respBody;
             }
 
-            return rd;
+            return replyData;
         }
 
         // ===PUT /api/v1/domains/% ==========================================
@@ -93,12 +97,13 @@ namespace Project_Apollo.Hooks
             // user_hostnames   -    Currently not known what this data looks like,
             //            however it is probably a Dictionary of some sort
         }
-        public struct bodyDomainData
+        public struct bodyDomainPutData
         {
             public string description;
             public int capacity;
             public string maturity;
             public string restriction;
+            public string api_key;
             public string[] tags;
             public string[] hosts;
 
@@ -112,26 +117,27 @@ namespace Project_Apollo.Hooks
         // Domains call has differing bodies but they all start with a 'Domain' top level
         public struct bodyHeartbeatRequest
         {
-            public bodyDomainData Domain;
+            public bodyDomainPutData Domain;
         }
 
         [APIPath("/api/v1/domains/%", "PUT", true)]
         public RESTReplyData domain_heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData replyData = new RESTReplyData();
-
-            try
-            {
-                bodyHeartbeatRequest requestData = pReq.RequestBodyObject<bodyHeartbeatRequest>();
-            }
-            catch (Exception e)
-            {
-                Context.Log.Error("{0} domain_heartbeat: Exception parsing body: {1}", _logHeader, e.ToString());
-            }
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
             {
+                try
+                {
+                    bodyHeartbeatRequest requestData = pReq.RequestBodyObject<bodyHeartbeatRequest>();
+                }
+                catch (Exception e)
+                {
+                    respBody.RespondFailure();
+                    Context.Log.Error("{0} domain_heartbeat: Exception parsing body: {1}", _logHeader, e.ToString());
+                }
             /*
                 JObject requestData = pReq.RequestBodyJSON();
                 // Dictionary<string, HeartbeatPacket> requestData =
@@ -165,6 +171,8 @@ namespace Project_Apollo.Hooks
                 Context.Log.Debug("{0} domain_heartbeat: unknown domain. Returning 404", _logHeader);
                 replyData.Status = 404; // this will trigger a new temporary domain name
             }
+
+            replyData.Body = respBody;
             return replyData;
         }
         // =======================================================================
@@ -182,34 +190,32 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/domains/%/ice_server_address", "PUT", true)]
         public RESTReplyData put_ice_address(RESTRequestData pReq, List<string> pArgs)
         {
-            RESTReplyData rd = new RESTReplyData();
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
-            string domainID = pArgs[0];
-            DomainReplyData drd = new DomainReplyData();
-            PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(pReq.RequestBody);
-            PutIceServerResponse isres = new PutIceServerResponse();
-
-            if (Context.DomainEntities.SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
+            string domainID = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
             {
-                isres.status = "success";
-            }
-            else
-            {
-                isres.status = "fail";
-            }
+                PutIceServerRequest isr = JsonConvert.DeserializeObject<PutIceServerRequest>(pReq.RequestBody);
 
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject dobj))
-            {
-                drd.id = domainID;
-                drd.ice_server_address = dobj.IPAddr;
-                drd.name = dobj.PlaceName;
+                if (Context.DomainEntities.SetIP(domainID, pReq.RemoteUser.ToString(), isr.api_key))
+                {
+                    DomainReplyData drd = new DomainReplyData();
 
-                isres.domain = drd;
-                rd.Status = 200;
-                rd.Body = JsonConvert.SerializeObject(isres);
+                    PutIceServerResponse isres = new PutIceServerResponse();
+
+                    isres.status = "success";
+                    drd.id = domainID;
+                    drd.ice_server_address = dobj.IPAddr;
+                    drd.name = dobj.PlaceName;
+
+                    isres.domain = drd;
+                    respBody.Data = isres;
+                }
             }
 
-            return rd;
+            replyData.Body = respBody;
+            return replyData;
         }
 
         public struct TemporaryPlaceNameReply
@@ -226,7 +232,7 @@ namespace Project_Apollo.Hooks
             PersonNameGenerator png = new PersonNameGenerator();
             PlaceNameGenerator plng = new PlaceNameGenerator();
             // We're generating the entire domain entry in the data store
-            DomainObject DO = new DomainObject()
+            DomainEntity newDomain = new DomainEntity()
             {
                 PlaceName = png.GenerateRandomFirstName() + "-" + plng.GenerateRandomPlaceName() + "-" + new Random().Next(500, 9000).ToString(),
                 DomainID = Guid.NewGuid().ToString(),
@@ -234,13 +240,13 @@ namespace Project_Apollo.Hooks
             };
 
 
-            DO.API_Key = Tools.MD5Hash($":{DO.PlaceName}::{DO.DomainID}:{DO.IPAddr}");
+            newDomain.API_Key = Tools.MD5Hash($":{newDomain.PlaceName}::{newDomain.DomainID}:{newDomain.IPAddr}");
 
             DomainReplyDataWithKey drd = new DomainReplyDataWithKey();
-            drd.ice_server_address = DO.IPAddr;
-            drd.api_key = DO.API_Key;
-            drd.id = DO.DomainID;
-            drd.name = DO.PlaceName;
+            drd.ice_server_address = newDomain.IPAddr;
+            drd.api_key = newDomain.API_Key;
+            drd.id = newDomain.DomainID;
+            drd.name = newDomain.PlaceName;
 
             TemporaryPlaceNameReply tpnr = new TemporaryPlaceNameReply();
             tpnr.status = "success";
@@ -251,8 +257,8 @@ namespace Project_Apollo.Hooks
             rd.Body = JsonConvert.SerializeObject(tpnr);
 
             DomainMemory.MemoryItem mi = new DomainMemory.MemoryItem();
-            mi.Obj = DO;
-            Context.DomainEntities.AddDomain(DO.DomainID, mi);
+            mi.Obj = newDomain;
+            Context.DomainEntities.AddDomain(newDomain.DomainID, newDomain);
 
             rd.CustomOutputHeaders = new Dictionary<string, string>();
             rd.CustomOutputHeaders.Add("X-Rack-CORS", "miss; no-origin");
@@ -264,29 +270,28 @@ namespace Project_Apollo.Hooks
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            ResponseBody respBody = new ResponseBody();
-            RESTReplyData replyData = new RESTReplyData(respBody);
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject aDomain))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 try
                 {
                     byte[] publicKey = pReq.RequestBodyFile("public_key");
                     if (publicKey != null && publicKey.Length > 0)
                     {
-
                         if (!aDomain.SetPublicKey(pReq.RemoteUser.ToString(), publicKey))
                         {
                             // failure
                             replyData.Status = 403;
-                            respBody.Status = "fail";
+                            respBody.RespondFailure();
                         }
                     }
                     else
                     {
                         Context.Log.Error("{0} attempt to set public_key with zero length body", _logHeader);
-                        respBody.Status = "fail";
+                        respBody.RespondFailure();
                     }
                     byte[] apiKey = pReq.RequestBodyFile("api_key");
                     if (apiKey != null && apiKey.Length > 0)
@@ -296,28 +301,30 @@ namespace Project_Apollo.Hooks
                         {
                             // failure
                             replyData.Status = 403;
-                            respBody.Status = "fail";
+                            respBody.RespondFailure();
                         }
                     }
                     else
                     {
                         Context.Log.Error("{0} attempt to set api_key with zero length body", _logHeader);
-                        respBody.Status = "fail";
+                        respBody.RespondFailure();
                     }
                 }
                 catch (Exception e)
                 {
                     Context.Log.Error("{0} exception parsing multi-part http: {1}", _logHeader, e.ToString());
-                    respBody.Status = "fail";
+                    respBody.RespondFailure();
                 }
 
             }
             else
             {
                 Context.Log.Error("{0} attempt to set public_key for unknown domain {1}", _logHeader, domainID);
-                respBody.Status = "fail";
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+
+            replyData.Body = respBody;
+            return replyData;
         }
 
         // TODO: CHANGE TO REGEX
@@ -327,13 +334,13 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainObject aDomain))
+            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 // return domains public_key in "public_key" field of response
             }
             else
             {
-                respBody.Status = "fail";
+                respBody.RespondFailure();
             }
             return new RESTReplyData(respBody);
         }

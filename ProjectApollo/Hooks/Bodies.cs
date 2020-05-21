@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ namespace Project_Apollo.Hooks
     public class ResponseBody
     {
         public string Status;
+        // NOTE: 'Data' is an object that  will be serialized by JSON!
         public object Data;
 
         public ResponseBody()
@@ -45,6 +46,18 @@ namespace Project_Apollo.Hooks
         public ResponseBody(string pStatus, object pDataContents) {
             Status = pStatus;
             Data = pDataContents;
+        }
+
+        public ResponseBody RespondSuccess()
+        {
+            Status = "success";
+            return this;
+        }
+
+        public ResponseBody RespondFailure()
+        {
+            Status = "fail";
+            return this;
         }
 
         public static implicit operator string(ResponseBody rb) => rb.ToString();

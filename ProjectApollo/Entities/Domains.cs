@@ -27,9 +27,9 @@ namespace Project_Apollo.Entities
         private static readonly string _logHeader = "[Domains]";
 
         // this keeps a list of active domains. Entries age out if not used.
-        private Dictionary<string, DomainEntity> ActiveDomains = new Dictionary<string, DomainEntity>();
+        private readonly Dictionary<string, DomainEntity> ActiveDomains = new Dictionary<string, DomainEntity>();
 
-        private object domainLock = new object();
+        private readonly object domainLock = new object();
 
         public Domains() : base(DomainEntity.DomainEntityTypeName)
         {
@@ -46,34 +46,46 @@ namespace Project_Apollo.Entities
         /// <returns></returns>
         public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain)
         {
-            bool ret = false;
+            return TryGetDomainWithID(pDomainID, out oDomain, false);
+        }
+
+        /// <summary>
+        /// Find and return a DomainEntity based on the DomainID.
+        /// </summary>
+        /// <param name="pDomainID"></param>
+        /// <param name="oDomain">DomainObject found</param>
+        /// <param name="pCreateTemp">if 'true', create temp domain entry if not found</param>
+        /// <returns></returns>
+        public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain, bool pCreateTemp)
+        {
             DomainEntity retDomain = null;
             lock (domainLock)
             {
-                ret = ActiveDomains.TryGetValue(pDomainID, out retDomain);
-                if (!ret)
+                if (!ActiveDomains.TryGetValue(pDomainID, out retDomain))
                 {
+                    // Domain info is not in memory. Is is in storage?
                     if (ExistsInStorage(pDomainID))
                     {
                         retDomain = FetchFromStorage<DomainEntity>(pDomainID);
                         AddDomain(pDomainID, retDomain);
                     }
                 }
+                if (retDomain == null && pCreateTemp)
+                {
+                    retDomain = new DomainEntity()
+                    {
+                        DomainID = pDomainID
+                    };
+                }
             }
             oDomain = retDomain;
-            return ret;
+            return (retDomain != null);
         }
 
         public void AddDomain(string pDomainID, DomainEntity pDomainEntity)
         {
             ActiveDomains.Add(pDomainID, pDomainEntity);
             pDomainEntity.Touch();
-        }
-
-        // Store the ICE server API key for this domain
-        public bool SetIP(string pDomainID, string pRequestorAddr, string pIceServerAPIKey)
-        {
-            return false;
         }
     }
 
@@ -83,21 +95,24 @@ namespace Project_Apollo.Entities
     public class DomainEntity : EntityMem
     {
         public static readonly string DomainEntityTypeName = "Domain";
+
+        public string DomainID;     // globally unique domain identifier
+        public string PlaceName;    // place name
+        public string IceAddr;      // IP address of ICE server
+        public string API_Key;      // Access key if a temp domain
+        public string Public_Key;   // DomainServers's public key
+        public string Protocol;     // Protocol version
+        public string Version;      // DomainServer's build version (like "K3")
+        public bool Restricted;     // 'true' if restricted to users with accounts
+        public int TotalUsers;      // number of users
+        public int Anon;            // number of anonymous users
+        public int LoggedIn;        // regular users logged in
+        public string NetworkingMode;   // 'full' or ?
+
         public DomainEntity() : base()
         {
+            this.Touch();
         }
-        public string DomainID;
-        public string PlaceName;
-        public string IPAddr;
-        public string API_Key;
-        public string Public_Key;
-        public string Protocol;
-        public string Version;
-        public bool Restricted;
-        public int TotalUsers;
-        public int Anon;
-        public int LoggedIn;
-        public string NetworkingMode;
 
         // EntityMem.EntityType()
         public override string EntityType()
@@ -242,7 +257,7 @@ namespace Project_Apollo.Entities
                 MemoryItem mi = Itms[DomainID];
                 DomainEntity obj = mi.Obj;
                 if (obj.API_Key != APIKey) return false;
-                obj.IPAddr = IP;
+                obj.IceAddr = IP;
                 mi.Obj = obj;
                 Itms[DomainID] = mi;
                 return true;
@@ -262,7 +277,7 @@ namespace Project_Apollo.Entities
             {
                 MemoryItem mi = Itms[ID];
                 DomainEntity obj = mi.Obj;
-                if(obj.IPAddr == IP)
+                if(obj.IceAddr == IP)
                 {
                     obj.Public_Key = Key;
                     mi.Obj = obj;

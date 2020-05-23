@@ -1,4 +1,4 @@
-﻿/// HttpUtils.Misc
+/// HttpUtils.Misc
 /// 
 /// Copyright (c) 2012 Lorenzo Polidori
 /// 

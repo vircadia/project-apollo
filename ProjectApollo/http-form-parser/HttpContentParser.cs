@@ -1,4 +1,4 @@
-﻿/// HttpUtils.HttpContentParser
+/// HttpUtils.HttpContentParser
 /// 
 /// Copyright (c) 2012 Lorenzo Polidori
 /// 

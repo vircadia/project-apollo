@@ -78,7 +78,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
             ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "config.json"));
+            ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "SiteConfig.json"));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:19400/ user=everyone
             ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "+"));
@@ -89,6 +89,8 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>("Storage.StaticDir", "Directory of static pages served for users", "Static"));
             ret.Add(new ParamBlock.ParameterDefn<int>("Storage.IdleMinutes", "Minutes to keep entities in memory", 60));
             ret.Add(new ParamBlock.ParameterDefn<int>("Storage.FlushMinutes", "Minutes before changed data is flushed", 1));
+
+            ret.Add(new ParamBlock.ParameterDefn<string>("Commerce.MarketplaceKey", "Public key for Marketplace access", "lksjdlkjskldjflsd"));
 
             ret.SetParameterDefaultValues();
 

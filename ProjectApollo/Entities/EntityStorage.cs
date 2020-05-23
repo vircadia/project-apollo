@@ -73,14 +73,25 @@ namespace Project_Apollo.Entities
         {
             _storageEntityTypeName = pEntityTypeName;
 
-            _entityStorageDir = Path.Combine(
-                            Context.Params.P<string>("Storage.Dir"), _storageEntityTypeName);
 
+            // The GetFullPath() will correct the directory separators in the config path
+            string fullDirPath = Path.GetFullPath(Context.Params.P<string>("Storage.Dir"));
+            _entityStorageDir = Path.Combine( fullDirPath, _storageEntityTypeName);
+
+            Context.Log.Debug("{0} Storing {1} entities into {2}", _logHeader, _storageEntityTypeName, _entityStorageDir);
             lock (_storageLock)
             {
                 if (!Directory.Exists(_entityStorageDir))
                 {
-                    Directory.CreateDirectory(_entityStorageDir);
+                    try
+                    {
+                        Directory.CreateDirectory(_entityStorageDir);
+                    }
+                    catch (Exception e)
+                    {
+                        Context.Log.Error("{0} Failure creating storage directory {1}: {2}",
+                                        _logHeader, _entityStorageDir, e);
+                    }
                 }
             }
         }

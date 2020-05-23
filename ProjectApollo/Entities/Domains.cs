@@ -38,6 +38,7 @@ namespace Project_Apollo.Entities
                 {
                     lock (domainLock)
                     {
+                        // race condition check
                         if (_instance == null)
                         {
                             _instance = new Domains();

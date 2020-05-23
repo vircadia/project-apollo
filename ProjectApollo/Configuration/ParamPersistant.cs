@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -43,33 +43,64 @@ namespace Project_Apollo.Configuration
     /// </summary>
     public class ParamPersistant : ParamBlock
     {
+        private static readonly string _logHeader = "[ParamPersistant]";
         private readonly string _filename;
 
+        /// <summary>
+        /// Read in parameter file.
+        /// The configuration file is a flat specification of key/value pairs -- multi-level,
+        ///     nested parameter definitions is not implemented!!
+        /// NOTE: the value types are REQUIRED to match the type found in AppParams or runtime error will occur.
+        /// </summary>
+        /// <param name="pFilename"></param>
         public ParamPersistant(string pFilename) : base()
         {
             _filename = pFilename;
             if (File.Exists(_filename))
             {
-                JObject configs = JObject.Parse(File.ReadAllText(_filename));
-                foreach (var kvp in configs.Properties()) {
-                    string paramName = kvp.Name;
-                    JToken paramJValue = kvp.Value;
-                    if (paramJValue.Type == JTokenType.String)
+                Context.Log.Debug("{0} Reading configuration file {1}", _logHeader, _filename);
+                try
+                {
+                    JObject configs = JObject.Parse(File.ReadAllText(_filename));
+                    foreach (var kvp in configs.Properties())
                     {
-                        this.Add(new ParameterDefn<string>(paramName, "", paramJValue.Value<string>()));
+                        string paramName = kvp.Name;
+                        JToken paramJValue = kvp.Value;
+                        switch (paramJValue.Type)
+                        {
+                            case JTokenType.String:
+                                this.Add(new ParameterDefn<string>(paramName, "", paramJValue.Value<string>()));
+                                // Context.Log.Debug("{0} Setting {1} => {2}", _logHeader, paramName, paramJValue.Value < string>());
+                                break;
+                            case JTokenType.Boolean:
+                                this.Add(new ParameterDefn<bool>(paramName, "", paramJValue.Value<bool>()));
+                                // Context.Log.Debug("{0} Setting {1} => {2}", _logHeader, paramName, paramJValue.Value <bool>());
+                                break;
+                            case JTokenType.Integer:
+                                this.Add(new ParameterDefn<int>(paramName, "", paramJValue.Value<int>()));
+                                // Context.Log.Debug("{0} Setting {1} => {2}", _logHeader, paramName, paramJValue.Value <int>());
+                                break;
+                            default:
+                                Context.Log.Error("{0} Attempt to define parameter of different type: name={1}, type{2}",
+                                            _logHeader, paramName, Enum.GetName(typeof(JTokenType), paramJValue.Type));
+                                // TODO: not implemented because the type is hard to specify if creation of ParameterDefn
+                                // Either that or rework ParameterDefn so there is a version that takes the type as a parameter
+                                string typeName = (string)paramJValue["type"];
+                                Type theType = SearchForType(typeName);
+                                string desc = (string)paramJValue["description"];
+                                // this.Add(new ParameterDefn<theType>(paramName, desc, paramJValue.Value<string>()));
+                                break;
+                        }
                     }
-                    else
-                    {
-                        // TODO: not implemented because the type is hard to specify if creation of ParameterDefn
-                        // Either that or rework ParameterDefn so there is a version that takes the type as a parameter
-                        string typeName = (string)paramJValue["type"];
-                        Type theType = SearchForType(typeName);
-                        string desc = (string)paramJValue["description"];
-                        // this.Add(new ParameterDefn<theType>(paramName, desc, paramJValue.Value<string>()));
-                    }
-                    
                 }
-
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} Exception parsing/processing config file {1}: {2}", _logHeader, _filename, e);
+                }
+            }
+            else
+            {
+                Context.Log.Debug("{0} Could not open config file {1}", _logHeader, _filename);
             }
         }
 
@@ -92,7 +123,7 @@ namespace Project_Apollo.Configuration
 
         public void Persist()
         {
-            
+            Context.Log.Error("{0} Attempt to persist site parameters which is unimplemented!!", _logHeader);
         }
     }
 }

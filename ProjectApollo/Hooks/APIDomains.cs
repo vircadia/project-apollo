@@ -164,7 +164,7 @@ namespace Project_Apollo.Hooks
             // replyData.Body = respBody; there is no body in the response
             return replyData;
         }
-        // =======================================================================
+        // == PUT /api/v1/domains/%/ice_server_address ===========================
         public struct bodyIceServerPutData
         {
             public string ice_server_address;
@@ -211,7 +211,7 @@ namespace Project_Apollo.Hooks
             return replyData;
         }
 
-        // =======================================================================
+        // == POST /api/v1/domains/temporary =====================================
         [APIPath("/api/v1/domains/temporary", "POST", true)]
         public RESTReplyData get_temporary_name(RESTRequestData pReq, List<string> pArgs)
         {
@@ -240,14 +240,15 @@ namespace Project_Apollo.Hooks
                 }
             };
             replyData.Body = respBody;  // serializes JSON
-            Context.Log.Debug("{0} domains/temporary POST response = {1}", _logHeader, replyData.Body);
+            Context.Log.Debug("{0} Returning temporary domain: id={1}, name={2}",
+                        _logHeader, newDomain.DomainID, newDomain.PlaceName);
             
             replyData.CustomOutputHeaders.Add("X-Rack-CORS", "miss; no-origin");
             replyData.CustomOutputHeaders.Add("Access-Control-Allow-Origin", "*");
             return replyData;
         }
 
-        // =======================================================================
+        // == PUT /api/v1/domains/%/public_key ===================================
         [APIPath("/api/v1/domains/%/public_key", "PUT", true)]
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
@@ -293,7 +294,7 @@ namespace Project_Apollo.Hooks
             return replyData;
         }
 
-        // TODO: CHANGE TO REGEX
+        // == GET /api/v1/domains/%/public_key ===================================
         [APIPath("/api/v1/domains/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
@@ -302,6 +303,7 @@ namespace Project_Apollo.Hooks
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
             if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
+                // TODO: implement
                 // return domains public_key in "public_key" field of response
             }
             else
@@ -310,6 +312,5 @@ namespace Project_Apollo.Hooks
             }
             return new RESTReplyData(respBody);
         }
-
     }
 }

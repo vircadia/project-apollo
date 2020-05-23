@@ -68,6 +68,10 @@ namespace Project_Apollo
 
         static void Main(string[] args)
         {
+            // Temp logger for startup errors
+            Context.Log = new ConsoleLogger();
+            Context.Log.LogLevel = Logger.LogLevels.Info;
+
             // Setup global Context
             Context.Params = new AppParams(args);
             Context.Log = new LogFileLogger(Context.Params.P<string>("Logger.LogDirectory"));

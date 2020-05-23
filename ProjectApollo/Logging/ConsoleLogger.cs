@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace Project_Apollo.Logging
         {
         }
 
-        public override void Info(string pMsg, params string[] pParms)
+        public override void Info(string pMsg, params object[] pParms)
         {
             if ( ( LogLevel == LogLevels.Info
                     || LogLevel == LogLevels.Warn
@@ -36,7 +36,7 @@ namespace Project_Apollo.Logging
                 System.Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
-        public override void Warn(string pMsg, params string[] pParms)
+        public override void Warn(string pMsg, params object[] pParms)
         {
             if ( (LogLevel == LogLevels.Warn
                     || LogLevel == LogLevels.Debug))
@@ -44,14 +44,14 @@ namespace Project_Apollo.Logging
                 System.Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
-        public override void Debug(string pMsg, params string[] pParms)
+        public override void Debug(string pMsg, params object[] pParms)
         {
             if ( ( LogLevel == LogLevels.Debug))
             {
                 System.Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
-        public override void Error(string pMsg, params string[] pParms)
+        public override void Error(string pMsg, params object[] pParms)
         {
             System.Console.WriteLine(String.Format(pMsg, pParms));
         }

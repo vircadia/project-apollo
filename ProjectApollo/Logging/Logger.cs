@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,9 +55,9 @@ namespace Project_Apollo.Logging
         /// </summary>
         public abstract void Flush();
 
-        public abstract void Info(string pMsg, params string[] pParms);
-        public abstract void Warn(string pMsg, params string[] pParms);
-        public abstract void Debug(string pMsg, params string[] pParms);
-        public abstract void Error(string pMsg, params string[] pParms);
+        public abstract void Info(string pMsg, params object[] pParms);
+        public abstract void Warn(string pMsg, params object[] pParms);
+        public abstract void Debug(string pMsg, params object[] pParms);
+        public abstract void Error(string pMsg, params object[] pParms);
     }
 }

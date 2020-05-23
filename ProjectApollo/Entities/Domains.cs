@@ -13,9 +13,11 @@
 //   limitations under the License.
 
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
-using System.Text;
+using System.Linq;
 
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
@@ -26,27 +28,46 @@ namespace Project_Apollo.Entities
     {
         private static readonly string _logHeader = "[Domains]";
 
-        // this keeps a list of active domains. Entries age out if not used.
+        private static readonly object domainLock = new object();
+        private static Domains _instance;
+        public static Domains Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (domainLock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new Domains();
+                            _instance.Init();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        // List of all known domains
         private readonly Dictionary<string, DomainEntity> ActiveDomains = new Dictionary<string, DomainEntity>();
 
-        private readonly object domainLock = new object();
 
         public Domains() : base(DomainEntity.DomainEntityTypeName)
         {
-
         }
 
-        /// <summary>
-        /// Get domain information based on ID.
-        /// Looks for information in memory list and, if not found, tries
-        ///     to get the data from storage.
-        /// </summary>
-        /// <param name="pDomainID"></param>
-        /// <param name="oDomain"></param>
-        /// <returns></returns>
-        public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain)
+        public void Init()
         {
-            return TryGetDomainWithID(pDomainID, out oDomain, false);
+            // Fill my list of domains
+            lock (domainLock)
+            {
+                foreach (DomainEntity anEntity in AllEntities<DomainEntity>()) {
+                    ActiveDomains.Add(anEntity.DomainID, anEntity);
+                }
+                Context.Log.Debug("{0} Initialized by reading in {1} DomainEntities",
+                            _logHeader, ActiveDomains.Count.ToString());
+            }
         }
 
         /// <summary>
@@ -54,38 +75,19 @@ namespace Project_Apollo.Entities
         /// </summary>
         /// <param name="pDomainID"></param>
         /// <param name="oDomain">DomainObject found</param>
-        /// <param name="pCreateTemp">if 'true', create temp domain entry if not found</param>
         /// <returns></returns>
-        public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain, bool pCreateTemp)
+        public bool TryGetDomainWithID(string pDomainID, out DomainEntity oDomain)
         {
-            DomainEntity retDomain = null;
-            lock (domainLock)
-            {
-                if (!ActiveDomains.TryGetValue(pDomainID, out retDomain))
-                {
-                    // Domain info is not in memory. Is is in storage?
-                    if (ExistsInStorage(pDomainID))
-                    {
-                        retDomain = FetchFromStorage<DomainEntity>(pDomainID);
-                        AddDomain(pDomainID, retDomain);
-                    }
-                }
-                if (retDomain == null && pCreateTemp)
-                {
-                    retDomain = new DomainEntity()
-                    {
-                        DomainID = pDomainID
-                    };
-                }
-            }
-            oDomain = retDomain;
-            return (retDomain != null);
+            return ActiveDomains.TryGetValue(pDomainID, out oDomain);
         }
 
         public void AddDomain(string pDomainID, DomainEntity pDomainEntity)
         {
-            ActiveDomains.Add(pDomainID, pDomainEntity);
-            pDomainEntity.Touch();
+            lock (domainLock)
+            {
+                ActiveDomains.Add(pDomainID, pDomainEntity);
+                pDomainEntity.Updated();
+            }
         }
     }
 
@@ -100,7 +102,7 @@ namespace Project_Apollo.Entities
         public string PlaceName;    // place name
         public string IceAddr;      // IP address of ICE server
         public string API_Key;      // Access key if a temp domain
-        public string Public_Key;   // DomainServers's public key
+        public byte[] Public_Key;   // DomainServers's public key
         public string Protocol;     // Protocol version
         public string Version;      // DomainServer's build version (like "K3")
         public bool Restricted;     // 'true' if restricted to users with accounts
@@ -109,9 +111,13 @@ namespace Project_Apollo.Entities
         public int LoggedIn;        // regular users logged in
         public string NetworkingMode;   // 'full' or ?
 
-        public DomainEntity() : base()
+        // admin stuff
+        public DateTime WhenDomainEntryCreated;
+        public string IPAddrOfFirstContact;
+
+        public DomainEntity() : base(Domains.Instance)
         {
-            this.Touch();
+            WhenDomainEntryCreated = DateTime.UtcNow;
         }
 
         // EntityMem.EntityType()
@@ -124,13 +130,10 @@ namespace Project_Apollo.Entities
         {
             return DomainID;
         }
-        public bool SetPublicKey(string pRemoteUser, byte[] pPublicKey)
+        public bool SetPublicKey(byte[] pPublicKey)
         {
-            return false;
-        }
-        public bool SetApiKey(string pRemoteUser, byte[] pPublicKey)
-        {
-            return false;
+            Public_Key = pPublicKey;
+            return true;
         }
     }
 
@@ -279,7 +282,7 @@ namespace Project_Apollo.Entities
                 DomainEntity obj = mi.Obj;
                 if(obj.IceAddr == IP)
                 {
-                    obj.Public_Key = Key;
+                    // RA obj.Public_Key = Key;
                     mi.Obj = obj;
                     Itms[ID] = mi;
                     return true;

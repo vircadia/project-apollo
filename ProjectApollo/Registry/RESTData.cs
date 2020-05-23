@@ -104,20 +104,43 @@ namespace Project_Apollo.Registry
         /// </summary>
         /// <param name="pPartname"></param>
         /// <returns></returns>
-        public byte[] RequestBodyFile(string pPartname)
+        private IDictionary<string, string> _TextBodyFiles;
+        private IDictionary<string, byte[]> _BinBodyFiles;
+        public byte[] RequestBinBodyFile(string pPartname)
         {
             string contentType = _listenerContext.Request.ContentType;
+            GetBodyFiles();
             if (contentType.StartsWith("multipart/form-data;"))
             {
-                HttpMultipartParser mpParser = new HttpMultipartParser(_listenerContext.Request.InputStream, pPartname);
-                if (mpParser.Success) {
-                    return mpParser.FileContents;
+                if (_BinBodyFiles.ContainsKey(pPartname))
+                {
+                    return _BinBodyFiles[pPartname];
                 }
-                return null;
             }
-            else
+            return null;
+        }
+        public string RequestTextBodyFile(string pPartname)
+        {
+            string contentType = _listenerContext.Request.ContentType;
+            GetBodyFiles();
+            if (contentType.StartsWith("multipart/form-data;"))
             {
-                throw new Exception("Requested Http body as multipart but it wasn't");
+                if (_TextBodyFiles.ContainsKey(pPartname))
+                {
+                    return _TextBodyFiles[pPartname];
+                }
+            }
+            return null;
+        }
+        // Make sure the parsed multipart form data has been parsed
+        private void GetBodyFiles()
+        {
+            if (_BinBodyFiles == null)
+            {
+                HttpMultipartParser mpParser = new HttpMultipartParser(_listenerContext.Request.InputStream, "");
+
+                _TextBodyFiles = mpParser.MultipartBodies;
+                _BinBodyFiles = mpParser.MultipartBinBodies;
             }
         }
         /// <summary>

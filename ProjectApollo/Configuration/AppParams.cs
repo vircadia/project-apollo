@@ -88,6 +88,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>("Storage.Dir", "Root of entity storage", "Entities"));
             ret.Add(new ParamBlock.ParameterDefn<string>("Storage.StaticDir", "Directory of static pages served for users", "Static"));
             ret.Add(new ParamBlock.ParameterDefn<int>("Storage.IdleMinutes", "Minutes to keep entities in memory", 60));
+            ret.Add(new ParamBlock.ParameterDefn<int>("Storage.FlushMinutes", "Minutes before changed data is flushed", 1));
 
             ret.SetParameterDefaultValues();
 

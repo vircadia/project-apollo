@@ -25,6 +25,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using Project_Apollo;
 
 /// <summary>
 /// HttpMultipartParser
@@ -75,55 +76,57 @@ namespace HttpUtils
                         Match nameMatch = new Regex(@"(?<=name\=\"")(.*?)(?=\"")").Match(s);
                         string name = nameMatch.Value.Trim().ToLower();
 
-                        if (name == FilePartName)
+                        // Look for Content-Type
+                        Regex re = new Regex(@"(?<=Content\-Type:)(.*?)(?=\r\n)");
+                        Match contentTypeMatch = re.Match(s);
+
+                        // Look for filename
+                        re = new Regex(@"(?<=filename\=\"")(.*?)(?=\"")");
+                        Match filenameMatch = re.Match(s);
+
+                        // Did we find the required values?
+                        if (nameMatch.Success || filenameMatch.Success)
                         {
-                            // Look for Content-Type
-                            Regex re = new Regex(@"(?<=Content\-Type:)(.*?)(?=\r\n\r\n)");
-                            Match contentTypeMatch = re.Match(content);
+                            // Set properties
+                            string contentType = contentTypeMatch.Success
+                                            ? contentTypeMatch.Value.Trim() : "text/text";
+                            string filename = filenameMatch.Success
+                                            ? filenameMatch.Value.Trim() : name;
 
-                            // Look for filename
-                            re = new Regex(@"(?<=filename\=\"")(.*?)(?=\"")");
-                            Match filenameMatch = re.Match(content);
+                            int blockStartIndex = content.IndexOf(s);
+                            int startIndex = s.IndexOf("\r\n\r\n") + 4;
+                            int endIndex = s.Length - 2;        // assuming it ends with "\r\n"
+                            int contentLength = endIndex - startIndex;
 
-                            // Did we find the required values?
-                            if (contentTypeMatch.Success && filenameMatch.Success)
+                            if (contentType.Contains("octet"))
                             {
-                                // Set properties
-                                this.ContentType = contentTypeMatch.Value.Trim();
-                                this.Filename = filenameMatch.Value.Trim();
-
-                                // Get the start & end indexes of the file contents
-                                int startIndex = contentTypeMatch.Index + contentTypeMatch.Length + "\r\n\r\n".Length;
-
-                                byte[] delimiterBytes = encoding.GetBytes("\r\n" + delimiter);
-                                int endIndex = Misc.IndexOf(data, delimiterBytes, startIndex);
-
-                                int contentLength = endIndex - startIndex;
-
-                                // Extract the file contents from the byte array
-                                byte[] fileData = new byte[contentLength];
-
-                                Buffer.BlockCopy(data, startIndex, fileData, 0, contentLength);
-
-                                this.FileContents = fileData;
+                                // there is binary here
+                                byte[] binBody = new byte[contentLength];
+                                Buffer.BlockCopy(data, startIndex+blockStartIndex, binBody, 0, contentLength);
+                                MultipartBinBodies.Add(filename, binBody);
+                                // Context.Log.Debug("HttpMultipartParser: binary in {0}", s);
                             }
-                        }
-                        else if (!string.IsNullOrWhiteSpace(name))
-                        {
-                            // Get the start & end indexes of the file contents
-                            int startIndex = nameMatch.Index + nameMatch.Length + "\r\n\r\n".Length;
-                            Parameters.Add(name, s.Substring(startIndex).TrimEnd(new char[] { '\r', '\n' }).Trim());
+                            else
+                            {
+                                string textBody = s.Substring(startIndex, contentLength);
+                                MultipartBodies.Add(filename, textBody);
+                            }
+                            MultipartContentTypes.Add(filename, contentType);
+                            // Context.Log.Debug("HttpMultipartParser: n={0}, fn={1}, ct={2}, len={3}",
+                            //                   name, filename, contentType, contentLength); 
                         }
                     }
                 }
 
                 // If some data has been successfully received, set success to true
-                if (FileContents != null || Parameters.Count != 0)
+                if (MultipartBodies.Count != 0)
                     this.Success = true;
             }
         }
 
-        public IDictionary<string, string> Parameters = new Dictionary<string, string>();
+        public IDictionary<string, string> MultipartContentTypes = new Dictionary<string, string>();
+        public IDictionary<string, string> MultipartBodies = new Dictionary<string, string>();
+        public IDictionary<string, byte[]> MultipartBinBodies = new Dictionary<string, byte[]>();
 
         public string FilePartName
         {
@@ -144,24 +147,6 @@ namespace HttpUtils
         }
 
         public int UserId
-        {
-            get;
-            private set;
-        }
-
-        public string ContentType
-        {
-            get;
-            private set;
-        }
-
-        public string Filename
-        {
-            get;
-            private set;
-        }
-
-        public byte[] FileContents
         {
             get;
             private set;

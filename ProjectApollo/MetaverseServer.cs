@@ -52,12 +52,6 @@ namespace Project_Apollo
 
         // All the request path handles are registered in the registry
         static public APIRegistry PathRegistry;
-
-        // Handler for Domain Entities
-        static public Domains DomainEntities;
-
-        // Handler for User Entities
-        static public Users UserEntities;
     }
 
     /// <summary>
@@ -110,11 +104,6 @@ namespace Project_Apollo
                 Context.Log.Error("{0} Exception connecting to database: {1}", _logHeader, e.ToString());
                 Context.KeepRunning.Cancel();
             }
-
-            // Create instances of the various Entity managers.
-            // This is done here so various parameters can be passed
-            Context.DomainEntities = new Domains();
-            Context.UserEntities = new Users();
 
             // HttpListener and start accepting requests
             try

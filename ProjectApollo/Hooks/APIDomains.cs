@@ -51,7 +51,7 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity dobj))
             {
                 respBody.Data = new bodyDomainResponse()
                 {
@@ -63,6 +63,8 @@ namespace Project_Apollo.Hooks
                     }
                 };
                 replyData.Body = respBody;  // serializes JSON
+                // Context.Log.Debug("{0} get_domain GET: domain{1}, returning: {2}",
+                //                     _logHeader, domainID, replyData.Body);
             }
             else
             {
@@ -74,6 +76,7 @@ namespace Project_Apollo.Hooks
                 };
                 replyData.Status = 404;
                 replyData.Body = respBody;
+                // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
 
             return replyData;
@@ -120,10 +123,12 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity dobj))
             {
                 try
                 {
+                    // Context.Log.Debug("{0} domain_heartbest PUT: Domain {1}, received: {2}",
+                    //                     _logHeader, domainID, pReq.RequestBody);
                     bodyHeartbeatRequest requestData = pReq.RequestBodyObject<bodyHeartbeatRequest>();
 
                     // If there is no api_key, things aren't initialized
@@ -142,7 +147,7 @@ namespace Project_Apollo.Hooks
                         dobj.Anon = dat.num_anon_users;
                         dobj.TotalUsers = dat.num_anon_users + dat.num_users;
 
-                        dobj.Touch();
+                        dobj.Updated();
                     }
                 }
                 catch (Exception e)
@@ -183,12 +188,20 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity dobj))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
-                Context.Log.Debug("{0} domains/ice_server_addr PUT. Body={1}", _logHeader, pReq.RequestBody);
+                // Context.Log.Debug("{0} domains/ice_server_addr PUT. Body={1}", _logHeader, pReq.RequestBody);
                 bodyIceServerPut isr = JsonConvert.DeserializeObject<bodyIceServerPut>(pReq.RequestBody);
-                dobj.API_Key = isr.domain.api_key;
-                dobj.IceAddr = isr.domain.ice_server_address;
+                string includeAPIKey = isr.domain.api_key;
+                if (String.IsNullOrEmpty(aDomain.API_Key) || includeAPIKey == aDomain.API_Key)
+                {
+                    aDomain.IceAddr = isr.domain.ice_server_address;
+                }
+                else
+                {
+                    respBody.RespondFailure();
+                    replyData.Status = 401; // not authorized
+                }
             }
             else
             {
@@ -207,14 +220,15 @@ namespace Project_Apollo.Hooks
 
             PersonNameGenerator png = new PersonNameGenerator();
             PlaceNameGenerator plng = new PlaceNameGenerator();
-            // We're generating the entire domain entry in the data store
+
             DomainEntity newDomain = new DomainEntity()
             {
                 PlaceName = png.GenerateRandomFirstName() + "-" + plng.GenerateRandomPlaceName() + "-" + new Random().Next(500, 9000).ToString(),
                 DomainID = Guid.NewGuid().ToString(),
+                IPAddrOfFirstContact = pReq.RemoteUser.ToString()
             };
-
             newDomain.API_Key = Tools.MD5Hash($":{newDomain.PlaceName}::{newDomain.DomainID}:{newDomain.IceAddr}");
+            Domains.Instance.AddDomain(newDomain.DomainID, newDomain);
 
             respBody.Data = new bodyDomainResponse()
             {
@@ -242,39 +256,23 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity aDomain))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 try
                 {
-                    byte[] publicKey = pReq.RequestBodyFile("public_key");
-                    if (publicKey != null && publicKey.Length > 0)
-                    {
-                        if (!aDomain.SetPublicKey(pReq.RemoteUser.ToString(), publicKey))
-                        {
-                            // failure
-                            replyData.Status = 403;
-                            respBody.RespondFailure();
-                        }
-                    }
-                    else
-                    {
-                        Context.Log.Error("{0} attempt to set public_key with zero length body", _logHeader);
-                        respBody.RespondFailure();
-                    }
-                    byte[] apiKey = pReq.RequestBodyFile("api_key");
-                    if (apiKey != null && apiKey.Length > 0)
-                    {
+                    string includedAPIKey = pReq.RequestTextBodyFile("api_key");
 
-                        if (!aDomain.SetApiKey(pReq.RemoteUser.ToString(), apiKey))
-                        {
-                            // failure
-                            replyData.Status = 403;
-                            respBody.RespondFailure();
-                        }
+                    // If this is a temp domain, the supplied API key must match
+                    // TODO: is there another Authorization later (ie, maybe user auth?)
+                    if (String.IsNullOrEmpty(aDomain.API_Key) || aDomain.API_Key == includedAPIKey)
+                    {
+                        aDomain.Public_Key = pReq.RequestBinBodyFile("public_key");
                     }
                     else
                     {
-                        Context.Log.Error("{0} attempt to set api_key with zero length body", _logHeader);
+                        Context.Log.Error("{0} attempt to set public_key with non-matching APIKeys: domain {1}",
+                                            _logHeader, domainID);
+                        replyData.Status = 401; // not authorized
                         respBody.RespondFailure();
                     }
                 }
@@ -302,7 +300,7 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.DomainEntities.TryGetDomainWithID(domainID, out DomainEntity aDomain))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 // return domains public_key in "public_key" field of response
             }

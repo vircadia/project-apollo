@@ -55,7 +55,7 @@ namespace Project_Apollo.Hooks
             string userEmail = usreq.User["email"];
 
             ResponseBody respBody = new ResponseBody();
-            if (!Context.UserEntities.CreateAccountPW(userName, userPW, userEmail))
+            if (!Users.Instance.CreateAccountPW(userName, userPW, userEmail))
             {
                 // If didn't create, return a fail
                 respBody = new ResponseBody("fail", new Dictionary<string, string>()
@@ -73,7 +73,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData user_locker_set(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 // TODO: do whatever one does with a locker
             }
@@ -89,7 +89,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData user_locker_get(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 // TODO: do whatever one does with a locker
             }
@@ -111,7 +111,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData user_location_set(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 LocationPacket loc = pReq.RequestBodyObject<LocationPacket>();
                 // TODO: do whatever putting the location does
@@ -131,7 +131,7 @@ namespace Project_Apollo.Hooks
             ResponseBody respBody = new ResponseBody();
 
             string userID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Context.UserEntities.TryGetUserWithID(userID, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithID(userID, out UserEntity aUser))
             {
                 if (aUser.Location != null)
                 {
@@ -171,7 +171,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData user_profile_gen(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 // TODO: do whatever about returning a profile
             }
@@ -188,7 +188,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 // TODO: do whatever about setting the user public_key
             }
@@ -204,7 +204,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
             ResponseBody respBody = new ResponseBody();
-            if (Context.UserEntities.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
             {
                 // TODO: do whatever about returning the user public_key
             }

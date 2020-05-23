@@ -32,8 +32,45 @@ namespace Project_Apollo.Entities
     {
         private static readonly string _logHeader = "[Users]";
 
+        private static readonly object userLock = new object();
+        private static Users _instance;
+        public static Users Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (userLock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new Users();
+                            _instance.Init();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        // List of all known users
+        private readonly Dictionary<string, UserEntity> ActiveUsers = new Dictionary<string, UserEntity>();
+
         public Users() : base(UserEntity.UserEntityTypeName)
         {
+        }
+
+        public void Init()
+        {
+            // Fill my list of users
+            lock (userLock)
+            {
+                foreach (UserEntity anEntity in AllEntities<UserEntity>()) {
+                    ActiveUsers.Add(anEntity.UserID, anEntity);
+                }
+                Context.Log.Debug("{0} Initialized by reading in {1} DomainEntities",
+                            _logHeader, ActiveUsers.Count.ToString());
+            }
         }
 
         /// <summary>
@@ -92,7 +129,14 @@ namespace Project_Apollo.Entities
     {
         public static readonly string UserEntityTypeName = "User";
 
-        public UserEntity() : base()
+        public string UserID;
+        public string Username;
+        public bool Online;
+        public string Connection;
+        public UserLocation Location;
+        public UserImages Images;
+
+        public UserEntity() : base(Users.Instance)
         {
         }
         // EntityMem.EntityType()
@@ -106,12 +150,6 @@ namespace Project_Apollo.Entities
             return UserID;
         }
 
-        public string UserID;
-        public string Username;
-        public bool Online;
-        public string Connection;
-        public UserLocation Location;
-        public UserImages Images;
     }
 
     public class UserLocation
@@ -136,6 +174,8 @@ namespace Project_Apollo.Entities
         public MetaverseDomain Domain;
     }
 
+    // this defn is left over from early code
+    // Will probably end up a pointer to a DomainEntity
     public class MetaverseDomain
     {
         public string Id;
@@ -147,6 +187,9 @@ namespace Project_Apollo.Entities
         public bool IsCloudDomain;
     }
 
+    // ====================================================================
+    // After this is all old code that will be thrown away when all
+    //   the interesting logic insights have been extracted.
     public class UserAccounts
     {
         private static readonly object _lock = new object();

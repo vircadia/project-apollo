@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,13 +20,16 @@ using System.Reflection;
 namespace Project_Apollo.Registry
 {
 
+    // The processing routines must match this signature
+    public delegate RESTReplyData APIPathProcess(RESTRequestData pReq, List<string> pArgs);
+
     [AttributeUsage(AttributeTargets.Method, AllowMultiple =false)]
     public class APIPath : Attribute
     {
         public string PathLike;
         public MethodInfo AssignedMethod = null;
         public string HTTPMethod;
-        public bool AllowArgument;
+        public bool AllowArgument;  // 'true' if request can have query parameters
         public APIPath(string Path, string Method, bool AllowArguments) // [APIPath("/api/v1/user/heartbeat", "PUT")]
         {
             PathLike = Path;

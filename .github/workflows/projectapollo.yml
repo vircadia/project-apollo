@@ -5,8 +5,8 @@ on: [push]
 jobs:
     
   build:
-    name: Build on Ubuntu 16.04 with dotnet 3.1.100
-    runs-on: ubuntu-16.04
+    name: Build on Ubuntu 18.04 with dotnet 3.1.100
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v1

@@ -1,0 +1,128 @@
+swagger: "2.0"
+info:
+    version: 1.0.1
+    title: Vircadia MetaverseAPI - Domains
+    description: >-
+        MetaverseServer API for Domain connection and management
+    license:
+        name: Apache 2.0
+        url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+paths:
+    /api/v1/domains/{domainID}:
+        # The PUT version of this request is used for several different purposes.
+        # 1) it is sent by the DomainServer to the MetaverseServer as a heartbeat.
+        #    In this case, most of the data is in the "heartbeat" structure
+        # 2) it is sent when initially connecting to the MetaverseServer
+        #
+        # The PUT is the first message a DomainServer sends to the MetaverseServer.
+        # There are several possible responses:
+        #   1) 200 OK: the domainID is known and, if included, a user Authorization
+        #       token checks out
+        #   2) 401 Unauthorized: 
+        #       The body of the response is
+        #           { "status": "unauthorized", "data": { "api_key": "KEY" } }
+        #   3) 404 Not Found: the domainID is not known. The DomainServer should
+        #       try to get a temporary name
+        put:
+            tags:
+                - domains
+            consumes:
+                - application/json
+                - text/json
+            produces: []
+            parameters:
+                - name: domainID
+                  in: path
+                  required: true
+                  type: string
+                - name: domain
+                  in: body
+                  schema:
+                    type: object
+                    properties:
+                        description:
+                            description: description of the domain
+                            type: string
+                        capacity:
+                            description: Capacity of the domain
+                            type: integer
+                        maturity:
+                            description: maturity rating of the domain space
+                            type: string
+                        restriction:
+                            description: comma separated list of allows scopes ("hifi", "open")
+                            type: string
+                        hosts:
+                            description: unknown
+                            type: array
+                            items:
+                                type: string
+                        tags:
+                            description: unknown
+                            type: array
+                            items:
+                                type: string
+                        network_address:
+                            description: network address of the DomainServer
+                            type: string
+                        automatic_networking:
+                            description: the value "full"
+                            type: string
+                        protocol:
+                            description: protocol version key. BASE64 encoded array of version codes.
+                            type: string
+                        restricted:
+                            description: 'true' if does not allow anonymous users
+                            type: boolean
+                        version:
+                            description: "BuildInfo::VERSION". For Vircadia, "K2".
+                            type: string
+                        api_key:
+                            description: if a temporary domain, the key being used for access
+                            type: string
+                        heartbeat:
+                            type: object
+                            properties:
+                                num_users:
+                                    description: the current number of users
+                                    type: integer
+                                num_anon_users:
+                                    description: the current number of anonomous users
+                                    type: integer
+                                protocol:
+                                    description: protocolVersionSignatureBase64()
+                                    type: string
+                                restricted:
+                                    description: unknown
+                                    type: boolean
+                                version:
+                                    description: "BuildInfo::VERSION"
+                                    type: string
+                                # user_hostnames:
+                                #     description: unknown (usually sent as "{}")
+                                #     type: string
+            responses:
+                200:
+                    description: goodness
+                401:
+                    description: The domainID is not known and the DomainServer should get temp name
+                404:
+                    description: The domainID needs reauthorization
+
+    /api/v1/domains/{domainID]/ice_server_address:
+        put:
+            tags:
+                - domains
+            consumes:
+                - application/json
+                - text/json
+            produces: []
+            parameters:
+                - name: domainID
+                  in: path
+                  required: true
+                  type: string
+            responses:
+                200:
+                    description: goodness
+

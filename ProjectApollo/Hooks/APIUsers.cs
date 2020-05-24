@@ -29,8 +29,11 @@ namespace Project_Apollo.Hooks
     {
         private static readonly string _logHeader = "[User]";
 
-        // ===========================================================================
-        // TODO: move this to 'admin' section
+        // == GET /api/v1/users ======================================================e
+        //          ?filter=connections|friends
+        //          ?status=online
+        //          ?per_page=N
+        //          ?page=N
         public struct users_request
         {
             public Dictionary<string, string> User;
@@ -68,7 +71,7 @@ namespace Project_Apollo.Hooks
 
         }
 
-        // =============================================================================
+        // = POST /api/v1/user/locker ==================================================
         [APIPath("/api/v1/user/locker", "POST", true)]
         public RESTReplyData user_locker_set(RESTRequestData pReq, List<string> pArgs)
         {
@@ -84,7 +87,7 @@ namespace Project_Apollo.Hooks
             return new RESTReplyData(respBody);
         }
 
-        // =============================================================================
+        // = GET /api/v1/user/locker ==================================================
         [APIPath("/api/v1/user/locker", "GET", true)]
         public RESTReplyData user_locker_get(RESTRequestData pReq, List<string> pArgs)
         {
@@ -101,7 +104,7 @@ namespace Project_Apollo.Hooks
         }
 
 
-        // =============================================================================
+        // == PUT /api/v1/user/location ================================================
         public struct LocationPacket
         {
             public string status;
@@ -124,7 +127,7 @@ namespace Project_Apollo.Hooks
         }
 
 
-        // ==================================================================================
+        // == GET /api/v1/users/%/location ==================================================
         [APIPath("/api/v1/users/%/location", "GET", true)]
         public RESTReplyData get_location(RESTRequestData pReq, List<string> pArgs)
         {
@@ -145,7 +148,7 @@ namespace Project_Apollo.Hooks
             return new RESTReplyData(respBody);
         }
 
-        // ==================================================================================
+        // = GET /api/v1/user/profile =======================================================
         public struct user_profile_reply
         {
             public string status;
@@ -182,7 +185,7 @@ namespace Project_Apollo.Hooks
             return new RESTReplyData(respBody);
         }
 
-        // ==================================================================================
+        // = PUT /api/v1/user/public_key ====================================================
         [APIPath("/api/v1/user/public_key", "PUT", true)]
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
@@ -199,7 +202,7 @@ namespace Project_Apollo.Hooks
             return new RESTReplyData(respBody);
         }
 
-        // ==================================================================================
+        // = GET /api/v1/users/%/public_key =================================================
         [APIPath("/api/v1/users/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
@@ -216,6 +219,8 @@ namespace Project_Apollo.Hooks
         }
 
 
+        // = GET /user/tokens/new =================================================
+        // THIS IS EXPERIMENTAL AND NEW SO HANDS OFF!!
         [APIPath("/user/tokens/new", "GET", true)]
         public RESTReplyData user_tokens(RESTRequestData pReq, List<string> pArgs)
         {

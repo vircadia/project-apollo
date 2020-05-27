@@ -38,20 +38,20 @@ namespace Project_Apollo
     /// </summary>
     public class Context
     {
-        static public AppParams Params;
-        static public Logger Log;
+        public static AppParams Params;
+        public static Logger Log;
 
         // If cancelled, everything shuts down
-        static public CancellationTokenSource KeepRunning;
+        public static CancellationTokenSource KeepRunning;
 
         // The HTTP listener that's waiting for requests
-        static public HttpListener Listener;
+        public static HttpListener Listener;
 
         // The database we're talking to
-        static public DbConnection Db;
+        public static DbConnection Db;
 
         // All the request path handles are registered in the registry
-        static public APIRegistry PathRegistry;
+        public static APIRegistry PathRegistry;
     }
 
     /// <summary>
@@ -69,8 +69,10 @@ namespace Project_Apollo
         static void Main(string[] args)
         {
             // Temp logger for startup errors
-            Context.Log = new ConsoleLogger();
-            Context.Log.LogLevel = Logger.LogLevels.Info;
+            Context.Log = new ConsoleLogger
+            {
+                LogLevel = Logger.LogLevels.Info
+            };
 
             // Setup global Context
             Context.Params = new AppParams(args);
@@ -213,7 +215,6 @@ namespace Project_Apollo
         private void ProcessHttpRequest(HttpListenerContext pCtx)
         {
             Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, pCtx.Request.HttpMethod, pCtx.Request.RawUrl);
-
 
             // Find the processor for this request and do the operation
             // If the processing created any error, it will return reply data with the error.

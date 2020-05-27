@@ -103,7 +103,7 @@ namespace Project_Apollo.Entities
         public string PlaceName;    // place name
         public string IceAddr;      // IP address of ICE server
         public string API_Key;      // Access key if a temp domain
-        public byte[] Public_Key;   // DomainServers's public key
+        public string Public_Key;   // DomainServers's public key
         public string Protocol;     // Protocol version
         public string Version;      // DomainServer's build version (like "K3")
         public bool Restricted;     // 'true' if restricted to users with accounts
@@ -130,11 +130,6 @@ namespace Project_Apollo.Entities
         public override string StorageName()
         {
             return DomainID;
-        }
-        public bool SetPublicKey(byte[] pPublicKey)
-        {
-            Public_Key = pPublicKey;
-            return true;
         }
     }
 

@@ -60,6 +60,10 @@ dotnet_naming_symbols.constant_fields.required_modifiers          = const
 ###############################
 # C# Coding Conventions       #
 ###############################
+
+# IDE0060: Remove unused parameter
+dotnet_code_quality_unused_parameters = non_public:suggestion
+
 [*.cs]
 # var preferences
 csharp_style_var_for_built_in_types = true:silent

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -116,7 +116,6 @@ namespace Project_Apollo.Registry
         public APIPath FindPathProcessor(string pRawURL, string pMethod, out List<string> oArguments)
         {
             APIPath ret = null;
-            Dictionary<string, string> queryArguments = new Dictionary<string, string>();
             // compare strings; If a % symbol is located, then skip that so long as
             //      the inbound string matches totally.
             // Append the value of % in the inbound request to the array passed to the function
@@ -131,13 +130,11 @@ namespace Project_Apollo.Registry
                 if (pMethod == apiPath.HTTPMethod)
                 {
                     string requestString = pRawURL;
-                    string queryString = null;
 
                     // See if the request has a query part. If so, extract same
                     int queryIndex = requestString.IndexOf('?');
                     if (queryIndex != -1)
                     {
-                        queryString = requestString.Substring(queryIndex + 1);
                         requestString = requestString.Substring(0, queryIndex);
                     }
 
@@ -197,8 +194,9 @@ namespace Project_Apollo.Registry
             if (foundPath != null)
             {
                 // Found the matching, process the request
-                Context.Log.Debug("{0} Processing '{1}:{2}' with {3}", _logHeader,
-                                            pReq.Method, pReq.RawURL, foundPath.AssignedMethod.Name);
+                Context.Log.Debug("{0} Processing '{1}:{2} from {3}' with {4}", _logHeader,
+                                            pReq.Method, pReq.RawURL, pReq.RemoteUser,
+                                            foundPath.AssignedMethod.Name);
                 try
                 {
                     object _method = Activator.CreateInstance(foundPath.AssignedMethod.DeclaringType);

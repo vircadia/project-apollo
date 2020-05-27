@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
@@ -30,15 +31,18 @@ namespace Project_Apollo.Hooks
 
         // ===GET /api/v1/domains/% =================================================
 
-        // the following structure defns don't seem right for this request
+        // The 'domain' response body can contain different items depending
+        //    on the request. If it's not set, don't retun that field.
         public struct bodyDomainReplyData
         {
+            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string id;
+            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string name;
             [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string ice_server_address;
             [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
-            public string api_key;  // don't send the API key if it wasn't set
+            public string api_key;
         }
         public struct bodyDomainResponse
         {
@@ -120,7 +124,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData domain_heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
-            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
+            // ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
             if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity dobj))
@@ -261,13 +265,32 @@ namespace Project_Apollo.Hooks
             {
                 try
                 {
-                    string includedAPIKey = pReq.RequestTextBodyFile("api_key");
+                    string includedAPIKey = pReq.RequestBodyMultipart("api_key");
 
                     // If this is a temp domain, the supplied API key must match
                     // TODO: is there another Authorization later (ie, maybe user auth?)
                     if (String.IsNullOrEmpty(aDomain.API_Key) || aDomain.API_Key == includedAPIKey)
                     {
-                        aDomain.Public_Key = pReq.RequestBinBodyFile("public_key");
+                        // The PUT sends the key as binary but it is later sent around
+                        //    and processed as a Base64 string.
+                        Stream byteStream = pReq.RequestBodyMultipartStream("public_key");
+                        if (byteStream != null)
+                        {
+                            using var memStream = new MemoryStream();
+                            byteStream.CopyTo(memStream);
+                            string keyAsBase64 = Convert.ToBase64String(memStream.ToArray());
+                            aDomain.Public_Key = keyAsBase64;
+                            aDomain.Updated();
+                            Context.Log.Debug("{0} successful set of public_key for {1}",
+                                            _logHeader, domainID);
+                        }
+                        else
+                        {
+                            Context.Log.Error("{0} could not extract public key from request body: domain {1}",
+                                                _logHeader, domainID);
+                            replyData.Status = 401; // not authorized
+                            respBody.RespondFailure();
+                        }
                     }
                     else
                     {
@@ -295,22 +318,39 @@ namespace Project_Apollo.Hooks
         }
 
         // == GET /api/v1/domains/%/public_key ===================================
+        public struct bodyDomainPublicKeyGetResponse
+        {
+            public string public_key;
+        }
         [APIPath("/api/v1/domains/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
-            ResponseBody respBody = new ResponseBody();
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
             if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
-                // TODO: implement
-                // return domains public_key in "public_key" field of response
+                respBody.Data = new bodyDomainPublicKeyGetResponse()
+                {
+                    public_key = aDomain.Public_Key
+                };
             }
             else
             {
+                // return nothing!
                 respBody.RespondFailure();
+                respBody.Data = new Dictionary<string, string>()
+                {
+                    {  "domain", "there is no domain with that ID" }
+                };
+                replyData.Status = 404;
+                // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
-            return new RESTReplyData(respBody);
+
+            replyData.Body = respBody;  // serializes JSON
+            Context.Log.Debug("{0} get_public_key GET: body={1}", _logHeader, replyData.Body);
+            return replyData;
         }
     }
 }

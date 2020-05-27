@@ -37,7 +37,7 @@ namespace Project_Apollo.Hooks
 
         public ResponseBody()
         {
-            Status = "success";
+            Status = "success"; // assume success
         }
         public ResponseBody(object pDataContents) {
             Data = pDataContents;
@@ -63,9 +63,14 @@ namespace Project_Apollo.Hooks
         public static implicit operator string(ResponseBody rb) => rb.ToString();
         public override string ToString()
         {
-            Dictionary<string, object> respBody = new Dictionary<string, object>();
-            respBody.Add("status", "success");
-            respBody.Add("data", Data);
+            Dictionary<string, object> respBody = new Dictionary<string, object>
+            {
+                { "status", Status }
+            };
+            if (Data != null)
+            {
+                respBody.Add("data", Data);
+            }
             return JsonConvert.SerializeObject(respBody);
         }
     }

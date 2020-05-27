@@ -16,10 +16,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
-using HttpUtils;
+
+using HttpMultipartParser;
+using System.Linq;
 
 namespace Project_Apollo.Registry
 {
@@ -31,7 +33,7 @@ namespace Project_Apollo.Registry
     {
         private static readonly string _logHeader = "[RESTRequestData]";
 
-        private HttpListenerContext _listenerContext;
+        private readonly HttpListenerContext _listenerContext;
 
         public RESTRequestData(HttpListenerContext pCtx)
         {
@@ -54,17 +56,13 @@ namespace Project_Apollo.Registry
                             string contentType = _listenerContext.Request.ContentType;
                             if (contentType == "application/json" || contentType == "text/html")
                             {
-                                using (Stream body = _listenerContext.Request.InputStream)
-                                {
-                                    using (StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding))
-                                    {
-                                        _requestBody = sr.ReadToEnd();
-                                    }
-                                }
+                                using Stream body = _listenerContext.Request.InputStream;
+                                using StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding);
+                                _requestBody = sr.ReadToEnd();
                             }
                         }
                     }
-                    catch (Exception e)
+                    catch
                     {
                         Context.Log.Error("{0} Exception fetching request body. URL={1}",
                                     _logHeader, _listenerContext.Request.RawUrl);
@@ -104,43 +102,25 @@ namespace Project_Apollo.Registry
         /// </summary>
         /// <param name="pPartname"></param>
         /// <returns></returns>
-        private IDictionary<string, string> _TextBodyFiles;
-        private IDictionary<string, byte[]> _BinBodyFiles;
-        public byte[] RequestBinBodyFile(string pPartname)
+        private MultipartFormDataParser _BodyParser;
+        public string RequestBodyMultipart(string pPartname)
         {
-            string contentType = _listenerContext.Request.ContentType;
             GetBodyFiles();
-            if (contentType.StartsWith("multipart/form-data;"))
-            {
-                if (_BinBodyFiles.ContainsKey(pPartname))
-                {
-                    return _BinBodyFiles[pPartname];
-                }
-            }
-            return null;
+            return _BodyParser.GetParameterValue(pPartname);
         }
-        public string RequestTextBodyFile(string pPartname)
+        public Stream RequestBodyMultipartStream(string pPartname)
         {
             string contentType = _listenerContext.Request.ContentType;
             GetBodyFiles();
-            if (contentType.StartsWith("multipart/form-data;"))
-            {
-                if (_TextBodyFiles.ContainsKey(pPartname))
-                {
-                    return _TextBodyFiles[pPartname];
-                }
-            }
-            return null;
+            FilePart fileHandle = _BodyParser.Files.Where(fl => { return fl.FileName == pPartname; }).First();
+            return fileHandle?.Data;
         }
         // Make sure the parsed multipart form data has been parsed
         private void GetBodyFiles()
         {
-            if (_BinBodyFiles == null)
+            if (_BodyParser == null)
             {
-                HttpMultipartParser mpParser = new HttpMultipartParser(_listenerContext.Request.InputStream, "");
-
-                _TextBodyFiles = mpParser.MultipartBodies;
-                _BinBodyFiles = mpParser.MultipartBinBodies;
+                _BodyParser = MultipartFormDataParser.Parse(_listenerContext.Request.InputStream);
             }
         }
         /// <summary>

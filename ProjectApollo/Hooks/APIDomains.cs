@@ -22,6 +22,7 @@ using Project_Apollo.Registry;
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace Project_Apollo.Hooks
 {
@@ -161,7 +162,7 @@ namespace Project_Apollo.Hooks
             }
             else
             {
-                Context.Log.Debug("{0} domain_heartbeat: unknown domain. Returning 404", _logHeader);
+                Context.Log.Error("{0} domain_heartbeat: unknown domain. Returning 404", _logHeader);
                 replyData.Status = 404; // this will trigger a new temporary domain name
             }
 
@@ -278,11 +279,9 @@ namespace Project_Apollo.Hooks
                         {
                             using var memStream = new MemoryStream();
                             byteStream.CopyTo(memStream);
-                            string keyAsBase64 = Convert.ToBase64String(memStream.ToArray());
-                            aDomain.Public_Key = keyAsBase64;
+                            aDomain.Public_Key= Convert.ToBase64String(memStream.ToArray());
                             aDomain.Updated();
-                            Context.Log.Debug("{0} successful set of public_key for {1}",
-                                            _logHeader, domainID);
+                            // Context.Log.Debug("{0} successful set of public_key for {1}", _logHeader, domainID);
                         }
                         else
                         {
@@ -349,7 +348,6 @@ namespace Project_Apollo.Hooks
             }
 
             replyData.Body = respBody;  // serializes JSON
-            Context.Log.Debug("{0} get_public_key GET: body={1}", _logHeader, replyData.Body);
             return replyData;
         }
     }

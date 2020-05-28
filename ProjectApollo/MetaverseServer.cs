@@ -214,7 +214,7 @@ namespace Project_Apollo
         /// <param name="pCtx"></param>
         private void ProcessHttpRequest(HttpListenerContext pCtx)
         {
-            Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, pCtx.Request.HttpMethod, pCtx.Request.RawUrl);
+            // Context.Log.Debug("{0} HTTP received {1} {2}", _logHeader, pCtx.Request.HttpMethod, pCtx.Request.RawUrl);
 
             // Find the processor for this request and do the operation
             // If the processing created any error, it will return reply data with the error.

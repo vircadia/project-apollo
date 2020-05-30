@@ -152,6 +152,7 @@ namespace Project_Apollo.Hooks
                         dobj.Anon = dat.num_anon_users;
                         dobj.TotalUsers = dat.num_anon_users + dat.num_users;
 
+                        dobj.TimeOfLastHeartbeat = DateTime.UtcNow;
                         dobj.Updated();
                     }
                 }

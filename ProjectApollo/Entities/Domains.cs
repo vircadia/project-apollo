@@ -113,8 +113,9 @@ namespace Project_Apollo.Entities
         public string NetworkingMode;   // 'full' or ?
 
         // admin stuff
-        public DateTime WhenDomainEntryCreated;
-        public string IPAddrOfFirstContact;
+        public string IPAddrOfFirstContact;     // IP address that registered this domain
+        public DateTime WhenDomainEntryCreated; // What the variable name says
+        public DateTime TimeOfLastHeartbeat;    // time of last heartbeat 
 
         public DomainEntity() : base(Domains.Instance)
         {

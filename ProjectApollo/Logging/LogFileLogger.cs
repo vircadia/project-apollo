@@ -22,6 +22,7 @@ namespace Project_Apollo.Logging
     public class LogFileLogger : Logger
     {
         private readonly LogWriter _logWriter;
+        private bool g_AlsoLog2Console = false;
         /// <summary>
         /// Create a logger that writes to a file.
         /// There will be multiple files (rotated the number of minutes specified)
@@ -29,14 +30,14 @@ namespace Project_Apollo.Logging
         /// The target directory is created if it doesn't exist.
         /// </summary>
         /// <param name="pLogDirectory">Directory to create the log files</param>
-        public LogFileLogger(string pLogDirectory) : base()
+        public LogFileLogger(string pLogDirectory, bool AlsoLog2console=false) : base()
         {
             // Verify the log directory exists
             if (!Directory.Exists(pLogDirectory))
             {
                 Directory.CreateDirectory(pLogDirectory);
             }
-
+            g_AlsoLog2Console = AlsoLog2console;
             // Initialize the logger with a default log level.
             int rotateMinutes = Context.Params.P<int>("Logger.RotateMins");
             bool forceFlush = Context.Params.P<bool>("Logger.ForceFlush");
@@ -72,6 +73,7 @@ namespace Project_Apollo.Logging
                     || LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
+                if (g_AlsoLog2Console) Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
         public override void Warn(string pMsg, params object[] pParms)
@@ -81,6 +83,7 @@ namespace Project_Apollo.Logging
                     || LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
+                if (g_AlsoLog2Console) Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
         public override void Debug(string pMsg, params object[] pParms)
@@ -89,6 +92,7 @@ namespace Project_Apollo.Logging
                 && ( LogLevel == LogLevels.Debug))
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
+                if (g_AlsoLog2Console) Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
         public override void Error(string pMsg, params object[] pParms)
@@ -96,6 +100,7 @@ namespace Project_Apollo.Logging
             if (_logWriter != null)
             {
                 _logWriter.Write(String.Format(pMsg, pParms));
+                if (g_AlsoLog2Console) Console.WriteLine(String.Format(pMsg, pParms));
             }
         }
     }

@@ -76,7 +76,7 @@ namespace Project_Apollo
 
             // Setup global Context
             Context.Params = new AppParams(args);
-            Context.Log = new LogFileLogger(Context.Params.P<string>("Logger.LogDirectory"));
+            Context.Log = new LogFileLogger(Context.Params.P<string>("Logger.LogDirectory"),true);
             Context.Log.SetLogLevel(Context.Params.P<string>("LogLevel"));
 
             if (Context.Params.P<bool>("Verbose") || !Context.Params.P<bool>("Quiet"))

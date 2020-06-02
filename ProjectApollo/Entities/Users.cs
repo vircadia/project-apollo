@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using Newtonsoft.Json;
@@ -86,27 +87,21 @@ namespace Project_Apollo.Entities
         {
             bool ret = false;
             UserEntity retUser = null;
-            if (pAuthToken != null)
+            foreach (var user in ActiveUsers.Values)
             {
-                ret = true;
+                if (user.AuthKey == pAuthToken)
+                {
+                    ret = true;
+                    retUser = user;
+                    break;
+                }
             }
             oUser = retUser;
             return ret;
-        }
-        public UserEntity FindUserWithID(string pUserID)
-        {
-            return new UserEntity();
         }
         public bool TryGetUserWithID(string pUserID, out UserEntity oUser)
         {
-            bool ret = false;
-            UserEntity retUser = null;
-            if (pUserID != null)
-            {
-                ret = true;
-            }
-            oUser = retUser;
-            return ret;
+            return ActiveUsers.TryGetValue(pUserID, out oUser);
         }
 
         /// <summary>
@@ -131,13 +126,23 @@ namespace Project_Apollo.Entities
 
         public string UserID;
         public string Username;
+        public string Public_Key;
+        public string PasswordHash;
+        public string PasswordSalt;
+
         public bool Online;
         public string Connection;
         public UserLocation Location;
+
         public UserImages Images;
+
+        public string IPAddrOfCreator;     // IP address that created this user
+        public DateTime WhenUserEntryCreated;
+        public DateTime TimeOfLastHeartbeat;
 
         public UserEntity() : base(Users.Instance)
         {
+            WhenUserEntryCreated = DateTime.UtcNow;
         }
         // EntityMem.EntityType()
         public override string EntityType()

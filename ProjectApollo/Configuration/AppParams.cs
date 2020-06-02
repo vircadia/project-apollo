@@ -72,6 +72,7 @@ namespace Project_Apollo.Configuration
 
             ret.Add(new ParamBlock.ParameterDefn<bool>("Quiet", "Quiet console output", false));
             ret.Add(new ParamBlock.ParameterDefn<bool>("Verbose", "Excessive console output", false));
+            ret.Add(new ParamBlock.ParameterDefn<bool>("ConsoleLog", "Also log to the console", true));
 
             ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
             ret.Add(new ParamBlock.ParameterDefn<int>("Logger.RotateMins", "Minutes to write to log file before starting next", 60));
@@ -233,7 +234,7 @@ namespace Project_Apollo.Configuration
         //    was used as a value so don't consider it the next parameter.
         private int AddCommandLineParameter(string pParm, string val)
         {
-            System.Console.WriteLine(String.Format("AddCommandLineParameter: parm={0}, val={1}", pParm, val));
+            // System.Console.WriteLine(String.Format("AddCommandLineParameter: parm={0}, val={1}", pParm, val));
             int ret = 1;    // start off assuming the next token is the value we're setting
             string parm = pParm.ToLower();
             // Strip leading hyphens
@@ -247,7 +248,7 @@ namespace Project_Apollo.Configuration
             if (parm.Length > 2 && parm[0] == 'n' && parm[1] == 'o')
             {
                 string maybeParm = parm.Substring(2);
-                System.Console.WriteLine(String.Format("AddCommandLineParameter: maybeParm={0}", maybeParm));
+                // System.Console.WriteLine(String.Format("AddCommandLineParameter: maybeParm={0}", maybeParm));
                 if (_defaultParameters.TryGetParameter(maybeParm, out ParamBlock.ParameterDefnBase parmDefnX))
                 {
                     if (parmDefnX.GetValueType() == typeof(Boolean))

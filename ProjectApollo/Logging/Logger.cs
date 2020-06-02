@@ -38,7 +38,7 @@ namespace Project_Apollo.Logging
         }
 
         // Set the log level from a string
-        public void SetLogLevel(string pLevel)
+        public virtual void SetLogLevel(string pLevel)
         {
             LogLevel = (pLevel.ToLower()) switch
             {

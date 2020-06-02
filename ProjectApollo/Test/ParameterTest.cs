@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,27 +19,34 @@ using System.Text;
 using Project_Apollo.Configuration;
 
 using NUnit.Framework;
+using Project_Apollo.Logging;
 
 namespace Project_Apollo.Test
 {
     [TestFixture]
     public class CommandLineParameterTest
     {
+        [SetUp]
+        public void TestSetup()
+        {
+            Context.Log = new ConsoleLogger();
+        }
+
         [TestCase]
         public void CommandLineBasicParsing()
         {
             string[] clParams = new string[] {
                 "--LogLevel",
                 "Debug",
-                "--MetaverseServer.ConfigFile",
+                "--ConfigFile",
                 "aSiteValue"
             };
             AppParams parms = new AppParams(clParams);
 
             Assert.That(parms.HasParam("LogLevel"));
-            Assert.That(parms.HasParam("MetaverseServer.ConfigFile"));
+            Assert.That(parms.HasParam("ConfigFile"));
             Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("MetaverseServer.ConfigFile").Equals("aSiteValue"));
+            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
         }
         [TestCase]
         public void CommandLineBooleanNegation()
@@ -50,15 +57,15 @@ namespace Project_Apollo.Test
                 "--quiet",
                 "true",
                 "--noverbose",
-                "--MetaverseServer.ConfigFile",
+                "--ConfigFile",
                 "aSiteValue"
             };
             AppParams parms = new AppParams(clParams);
 
             Assert.That(parms.HasParam("LogLevel"));
-            Assert.That(parms.HasParam("MetaverseServer.ConfigFile"));
+            Assert.That(parms.HasParam("ConfigFile"));
             Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("MetaverseServer.ConfigFile").Equals("aSiteValue"));
+            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
             Assert.That(parms.P<bool>("Quiet"));
             Assert.That(!parms.P<bool>("Verbose"));
         }
@@ -71,15 +78,15 @@ namespace Project_Apollo.Test
                 "--quiet",
                 "true",
                 "--verbose",
-                "--MetaverseServer.ConfigFile",
+                "--ConfigFile",
                 "aSiteValue"
             };
             AppParams parms = new AppParams(clParams);
 
             Assert.That(parms.HasParam("LogLevel"));
-            Assert.That(parms.HasParam("MetaverseServer.ConfigFile"));
+            Assert.That(parms.HasParam("ConfigFile"));
             Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("MetaverseServer.ConfigFile").Equals("aSiteValue"));
+            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
             Assert.That(parms.P<bool>("Verbose"));
         }
     }

@@ -78,7 +78,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
             ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "SiteConfig.json"));
+            ret.Add(new ParamBlock.ParameterDefn<string>("MetaverseServer.ConfigFile", "Per site configuration file", "config.json"));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:19400/ user=everyone
             ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "+"));

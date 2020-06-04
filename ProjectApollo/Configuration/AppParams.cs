@@ -75,10 +75,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<bool>("ConsoleLog", "Also log to the console", true));
             ret.Add(new ParamBlock.ParameterDefn<string>("ConfigFile", "Per site configuration file", "config.json"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
-            ret.Add(new ParamBlock.ParameterDefn<int>("Logger.RotateMins", "Minutes to write to log file before starting next", 60));
-            ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
-            ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
+            ret.Add(new ParamBlock.ParameterDefn<string>("DefaultIceServer", "IP address of ice server. If empty, set to self.", ""));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:9400/ user=everyone
             ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "+"));
@@ -91,6 +88,12 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<int>("Storage.FlushMinutes", "Minutes before changed data is flushed", 1));
 
             ret.Add(new ParamBlock.ParameterDefn<string>("Commerce.MarketplaceKey", "Public key for Marketplace access", "lksjdlkjskldjflsd"));
+
+            ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
+            ret.Add(new ParamBlock.ParameterDefn<int>("Logger.RotateMins", "Minutes to write to log file before starting next", 60));
+            ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
+            ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
+
 
             ret.SetParameterDefaultValues();
 
@@ -152,6 +155,18 @@ namespace Project_Apollo.Configuration
             }
             return default;
         }
+        /// <summary>
+        /// Set the value of a site parameter.
+        /// Will be persisted if the parameter is persistable.
+        /// Note that the parameter value type must be 'string'.
+        /// </summary>
+        /// <param name="pParamName"></param>
+        /// <param name="pValue"></param>
+        // The
+        public void SetSiteParameter(string pParamName, string pValue)
+        {
+            _siteParameters.SetParameterValue(pParamName, pValue);
+        }
 
         /// <summary>
         /// Given parameters from the command line, read the parameters and set values specified
@@ -166,7 +181,7 @@ namespace Project_Apollo.Configuration
         // is a special value that should be assigned to the keyword "--firstparam".</param>
         // <param name="multipleLastParameters">if 'true' presume multiple specs at the end of the line
         // are filenames and pack them together into a CSV string in LAST_PARAM.</param>
-        public bool MergeCommandLine(string[] args, string firstOpParameter, string multipleLastParameters)
+        private bool MergeCommandLine(string[] args, string firstOpParameter, string multipleLastParameters)
         {
             bool ret = true;    // start out assuming parsing worked
 

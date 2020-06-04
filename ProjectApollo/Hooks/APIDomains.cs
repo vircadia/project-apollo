@@ -23,6 +23,7 @@ using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using System.Globalization;
 
 namespace Project_Apollo.Hooks
 {
@@ -63,7 +64,7 @@ namespace Project_Apollo.Hooks
                     domain = new bodyDomainReplyData()
                     {
                         id = domainID,
-                        ice_server_address = dobj.IceAddr,
+                        ice_server_address = dobj.GetIceServerAddr(),
                         name = dobj.PlaceName
                     }
                 };
@@ -197,11 +198,11 @@ namespace Project_Apollo.Hooks
             if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 // Context.Log.Debug("{0} domains/ice_server_addr PUT. Body={1}", _logHeader, pReq.RequestBody);
-                bodyIceServerPut isr = JsonConvert.DeserializeObject<bodyIceServerPut>(pReq.RequestBody);
+                bodyIceServerPut isr = pReq.RequestBodyObject<bodyIceServerPut>();
                 string includeAPIKey = isr.domain.api_key;
                 if (String.IsNullOrEmpty(aDomain.API_Key) || includeAPIKey == aDomain.API_Key)
                 {
-                    aDomain.IceAddr = isr.domain.ice_server_address;
+                    aDomain.IceServerAddr = isr.domain.ice_server_address;
                 }
                 else
                 {
@@ -233,7 +234,7 @@ namespace Project_Apollo.Hooks
                 DomainID = Guid.NewGuid().ToString(),
                 IPAddrOfFirstContact = pReq.RemoteUser.ToString()
             };
-            newDomain.API_Key = Tools.MD5Hash($":{newDomain.PlaceName}::{newDomain.DomainID}:{newDomain.IceAddr}");
+            newDomain.API_Key = Tools.MD5Hash($":{newDomain.PlaceName}::{newDomain.DomainID}:{newDomain.IceServerAddr}");
             Domains.Instance.AddDomain(newDomain.DomainID, newDomain);
 
             respBody.Data = new bodyDomainResponse()

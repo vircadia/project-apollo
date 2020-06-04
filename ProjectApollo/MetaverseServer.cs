@@ -14,7 +14,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Data.Common;
 using System.IO;
 using System.Net;
@@ -25,8 +24,6 @@ using System.Threading.Tasks;
 using Project_Apollo.Logging;
 using Project_Apollo.Configuration;
 using Project_Apollo.Registry;
-using Project_Apollo.Entities;
-using System.Text.RegularExpressions;
 
 namespace Project_Apollo
 {
@@ -100,6 +97,17 @@ namespace Project_Apollo
         {
             // Collect all the HTTP request path handlers in the registry
             Context.PathRegistry = new APIRegistry();
+
+            // If the default ICE server address has not been set in the configuration file,
+            //      assume the ice server is on the same host as this application.
+            string defaultIceServer = Context.Params.P<string>("DefaultIceServer");
+            if (String.IsNullOrEmpty(defaultIceServer))
+            {
+                defaultIceServer = Tools.GetMyExternalIPAddress().Result;
+                Context.Params.SetSiteParameter("DefaultIceServer", defaultIceServer);
+                Context.Log.Info("{0} DefaultIceServer not set in config file. Defaulting to {1}",
+                                _logHeader, defaultIceServer);
+            }
 
             // Database
             try
@@ -180,7 +188,8 @@ namespace Project_Apollo
             Context.Log.Debug("{0} Creating HttpListener", _logHeader);
             listener = new HttpListener();
 
-            // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:9400/ user=everyone
+            // NOTE: on Windows10, you must add url to acl:
+            //          netsh http add urlacl url=http://+:9400/ user=everyone
             string prefix = String.Format("http://{0}:{1}/",
                             Context.Params.P<string>("Listener.Host"),
                             Context.Params.P<int>("Listener.Port"));
@@ -236,7 +245,9 @@ namespace Project_Apollo
 
             if (_reply.Body != null)
             {
-                // This resumes that all requests only return text
+                pCtx.Response.AddHeader("Content-Type", _reply.MIMEType);
+
+                // This presumes that all requests only return text
                 byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
                 pCtx.Response.ContentLength64 = buffer.Length;
                 using (Stream output = pCtx.Response.OutputStream)

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,13 +15,21 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Project_Apollo
 {
     public class Tools
     {
+        private static readonly string _logHeader = "[Tools]";
+
         public static Int32 getTimestamp()
         {
             return int.Parse(DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
@@ -99,6 +107,53 @@ namespace Project_Apollo
             if(base64EncodedData==null)return "";
             var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+        }
+
+        /// <summary>
+        /// Get my external IP address.
+        /// Since this process could be NATed, we use an external service to
+        /// get the address. If that fails, we try to get our interface address.
+        /// </summary>
+        /// <returns>IP address as a string. Could be IPv4 or IPv6. 'null' if nothing can be figured out</returns>
+        public static async Task<string> GetMyExternalIPAddress()
+        {
+            string retIPAddr = null;
+            try
+            {
+                HttpWebRequest hwr = HttpWebRequest.CreateHttp("https://api.ipify.org");
+                WebResponse resp = await hwr.GetResponseAsync();
+                Stream strm = resp.GetResponseStream();
+                StreamReader sr = new StreamReader(strm);
+                retIPAddr = sr.ReadToEnd();
+                Context.Log.Debug("{0} Fetched external IP address is {1}", _logHeader, retIPAddr);
+            }
+            catch (Exception e)
+            {
+                Context.Log.Debug("{0} Exception getting external IP address: {1}", _logHeader, e);
+                retIPAddr = null;
+            }
+
+            if (retIPAddr == null)
+            {
+                // If the external fetch failed, get our interface address.
+                // Look for the first IP address that is Ethernet, up, and not virtual or loopback.
+                // Cribbed from https://stackoverflow.com/questions/6803073/get-local-ip-address
+                retIPAddr = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(x => x.NetworkInterfaceType == NetworkInterfaceType.Ethernet
+                            && x.OperationalStatus == OperationalStatus.Up
+                            && !x.Description.ToLower().Contains("virtual")
+                            && !x.Description.ToLower().Contains("pseudo")
+                    )
+                    .SelectMany(x => x.GetIPProperties().UnicastAddresses)
+                    .Where(x => x.Address.AddressFamily == AddressFamily.InterNetwork
+                            && !IPAddress.IsLoopback(x.Address)
+                    )
+                    .Select(x => x.Address.ToString())
+                    .First();
+                Context.Log.Debug("{0} Computed external IP address is {1}", _logHeader, retIPAddr);
+            }
+
+            return retIPAddr;
         }
     }
 }

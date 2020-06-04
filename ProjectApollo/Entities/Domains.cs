@@ -101,7 +101,7 @@ namespace Project_Apollo.Entities
 
         public string DomainID;     // globally unique domain identifier
         public string PlaceName;    // place name
-        public string IceAddr;      // IP address of ICE server
+        public string IceServerAddr;// IP address of ICE server being used by this domain
         public string API_Key;      // Access key if a temp domain
         public string Public_Key;   // DomainServers's public key
         public string Protocol;     // Protocol version
@@ -131,6 +131,24 @@ namespace Project_Apollo.Entities
         public override string StorageName()
         {
             return DomainID;
+        }
+
+        /// <summary>
+        /// Return the ICE server currently being used by this domain.
+        /// The domain does a PUT of the ICE server being used or, if not
+        /// set from there, use the default configured for this grid.
+        /// Note that a domain server will PUT the address "0.0.0.0" if
+        /// it does not yet have an ICE server set. Return default in that case.
+        /// </summary>
+        /// <returns>string giving IPv4 or IPV6 address of ICE server</returns>
+        public string GetIceServerAddr()
+        {
+            string iceServerAddr = IceServerAddr;
+            if (string.IsNullOrEmpty(iceServerAddr) || iceServerAddr == "0.0.0.0")
+            {
+                iceServerAddr = Context.Params.P<string>("DefaultIceServer");
+            }
+            return iceServerAddr;
         }
     }
 
@@ -257,7 +275,7 @@ namespace Project_Apollo.Entities
                 MemoryItem mi = Itms[DomainID];
                 DomainEntity obj = mi.Obj;
                 if (obj.API_Key != APIKey) return false;
-                obj.IceAddr = IP;
+                obj.IceServerAddr = IP;
                 mi.Obj = obj;
                 Itms[DomainID] = mi;
                 return true;
@@ -277,7 +295,7 @@ namespace Project_Apollo.Entities
             {
                 MemoryItem mi = Itms[ID];
                 DomainEntity obj = mi.Obj;
-                if(obj.IceAddr == IP)
+                if(obj.IceServerAddr == IP)
                 {
                     // RA obj.Public_Key = Key;
                     mi.Obj = obj;

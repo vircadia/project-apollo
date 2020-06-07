@@ -56,7 +56,6 @@ namespace Project_Apollo.Entities
     /// Entities are stored as JSON files in the directory "entityType/entityStorageName".
     /// Entities are kept in memory for quick reference and read or
     ///     written out as needed.
-    /// Entities are flushed from in memory after "Storage.IdleMinutes" minutes.
     /// </summary>
     public abstract class EntityStorage
     {

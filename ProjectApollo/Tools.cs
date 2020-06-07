@@ -109,6 +109,27 @@ namespace Project_Apollo
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
+        public static int Clamp(int pIn, int pMin, int pMax)
+        {
+            int ret = pIn;
+            if (ret < pMin) ret = pMin;
+            if (ret > pMax) ret = pMax;
+            return ret;
+        }
+
+        // Return a string of the passed length of random digits.
+        // Note that this is not crypographically random.
+        public static string RandomString(int pLen)
+        {
+            int len = Clamp(pLen, 2, 128);
+            string digits = "0123456789";
+            var rand = new Random();
+            return String.Join("", Enumerable.Range(0, len).Select(ii =>
+            {
+               return digits[rand.Next(0,10)];
+            }) );
+        }
+
         /// <summary>
         /// Get my external IP address.
         /// Since this process could be NATed, we use an external service to

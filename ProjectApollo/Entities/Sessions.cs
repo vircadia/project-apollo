@@ -13,11 +13,7 @@
 //   limitations under the License.
 
 using System;
-using System.Buffers.Text;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
 
 namespace Project_Apollo.Entities
 {
@@ -25,7 +21,7 @@ namespace Project_Apollo.Entities
     {
         private static readonly string _logHeader = "[Sessions]";
 
-        private static readonly object sessionLock = new object();
+        private static readonly object _sessionsLock = new object();
         private static Sessions _instance;
         public static Sessions Instance
         {
@@ -33,7 +29,7 @@ namespace Project_Apollo.Entities
             {
                 if (_instance == null)
                 {
-                    lock (sessionLock)
+                    lock (_sessionsLock)
                     {
                         // race condition check
                         if (_instance == null)
@@ -50,6 +46,7 @@ namespace Project_Apollo.Entities
         // List of all known domains
         private readonly Dictionary<string, SessionEntity> ActiveSessions = new Dictionary<string, SessionEntity>();
 
+
         public Sessions() : base(SessionEntity.SessionEntityTypeName)
         {
         }
@@ -57,54 +54,35 @@ namespace Project_Apollo.Entities
         public void Init()
         {
             // Fill my list of domains
-            lock (sessionLock)
+            lock (_sessionsLock)
             {
-                foreach (SessionEntity anEntity in AllEntities<SessionEntity>())
-                {
+                foreach (SessionEntity anEntity in AllEntities<SessionEntity>()) {
                     ActiveSessions.Add(anEntity.SessionID, anEntity);
                 }
-                Context.Log.Debug("{0} Initialized by reading in {1} DomainEntities",
+                Context.Log.Debug("{0} Initialized by reading in {1} SessionEntities",
                             _logHeader, ActiveSessions.Count.ToString());
             }
         }
 
         /// <summary>
-        /// Find and return a DomainEntity based on the DomainID.
+        /// Find and return a SessionEntity based on the SessionID.
         /// </summary>
-        /// <param name="pDomainID"></param>
-        /// <param name="oDomain">DomainObject found</param>
+        /// <param name="pSessionID"></param>
+        /// <param name="oSession">SessionEntity found</param>
         /// <returns></returns>
-        public bool TryGetSessionWithSenderKey(string pSenderKey, out SessionEntity oSession)
+        public bool TryGetSessionWithID(string pSessionID, out SessionEntity oSession)
         {
-            if (pSenderKey == null)
+            if (pSessionID != null)
             {
-                oSession = null;
-                return false;
-            }
-            lock (sessionLock)
-            {
-                return ActiveSessions.TryGetValue(pSenderKey, out oSession);
-            }
-        }
-        /// <summary>
-        /// Find the session that has the passed authorization token.
-        /// This finds the session when we are just looking at the auth token
-        ///     sent in the http header. The presumption is that auth tokens are
-        ///     unique.
-        /// </summary>
-        /// <param name="pAuthToken"></param>
-        /// <param name="oSession">Set to the found SessionEntity</param>
-        /// <returns>'true' if the session was found</returns>
-        public bool TryGetSessionWithAuth(string pAuthToken, out SessionEntity oSession)
-        {
-            lock (sessionLock)
-            {
-                foreach (var kvp in ActiveSessions)
+                lock (_sessionsLock)
                 {
-                    if (kvp.Value.AuthToken == pAuthToken)
+                    foreach (var kvp in ActiveSessions)
                     {
-                        oSession = kvp.Value;
-                        return true;
+                        if (kvp.Value.SenderKey == pSessionID)
+                        {
+                            oSession = kvp.Value;
+                            return true;
+                        }
                     }
                 }
             }
@@ -112,46 +90,87 @@ namespace Project_Apollo.Entities
             return false;
         }
 
-        public void AddSession(string pSenderKey, SessionEntity pSessionEntity)
+        /// <summary>
+        /// Find and return a SessionEntity based on a SenderKey.
+        /// </summary>
+        /// <param name="pSenderKey"></param>
+        /// <param name="oSession">SessionEntity found</param>
+        /// <returns></returns>
+        public bool TryGetSessionWithSenderKey(string pSenderKey, out SessionEntity oSession)
         {
-            lock (sessionLock)
+            if (pSenderKey != null)
             {
-                ActiveSessions.Add(pSenderKey, pSessionEntity);
+                lock (_sessionsLock)
+                {
+                    return ActiveSessions.TryGetValue(pSenderKey, out oSession);
+                }
+            }
+            oSession = null;
+            return false;
+        }
+
+        public void AddSession(SessionEntity pSessionEntity)
+        {
+            lock (_sessionsLock)
+            {
+                ActiveSessions.Add(pSessionEntity.SenderKey, pSessionEntity);
                 pSessionEntity.Updated();
             }
+        }
+
+        /// <summary>
+        /// Update the session for this sender.
+        /// If a session does not exist, one is created.
+        /// </summary>
+        /// <param name="pSenderKey"></param>
+        /// <returns></returns>
+        public SessionEntity UpdateSession(string pSenderKey)
+        {
+            SessionEntity ret = null;
+            if (TryGetSessionWithSenderKey(pSenderKey, out ret))
+            {
+                ret.TimeOfLastHeartbeat = DateTime.UtcNow;
+            }
+            else
+            {
+                // There is no session for this sender so create one
+                SessionEntity sess = new SessionEntity()
+                {
+                    SenderKey = pSenderKey,
+                    TimeOfLastHeartbeat = DateTime.UtcNow
+                };
+                AddSession(sess);
+                Context.Log.Debug("{0} Creating new session for {1}", _logHeader, pSenderKey);
+                ret = sess;
+            }
+            return ret;
         }
     }
 
     /// <summary>
-    /// The account information.
+    /// Variables and operations on a domain
     /// </summary>
     public class SessionEntity : EntityMem
     {
         public static readonly string SessionEntityTypeName = "Session";
 
-        public string SessionID;                // globally unique session identifier
-        public string SenderKey;                // an identifier for the sender (usually net addr)
-        public string AccountID;                // ID of account associated with this session
-        public string AuthToken;                // token for access by this user for this session
-        public string DomainID;                 // domain associated with this session
-
-        public LocationInfo Location;           // Where the user says they are
+        public string SessionID;    // globally unique session identifier
+        public string SenderKey;    // the source if this session
 
         // admin stuff
-        public string IPAddrOfCreator;          // IP address that created this session
-        public DateTime WhenSessionCreated;     // What the variable name says
-        public DateTime TimeOfLastHeartbeat;    // last time we had activity on this session
+        public DateTime WhenSessionEntryCreated; // What the variable name says
+        public DateTime TimeOfLastHeartbeat;    // time of last heartbeat 
 
         public SessionEntity() : base(Sessions.Instance)
         {
-            SessionID = new Guid().ToString();
-            WhenSessionCreated = DateTime.UtcNow;
+            SessionID = Guid.NewGuid().ToString();
+            WhenSessionEntryCreated = DateTime.UtcNow;
         }
 
         // EntityMem.EntityType()
         public override string EntityType()
         {
-            return DomainEntity.DomainEntityTypeName;
+            return SessionEntity.SessionEntityTypeName;
         }
         // EntityMem.StorageName()
         public override string StorageName()
@@ -159,6 +178,4 @@ namespace Project_Apollo.Entities
             return SessionID;
         }
     }
-
 }
-

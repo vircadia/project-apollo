@@ -42,7 +42,6 @@ namespace Project_Apollo.Registry
 
         private string _requestBody;
         // Returns the body of the  requests as a string.
-        // This will throw an exception if the body is not text (ie, form data, ...)
         public string RequestBody
         {
             get
@@ -53,13 +52,17 @@ namespace Project_Apollo.Registry
                     {
                         if (_listenerContext.Request.HasEntityBody)
                         {
-                            string contentType = _listenerContext.Request.ContentType;
-                            if (contentType == "application/json" || contentType == "text/html")
-                            {
+                            // For the moment, if the caller asks for the body, just return it.
+                            //     This presumes the caller has checked the contentType.
+                            // string contentType = _listenerContext.Request.ContentType;
+                            // if (contentType == "application/json"
+                            //             || contentType == "text/html"
+                            //             || contentType == "application/x-www-form-urlencoded")
+                            // {
                                 using Stream body = _listenerContext.Request.InputStream;
                                 using StreamReader sr = new StreamReader(body, _listenerContext.Request.ContentEncoding);
                                 _requestBody = sr.ReadToEnd();
-                            }
+                            // }
                         }
                     }
                     catch
@@ -183,16 +186,51 @@ namespace Project_Apollo.Registry
                 {
                     _queryParameters = Tools.NVC2Dict(_listenerContext.Request.QueryString);
                 }
-                return _headers;
+                return _queryParameters;
             }
         }
-        // Return the authorization token from the request. Return 'null' if no token
+        // Return the authorization token from the request. Return 'null' if no token.
+        // The 'Authorization' header is of the form "TYPE TOKENSTUFF". We know about
+        //     type "Bearer" which is just a long string.
+        // When fancier tokens are used, the logic here will have to change.
+        private string _authToken;
         public string AuthToken
         {
             get
             {
-                string token = _listenerContext.Request.Headers["Authorization"];
-                return token;
+                if (_authToken == null)
+                {
+                    string token = _listenerContext.Request.Headers["Authorization"];
+                    if (token != null)
+                    {
+                        string[] tokenPieces = token.Split(" ");
+                        if (tokenPieces.Length > 1)
+                        {
+                            if (tokenPieces[0].ToLower() == "bearer")
+                            {
+                                _authToken = String.Join(" ", tokenPieces[1..]);
+                            }
+                            else
+                            {
+                                _authToken = token;
+                            }
+                        }
+                        else
+                        {
+                            _authToken = token;
+                        }
+                    }
+                }
+                return _authToken;
+            }
+        }
+        // Return a key that identifies the sender.
+        // For the moment, we create a string with the remote IP addr and port
+        public string SenderKey
+        {
+            get
+            {
+                return _listenerContext.Request.RemoteEndPoint.ToString();
             }
         }
 
@@ -220,13 +258,13 @@ namespace Project_Apollo.Registry
         public string MIMEType;
         public RESTReplyData()
         {
-            Status = 200;   // Assume successful response
+            Status = (int)HttpStatusCode.OK;   // Assume successful response
             MIMEType = "text/json";
             CustomOutputHeaders = new Dictionary<string, string>();
         }
         public RESTReplyData(string pBody)
         {
-            Status = 200;   // Assume successful response
+            Status = (int)HttpStatusCode.OK;   // Assume successful response
             MIMEType = "text/json";
             CustomOutputHeaders = new Dictionary<string, string>();
             Body = pBody;

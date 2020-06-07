@@ -22,6 +22,11 @@ using Newtonsoft.Json;
 
 namespace Project_Apollo.Entities
 {
+// ========================================================= 20200607
+// Old code that is being kept around until all of its knowledge is extracted.
+// ==================================================================
+
+/*
     /// <summary>
     /// Class for all things user.
     /// Access an Instance of this class to make requests for and about users.
@@ -400,4 +405,5 @@ namespace Project_Apollo.Entities
             File.WriteAllText("accounts.json", JsonConvert.SerializeObject(this, Formatting.Indented));
         }
     }
+*/
 }

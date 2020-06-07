@@ -194,10 +194,13 @@ namespace Project_Apollo.Registry
             if (foundPath != null)
             {
                 // Found the matching, process the request
-                Context.Log.Debug("{0} Processing '{1}:{2} from {3}:{4}' with {5}", _logHeader,
-                                            pReq.Method, pReq.RawURL,
-                                            pReq.RemoteUser, pReq.RemotePort,
-                                            foundPath.AssignedMethod.Name);
+                if (Context.Params.P<bool>("Debug.Processing"))
+                {
+                    Context.Log.Debug("{0} Processing '{1}:{2} from {3}:{4}' with {5}", _logHeader,
+                                                pReq.Method, pReq.RawURL,
+                                                pReq.RemoteUser, pReq.RemotePort,
+                                                foundPath.AssignedMethod.Name);
+                }
                 try
                 {
                     object _method = Activator.CreateInstance(foundPath.AssignedMethod.DeclaringType);

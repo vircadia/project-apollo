@@ -16,47 +16,55 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
-using Newtonsoft.Json;
+
+using Project_Apollo.Entities;
 using Project_Apollo.Registry;
-using static Project_Apollo.Registry.APIRegistry;
+
+using Newtonsoft.Json;
 
 namespace Project_Apollo.Hooks
 {
     public class APIUserActivities
     {
+        private static readonly string _logHeader = "[UserActivities]";
 
-        public struct user_activities_reply
-        {
-            public string status;
-        }
-
-        public struct user_activity_input
+        public struct bodyUserActivityRequest
         {
             public string action_name;
         }
         [APIPath("/api/v1/user_activities", "POST", true)]
         public RESTReplyData user_activity (RESTRequestData pReq, List<string> pArgs)
         {
-            Heartbeat_Memory hbmem = new Heartbeat_Memory();
-            user_activity_input uai = pReq.RequestBodyObject<user_activity_input>();
-            RESTReplyData rd = new RESTReplyData();
-            rd.Status = 404;
-            rd.Body = "{\"status\":\"notfound\"}";
-            if(uai.action_name == "quit")
-            {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
 
-                
-                if (hbmem.Contains(pReq.RemoteUser.ToString())) hbmem.Rem(pReq.RemoteUser.ToString());
-                rd = new RESTReplyData();
-                rd.Status = 200;
-                user_activities_reply uar = new user_activities_reply();
-                uar.status = "success";
-                rd.Body = JsonConvert.SerializeObject(uar);
-                Console.WriteLine("=====> user_action: quit; "+pReq.RemoteUser.ToString());
-                return rd;
+            try
+            {
+                bodyUserActivityRequest reqBody = pReq.RequestBodyObject<bodyUserActivityRequest>();
+
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+                {
+
+                    // What does an activity do?
+                    Context.Log.Info("{0} Received user_activity={1} from {2}",
+                                    _logHeader, reqBody.action_name, aAccount.Username);
+                }
+                else
+                {
+                    Context.Log.Info("{0} Received user_activity={1} from unknown user",
+                                    _logHeader, reqBody.action_name);
+                    respBody.Status = "notfound";
+                    replyData.Status = (int)HttpStatusCode.NotFound;
+                }
             }
-            return rd;
+            catch (Exception e)
+            {
+                Context.Log.Error("{0} Badly formed user_activities request from {1}",
+                                        _logHeader, pReq.SenderKey);
+                replyData.Status = (int)HttpStatusCode.BadRequest;
+            }
+            replyData.Body = respBody;
+            return replyData;
         }
-        
     }
 }

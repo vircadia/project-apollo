@@ -94,6 +94,8 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
             ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
 
+            ret.Add(new ParamBlock.ParameterDefn<bool>("Debug.Processing", "Whether to print each API request processing", false));
+
 
             ret.SetParameterDefaultValues();
 

@@ -18,10 +18,11 @@ using System.Net;
 using System.Text;
 using System.IO;
 
-using Newtonsoft.Json;
-
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Project_Apollo.Hooks
 {
@@ -29,45 +30,154 @@ namespace Project_Apollo.Hooks
     {
         private static readonly string _logHeader = "[User]";
 
+        // == PUT /api/v1/user/heartbeat ======================================================e
+        // The heartbeat depends on whether logged in or not.
+        // If not logged in, it just pings the server
+        // If logged in, sends location data if it has changed
+        public struct bodyUserHeartbeatLocation {
+            // whole section is optional and sent if changed
+            public LocationInfo location;
+        };
+        public struct bodyUserHeartbeatResponse {
+            public string session_id;
+        };
+        [APIPath("/api/v1/user/heartbeat", "PUT", true)]
+        public RESTReplyData user_heartbeat(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
+
+            SessionEntity aSession = Sessions.Instance.UpdateSession(pReq.SenderKey);
+
+            if (!String.IsNullOrEmpty(pReq.AuthToken))
+            {
+                // The user thinks they are logged in, update location info
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+                {
+                    aAccount.TimeOfLastHeartbeat = DateTime.UtcNow;
+                    try
+                    {
+                        // The 'location' information is sent only when it changes
+                        JObject requestBodyJSON = pReq.RequestBodyJSON();
+                        if (requestBodyJSON.ContainsKey("location"))
+                        {
+                            bodyUserHeartbeatLocation requestData = pReq.RequestBodyObject<bodyUserHeartbeatLocation>();
+                            aAccount.Location = requestData.location;
+                        }
+                        respBody.Data = new bodyUserHeartbeatResponse()
+                        {
+                            session_id = aSession?.SessionID
+                        };
+                    }
+                    catch (Exception e)
+                    {
+                        Context.Log.Error("{0} Exception parsing body of /api/v1/user/heartbeat. AccountID={1}. {2}",
+                                        _logHeader, aAccount.AccountID, e);
+                        respBody.RespondFailure();
+                    }
+                }
+                else
+                {
+                    // Who is this clown?
+                    replyData.Status = (int)HttpStatusCode.Unauthorized;
+                    respBody.RespondFailure();
+                    Context.Log.Error("{0} Heartbeat from account with non-matching token. Sender={1}",
+                                        _logHeader, pReq.SenderKey);
+                }
+            }
+            else
+            {
+                // A new heartbeat from a new place.
+                // Is this a non-logged in user?
+                Context.Log.Info("{0} Heartbeat from unknown sender {1}", _logHeader, pReq.SenderKey);
+                respBody.Data = new bodyUserHeartbeatResponse()
+                {
+                    session_id = aSession?.SessionID
+                };
+            }
+
+            replyData.Body = respBody;
+            return replyData;
+        }
         // == GET /api/v1/users ======================================================e
         //          ?filter=connections|friends
         //          ?status=online
         //          ?per_page=N
         //          ?page=N
-        public struct users_request
+        //          ?search=specificName
+        // TODO: is authentication required?
+        [APIPath("/api/v1/users", "GET", true)]
+        public RESTReplyData user_get(RESTRequestData pReq, List<string> pArgs)
         {
-            public Dictionary<string, string> User;
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
+
+            PaginationInfo pagination = new PaginationInfo(pReq);
+            AccountFilterInfo acctFilter = new AccountFilterInfo(pReq);
+
+            var foundUsers = new List<AccountEntity>(pagination.Filter<AccountEntity>(acctFilter.Filter()));
+
+            replyData.Body = respBody;  // serializes JSON
+            return replyData;
         }
+
+        // == POST /api/v1/users ======================================================e
+        public struct bodyUsersPost
+        {
+            public Dictionary<string,string> user;
+        }
+        // TODO: What authorization is needed for this? DDOS attack possibility?
         [APIPath("/api/v1/users", "POST", true)]
         public RESTReplyData user_create(RESTRequestData pReq, List<string> pArgs)
         {
-            // This specific endpoint only creates a user
-            users_request usreq;
-            try
-            {
-                usreq = pReq.RequestBodyObject<users_request>();
-            }
-            catch (Exception e)
-            {
-                Context.Log.Error("{0} Malformed reception: {1}", _logHeader, e.ToString());
-                throw new Exception("Malformed content");
-            }
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
-            string userName = usreq.User["username"];
-            string userPW = usreq.User["password"];
-            string userEmail = usreq.User["email"];
-
-            ResponseBody respBody = new ResponseBody();
-            if (!Users.Instance.CreateAccountPW(userName, userPW, userEmail))
-            {
-                // If didn't create, return a fail
-                respBody = new ResponseBody("fail", new Dictionary<string, string>()
+            // Verify that this call is coming from a known DomainServer
+            // if (Domains.Instance.TryGetDomainWithSenderKey(pReq.SenderKey, out DomainEntity oDomain))
+            // {
+                try
                 {
-                    { "username", "already exists" }
-                });
-            }
+                    bodyUsersPost requestData = pReq.RequestBodyObject<bodyUsersPost>();
 
-            return new RESTReplyData(respBody);
+                    string userName = requestData.user["username"];
+                    string userPassword = requestData.user["password"];
+                    string userEmail = requestData.user["email"];
+
+                    Context.Log.Debug("{0} Creating account {1}/{2}", _logHeader, userName, userEmail);
+
+                    AccountEntity newAcct = Accounts.Instance.CreateAccount(userName, userPassword, userEmail);
+                    if (newAcct == null)
+                    {
+                        respBody.RespondFailure();
+                        respBody.Data = new Dictionary<string, string>() {
+                            { "username", "already exists" }
+                        };
+                        Context.Log.Debug("{0} Failed acct creation. Username already exists. User={1}",
+                                        _logHeader, userName);
+                    }
+                    else
+                    {
+                        // Successful account creation
+                        newAcct.IPAddrOfCreator = pReq.SenderKey;
+                        newAcct.Updated();
+                        Context.Log.Debug("{0} Successful acct creation. User={1}", _logHeader, userName);
+                    }
+                }
+                catch (Exception e)
+                {
+                    replyData.Status = (int)HttpStatusCode.BadRequest;
+                    Context.Log.Error("{0} Badly formed create account request. {1}", _logHeader, e);
+                }
+            // }
+            // else {
+            //     respBody.RespondFailure();
+            //     Context.Log.Debug("{0} user_create request from unknown sender. SenderKey={1}",
+            //                         _logHeader, pReq.SenderKey);
+            // }
+
+            replyData.Body = respBody;
+            return replyData;
 
         }
 
@@ -75,55 +185,70 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/user/locker", "POST", true)]
         public RESTReplyData user_locker_set(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: do whatever one does with a locker
+                aAccount.AccountSettings = pReq.RequestBody;
+                aAccount.Updated();
             }
             else
             {
-                respBody.Status = "fail";
+                Context.Log.Error("{0} POST user/locker requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+            replyData.Body = respBody;
+            return replyData;
         }
 
         // = GET /api/v1/user/locker ==================================================
         [APIPath("/api/v1/user/locker", "GET", true)]
         public RESTReplyData user_locker_get(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: do whatever one does with a locker
+                respBody.Data = aAccount.AccountSettings;
             }
             else
             {
-                respBody.Status = "fail";
+                Context.Log.Error("{0} GET user/locker requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+            replyData.Body = respBody;
+            return replyData;
         }
-
 
         // == PUT /api/v1/user/location ================================================
-        public struct LocationPacket
-        {
-            public string status;
-            public UserAccounts.Location location;
-        }
         [APIPath("/api/v1/user/location", "PUT", true)]
         public RESTReplyData user_location_set(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                LocationPacket loc = pReq.RequestBodyObject<LocationPacket>();
-                // TODO: do whatever putting the location does
+                try
+                {
+                    bodyUserHeartbeatLocation locInfo = pReq.RequestBodyObject<bodyUserHeartbeatLocation>();
+                    aAccount.Location = locInfo.location;
+                    aAccount.Updated();
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} PUT user/location requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                    respBody.RespondFailure();
+                }
             }
             else
             {
-                respBody.Status = "fail";
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+            replyData.Body = respBody;
+            return replyData;
         }
 
 
@@ -131,58 +256,64 @@ namespace Project_Apollo.Hooks
         [APIPath("/api/v1/users/%/location", "GET", true)]
         public RESTReplyData get_location(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
-            string userID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Users.Instance.TryGetUserWithID(userID, out UserEntity aUser))
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                if (aUser.Location != null)
+                respBody.Data = new bodyUserHeartbeatLocation()
                 {
-                    respBody = new ResponseBody(aUser.Location);
-                }
+                    location = aAccount.Location
+                };
             }
             else
             {
-                respBody.Status = "fail";
+                Context.Log.Error("{0} GET user/location requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+            replyData.Body = respBody;
+            return replyData;
         }
 
         // = GET /api/v1/user/profile =======================================================
-        public struct user_profile_reply
+        public struct bodyUserProfileReply
         {
-            public string status;
-            public Dictionary<string, UserProfile> data;
+            public bodyUserProfileInfo user;
         }
-        public struct UserProfile
+        public struct bodyUserProfileInfo
         {
             public string username;
             public string xmpp_password;
             public string discourse_api_key;
             public string wallet_id;
-            public UserProfile(string Username)
-            {
-                username = Username;
-
-                xmpp_password = Tools.SHA256Hash("deprecated");
-                discourse_api_key = Tools.SHA256Hash("deprecated");
-                wallet_id = Tools.SHA256Hash(username);
-            }
         }
-
         [APIPath("/api/v1/user/profile", "GET", true)]
         public RESTReplyData user_profile_gen(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: do whatever about returning a profile
+                respBody.Data = new bodyUserProfileReply()
+                {
+                    user = new bodyUserProfileInfo()
+                    {
+                        username = aAccount.Username,
+                        xmpp_password = aAccount.xmpp_password,
+                        discourse_api_key = aAccount.discourse_api_key,
+                        wallet_id = aAccount.wallet_id
+                    }
+                };
             }
             else
             {
-                respBody.Status = "fail";
+                Context.Log.Error("{0} GET user/profile requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+            replyData.Body = respBody;
+            // Context.Log.Debug("{0} GET user/profile. Response={1}", _logHeader, replyData.Body);
+            return replyData;
         }
 
         // = PUT /api/v1/user/public_key ====================================================
@@ -190,161 +321,108 @@ namespace Project_Apollo.Hooks
 
         public RESTReplyData set_public_key(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
+
+            string includedAPIKey = null;
+            string includedPublicKey = null;
+            bool parsed = false;    // whether multipart was parsed
+            try
             {
-                // TODO: do whatever about setting the user public_key
+                // The PUT sends the key as binary but it is later sent around
+                //    and processed as a Base64 string.
+                Stream byteStream = pReq.RequestBodyMultipartStream("public_key");
+                if (byteStream != null)
+                {
+                    using var memStream = new MemoryStream();
+                    byteStream.CopyTo(memStream);
+                    includedPublicKey= Convert.ToBase64String(memStream.ToArray());
+
+                    // There might has been an APIKey
+                    includedAPIKey = pReq.RequestBodyMultipart("api_key");
+
+                    parsed = true;
+                }
+                else
+                {
+                    Context.Log.Error("{0} could not extract public key from request body in PUT user/public_key", _logHeader);
+                }
+            }
+            catch (Exception e)
+            {
+                Context.Log.Error("{0} exception parsing multi-part http: {1}", _logHeader, e.ToString());
+                parsed = false;
+            }
+
+            if (parsed)
+            {
+                // If there is account authorization in the header, set the account public key.
+                // If no account authorization (the client is not logged in), check for matching
+                //     APIkey and then set the session public key.
+                if (pReq.AuthToken == null)
+                {
+                    if (includedAPIKey != null
+                            && Domains.Instance.TryGetDomainWithAPIKey(includedAPIKey, out DomainEntity aDomain))
+                    {
+                        aDomain.Public_Key = includedPublicKey;
+                    }
+                    else
+                    {
+                        Context.Log.Error("{0} PUT user/set_public_key requested without APIKey. APIKey={1}",
+                                                _logHeader, includedAPIKey);
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
+                    }
+                }
+                else
+                {
+                    if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+                    {
+                        aAccount.Public_Key = includedPublicKey;
+                    }
+                    else
+                    {
+                        Context.Log.Error("{0} PUT user/set_public_key requested without auth token. Token={1}",
+                                                _logHeader, pReq.AuthToken);
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
+                    }
+                }
             }
             else
             {
-                respBody.Status = "fail";
+                Context.Log.Error("{0} PUT user/set_public_key failure parsing", _logHeader);
+                respBody.RespondFailure();
             }
-            return new RESTReplyData(respBody);
+
+            replyData.Body = respBody;
+            return replyData;
         }
 
         // = GET /api/v1/users/%/public_key =================================================
+        public struct bodyUserPublicKeyReply
+        {
+            public string public_key;
+        }
         [APIPath("/api/v1/users/%/public_key", "GET", true)]
         public RESTReplyData get_public_key(RESTRequestData pReq, List<string> pArgs)
         {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
-            if (Users.Instance.TryGetUserWithAuth(pReq.AuthToken, out UserEntity aUser))
-            {
-                // TODO: do whatever about returning the user public_key
-            }
-            else
-            {
-                respBody.Status = "fail";
-            }
-            return new RESTReplyData(respBody);
-        }
 
-
-        // = GET /user/tokens/new =================================================
-        // THIS IS EXPERIMENTAL AND NEW SO HANDS OFF!!
-        [APIPath("/user/tokens/new", "GET", true)]
-        public RESTReplyData user_tokens(RESTRequestData pReq, List<string> pArgs)
-        {
-        /*
-            if(pReq.Headers.ContainsKey("Authorization") == false)
+            string accountID = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Accounts.Instance.TryGetAccountWithID(accountID, out AccountEntity aAccount))
             {
-
-                RESTReplyData rd = new RESTReplyData();
-                rd.Status = 401;
-                rd.Body = "";
-                Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
-                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
-                rd.Body = "<h2>You are not logged in!";
-                rd.CustomOutputHeaders.Add("Content-Type", "text/html");
-                return rd;
-            } else
-            {
-                // Validate login!
-                string[] req = pArgs[0].Split(new[] { '?', '&', '=' });
-                string[] authHeader = pReq.Headers["Authorization"].Split(new[] { ' ' });
-
-                if(authHeader[0] == "Basic" && Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()))
+                respBody.Data = new bodyUserPublicKeyReply()
                 {
-                    // Validate credentials!
-                    UserAccounts ua = UserAccounts.GetAccounts();
-
-                    string[] auth = Tools.Base64Decode(authHeader[1]).Split(new[] { ':' });
-
-                    if(ua.Login(auth[0], auth[1], "web"))
-                    {
-                        // Continue to generate the token!
-                        UserAccounts.Account act = ua.AllAccounts[auth[0]]; 
-                        for (int i = 0; i < req.Length; i++)
-                        {
-                            if (req[i] == "for_domain_server" && req[i + 1] == "true")
-                            {
-                                // Generate the domain server token!
-                                int expiry = 1 * 24 * 60 * 60;
-                                int time = Tools.getTimestamp();
-                                string token_type = "domain";
-
-                                string Token = Tools.MD5Hash(expiry.ToString() + ":" + time.ToString() + "::" + token_type + ":" + act.name);
-                                // Token has now been issued!
-                                // Because you can obviously have more than 1 domain, this will save the token as : domain-timestamp
-
-                                act.ActiveTokens.Add(Token, "domain");
-                                ua.AllAccounts[auth[0]] = act;
-                                ua.save();
-
-                                // Exit this loop, and reply to the user!
-
-                                Session.Instance.TemporaryStackData.Remove(pReq.RemoteUser.ToString());
-                                RESTReplyData rd1 = new RESTReplyData();
-                                rd1.Status = 200;
-                                rd1.Body = $"<center><h2>Your domain's access token is: {Token}</h2></center>";
-                                rd1.CustomOutputHeaders.Add("Content-Type", "text/html");
-
-                                return rd1;
-                            }
-                        }
-                    }
-                }
-
-                RESTReplyData rd = new RESTReplyData();
-                rd.Body = "Invalid authorization header was provided!<br/>If you were not prompted for credentials again, close the tab or the browser and try again";
-                rd.Status = 401;
-                if (Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()) == false)
-                    Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
-                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
-                return rd;
-            }
-            */
-                RESTReplyData rd = new RESTReplyData();
-                return rd;
-        }
-    }
-
-    public class token_oauth
-    {
-
-        public struct Login_Reply
-        {
-            public string access_token;
-            public string token_type;
-            public int expires_in;
-            public string refresh_token;
-            public string scope;
-            public int created_at;
-        }
-        [APIPath("/oauth/token", "POST", true)]
-        public RESTReplyData user_login(RESTRequestData pReq, List<string> pArgs)
-        {
-            Console.WriteLine("====> Starting User Login <=====");
-
-            RESTReplyData data = new RESTReplyData();
-            Login_Reply lr = new Login_Reply();
-            Dictionary<string, string> arguments = Tools.PostBody2Dict(pReq.RequestBody);
-            lr.created_at = Tools.getTimestamp();
-            lr.expires_in = 1 * 24 * 60 * 60; // 1 DAY
-            lr.token_type = "Bearer";
-            lr.scope = arguments["scope"];
-            lr.refresh_token = Tools.SHA256Hash(lr.expires_in.ToString() + ";" + pReq.RemoteUser.ToString() + ";" + arguments["username"]);
-            lr.access_token = Tools.SHA256Hash(Tools.getTimestamp() + ";" + lr.refresh_token);
-
-            UserAccounts uac = UserAccounts.GetAccounts();
-            if (uac.Login(arguments["username"], arguments["password"], lr.access_token))
-            {
-                Console.WriteLine("===> Login success");
-                data.Body = JsonConvert.SerializeObject(lr);
-                data.Status = 200;
-                return data;
+                    public_key = aAccount.Public_Key
+                };
             }
             else
             {
-                Console.WriteLine("====> Login failed");
-                // users.users_reply failreply = new users.users_reply();
-                // failreply.status = "fail";
-                // failreply.data = new Dictionary<string, string>();
-                // failreply.data.Add("reason", "Unknown");
-                data.Status = 200;
-                // data.Body = JsonConvert.SerializeObject(failreply);
-                return data;
+                respBody.RespondFailure();
             }
 
+            replyData.Body = respBody;
+            return replyData;
         }
     }
 }

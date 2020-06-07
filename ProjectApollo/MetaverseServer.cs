@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Project_Apollo.Logging;
 using Project_Apollo.Configuration;
 using Project_Apollo.Registry;
+using Project_Apollo.Entities;
 
 namespace Project_Apollo
 {
@@ -108,6 +109,10 @@ namespace Project_Apollo
                 Context.Log.Info("{0} DefaultIceServer not set in config file. Defaulting to {1}",
                                 _logHeader, defaultIceServer);
             }
+
+            // This causes these collection classes to initialize
+            _ = Domains.Instance;
+            _ = Accounts.Instance;
 
             // Database
             try

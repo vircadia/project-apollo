@@ -29,7 +29,7 @@ namespace Project_Apollo.Entities
         [JsonIgnore]    // field used for management and not serialized out
         public DateTime LastAccessed;
         [JsonIgnore]
-        private EntityStorage _storageSystem;
+        private readonly EntityStorage _storageSystem;
 
         public EntityMem(EntityStorage pStorageSystem)
         {
@@ -102,15 +102,25 @@ namespace Project_Apollo.Entities
             return File.Exists(EntityFilename(pStorageName));
         }
 
-        public T FetchFromStorage<T>(string pStorageName)
+        // Fetch the entity give its storage name.
+        // Throws an exception if the entity could not be read.
+        public virtual T FetchFromStorage<T>(string pStorageName)
         {
-            T entity =  JsonConvert.DeserializeObject<T>(File.ReadAllText(EntityFilename(pStorageName)));
+            T entity = default;
+            lock (_storageLock)
+            {
+                string body = File.ReadAllText(EntityFilename(pStorageName));
+                entity =  JsonConvert.DeserializeObject<T>(body);
+            }
             return entity;
         }
 
-        public void StoreInStorage(EntityMem pEntity)
+        public virtual void StoreInStorage(EntityMem pEntity)
         {
-            File.WriteAllText(EntityFilename(pEntity), JsonConvert.SerializeObject(pEntity, Formatting.Indented));
+            lock (_storageLock) {
+                File.WriteAllText(EntityFilename(pEntity),
+                        JsonConvert.SerializeObject(pEntity, Formatting.Indented));
+            }
         }
 
         protected string EntityFilename(string pStorageName)
@@ -155,7 +165,7 @@ namespace Project_Apollo.Entities
                     yield return anEntity;
                 }
             }
+            yield break;
         }
-
     }
 }

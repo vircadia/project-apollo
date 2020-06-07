@@ -24,6 +24,7 @@ using RandomNameGeneratorLibrary;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Globalization;
+using System.Net;
 
 namespace Project_Apollo.Hooks
 {
@@ -80,7 +81,7 @@ namespace Project_Apollo.Hooks
                 {
                     {  "domain", "there is no domain with that ID" }
                 };
-                replyData.Status = 404;
+                replyData.Status = (int)HttpStatusCode.NotFound;
                 replyData.Body = respBody;
                 // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
@@ -129,7 +130,7 @@ namespace Project_Apollo.Hooks
             // ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity dobj))
+            if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {
                 try
                 {
@@ -138,34 +139,37 @@ namespace Project_Apollo.Hooks
                     bodyHeartbeatRequest requestData = pReq.RequestBodyObject<bodyHeartbeatRequest>();
 
                     // If there is no api_key, things aren't initialized
-                    if (String.IsNullOrEmpty(dobj.API_Key))
+                    if (String.IsNullOrEmpty(aDomain.API_Key))
                     {
-                        replyData.Status = 401;
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
                     }
                     else
                     {
-                        dobj.NetworkingMode = requestData.domain.automatic_networking;
+                        aDomain.NetworkingMode = requestData.domain.automatic_networking;
                         bodyHeartbeatData dat = requestData.domain.heartbeat;
-                        dobj.Protocol = dat.protocol;
-                        dobj.Restricted = dat.restricted;
-                        dobj.Version = dat.version;
-                        dobj.LoggedIn = dat.num_users;
-                        dobj.Anon = dat.num_anon_users;
-                        dobj.TotalUsers = dat.num_anon_users + dat.num_users;
+                        aDomain.Protocol = dat.protocol;
+                        aDomain.Restricted = dat.restricted;
+                        aDomain.Version = dat.version;
+                        aDomain.LoggedIn = dat.num_users;
+                        aDomain.Anon = dat.num_anon_users;
+                        aDomain.TotalUsers = dat.num_anon_users + dat.num_users;
 
-                        dobj.TimeOfLastHeartbeat = DateTime.UtcNow;
-                        dobj.Updated();
+                        aDomain.TimeOfLastHeartbeat = DateTime.UtcNow;
+                        aDomain.LastSenderKey = pReq.SenderKey;
+
+                        aDomain.Updated();
                     }
                 }
                 catch (Exception e)
                 {
                     Context.Log.Error("{0} domain_heartbeat: Exception parsing body: {1}", _logHeader, e.ToString());
+                    replyData.Status = (int)HttpStatusCode.BadRequest;
                 }
             }
             else
             {
                 Context.Log.Error("{0} domain_heartbeat: unknown domain. Returning 404", _logHeader);
-                replyData.Status = 404; // this will trigger a new temporary domain name
+                replyData.Status = (int)HttpStatusCode.NotFound; // this will trigger a new temporary domain name
             }
 
             // replyData.Body = respBody; there is no body in the response
@@ -207,13 +211,13 @@ namespace Project_Apollo.Hooks
                 else
                 {
                     respBody.RespondFailure();
-                    replyData.Status = 401; // not authorized
+                    replyData.Status = (int)HttpStatusCode.Unauthorized;
                 }
             }
             else
             {
                 respBody.RespondFailure();
-                replyData.Status = 404;
+                replyData.Status = (int)HttpStatusCode.NotFound;
             }
             return replyData;
         }
@@ -289,7 +293,7 @@ namespace Project_Apollo.Hooks
                         {
                             Context.Log.Error("{0} could not extract public key from request body: domain {1}",
                                                 _logHeader, domainID);
-                            replyData.Status = 401; // not authorized
+                            replyData.Status = (int)HttpStatusCode.Unauthorized;
                             respBody.RespondFailure();
                         }
                     }
@@ -297,7 +301,7 @@ namespace Project_Apollo.Hooks
                     {
                         Context.Log.Error("{0} attempt to set public_key with non-matching APIKeys: domain {1}",
                                             _logHeader, domainID);
-                        replyData.Status = 401; // not authorized
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
                         respBody.RespondFailure();
                     }
                 }
@@ -345,7 +349,7 @@ namespace Project_Apollo.Hooks
                 {
                     {  "domain", "there is no domain with that ID" }
                 };
-                replyData.Status = 404;
+                replyData.Status = (int)HttpStatusCode.NotFound;
                 // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
 

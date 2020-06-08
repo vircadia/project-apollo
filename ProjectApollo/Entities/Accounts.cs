@@ -258,6 +258,12 @@ namespace Project_Apollo.Entities
         {
             return AccountID;
         }
+        public bool IsOnline()
+        {
+            // Presume the account is online if there has been a heartbest in the last minute
+            return TimeOfLastHeartbeat != null
+                    && (DateTime.UtcNow - TimeOfLastHeartbeat).TotalSeconds < 60;
+        }
         // Get the authorization information for a particular token.
         // Returns 'null' if there is no such authorization.
         public AuthTokenInfo GetAuthTokenInfo(string pToken)

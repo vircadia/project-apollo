@@ -117,6 +117,8 @@ namespace Project_Apollo.Hooks
 
             var foundUsers = new List<AccountEntity>(pagination.Filter<AccountEntity>(acctFilter.Filter()));
 
+            pagination.AddReplyFields(respBody);
+
             replyData.Body = respBody;  // serializes JSON
             return replyData;
         }
@@ -222,6 +224,136 @@ namespace Project_Apollo.Hooks
             return replyData;
         }
 
+        // = GET /api/v1/user/friends ==================================================
+        public struct bodyUserFriendsReply
+        {
+            List<string> friends;
+        };
+        [APIPath("/api/v1/user/friends", "GET", true)]
+        public RESTReplyData user_friends_get(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                respBody.Data = new bodyUserFriendsReply();
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+        // = PUT /api/v1/user/friends/% ==================================================
+        [APIPath("/api/v1/user/friends/%", "POST", true)]
+        public RESTReplyData user_friends_post(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                // TODO: Should put something
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+        // = DELETE /api/v1/user/friends/% ==================================================
+        [APIPath("/api/v1/user/friends/%", "DELETE", true)]
+        public RESTReplyData user_friends_delete(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                // TODO: Should put something
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+
+        // = GET /api/v1/user/connections ==================================================
+        public struct bodyUserConnectionsReply
+        {
+            List<string> connections;
+        };
+        [APIPath("/api/v1/user/connections", "GET", true)]
+        public RESTReplyData user_connections_get(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                respBody.Data = new bodyUserConnectionsReply();
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+        // = PUT /api/v1/user/connections/% ==================================================
+        [APIPath("/api/v1/user/connections/%", "POST", true)]
+        public RESTReplyData user_connections_post(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                // TODO: Should put something
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/connections requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+        // = DELETE /api/v1/user/connections/% ==================================================
+        [APIPath("/api/v1/user/connections/%", "DELETE", true)]
+        public RESTReplyData user_connections_delete(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                // TODO: Should put something
+            }
+            else
+            {
+                Context.Log.Error("{0} GET user/connections requested without auth token. Token={1}",
+                                        _logHeader, pReq.AuthToken);
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
+
         // == PUT /api/v1/user/location ================================================
         [APIPath("/api/v1/user/location", "PUT", true)]
         public RESTReplyData user_location_set(RESTRequestData pReq, List<string> pArgs)
@@ -239,7 +371,8 @@ namespace Project_Apollo.Hooks
                 }
                 catch (Exception e)
                 {
-                    Context.Log.Error("{0} PUT user/location requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
+                    Context.Log.Error("{0} PUT user/location Failed body parsing. Acct={1}",
+                                        _logHeader, aAccount.AccountID);
                     respBody.RespondFailure();
                 }
             }

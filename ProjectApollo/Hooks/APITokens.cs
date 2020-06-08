@@ -40,6 +40,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData user_login(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            // The /oauth/token request doesn't return a regular respBody
 
             // Should verify that the content-type is "application/x-www-form-urlencoded"
             Dictionary<string, string> reqArgs = Tools.PostBody2Dict(pReq.RequestBody);

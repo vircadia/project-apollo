@@ -34,6 +34,7 @@ namespace Project_Apollo.Hooks
         public string Status;
         // NOTE: 'Data' is an object that  will be serialized by JSON!
         public object Data;
+        private Dictionary<string, object> _additionalFields = new Dictionary<string, object>();
 
         public ResponseBody()
         {
@@ -60,13 +61,24 @@ namespace Project_Apollo.Hooks
             return this;
         }
 
+        public void AddExtraTopLevelField(string pName, object pValue)
+        {
+            _additionalFields.Add(pName, pValue);
+        }
+
+        // If an instance is assigned to a string variable, the cast causes conversion to string
         public static implicit operator string(ResponseBody rb) => rb.ToString();
+        // Convert the body data into a JSON string
         public override string ToString()
         {
             Dictionary<string, object> respBody = new Dictionary<string, object>
             {
                 { "status", Status }
             };
+            foreach (var kvp in _additionalFields)
+            {
+                respBody.Add(kvp.Key, kvp.Value);
+            }
             if (Data != null)
             {
                 respBody.Add("data", Data);

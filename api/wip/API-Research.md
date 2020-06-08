@@ -184,6 +184,11 @@ api/v1/transactions
             header: 'form-data; name="api_key"'
         Uses this URL or one below depending if 'domainID' is null or not
 
+/api/v1/user/connections/{username}
+/api/v1/user/connections
+/api/v1/user/friends/{username}
+/api/v1/user/friends
+
 /api/v1/users/{username}/public_key
     domain-server/src/DomainGatekeeper.cpp
         GET

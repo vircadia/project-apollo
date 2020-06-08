@@ -94,7 +94,6 @@ namespace Project_Apollo.Configuration
 
             ret.Add(new ParamBlock.ParameterDefn<bool>("Debug.Processing", "Whether to print each API request processing", false));
 
-
             ret.SetParameterDefaultValues();
 
             return ret;

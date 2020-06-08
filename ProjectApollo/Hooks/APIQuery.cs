@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -31,8 +31,14 @@ namespace Project_Apollo.Hooks
     {
         private static readonly string _logHeader = "[PaginationInfo]";
 
+        // Overall parameters
         private readonly int _pageNum = 1;   // The number of page to return
         private readonly int _perPage = 20;  // How many entries per page
+
+        // Results from last filter() operation
+        int _currentPage = 1;
+        int _currentItem = 1;
+
         public PaginationInfo(RESTRequestData pReq)
         {
             try
@@ -61,9 +67,8 @@ namespace Project_Apollo.Hooks
         /// <returns></returns>
         public IEnumerable<T> Filter<T>(IEnumerable<T> pToFilter)
         {
-            int _currentPage = 1;
-            int _currentItem = 1;
-
+            _currentPage = 1;
+            _currentItem = 1;
             foreach (T item in pToFilter)
             {
                 if (_pageNum == _currentPage)
@@ -80,6 +85,15 @@ namespace Project_Apollo.Hooks
                 }
             }
             yield break;
+        }
+
+        /// <summary>
+        /// The HTML reply body can have extra top level fields which
+        ///     describe what pagination happened.
+        /// </summary>
+        /// <param name="pBody"></param>
+        public void AddReplyFields(ResponseBody pBody)
+        {
         }
     }
 
@@ -107,7 +121,26 @@ namespace Project_Apollo.Hooks
         {
             // Don't do any filtering yet
             foreach (AccountEntity ent in Accounts.Instance.AllAccountEntities()) {
-                yield return ent;
+                bool matched = false;
+                if (!String.IsNullOrEmpty(_filter))
+                {
+                    // TODO: add connection and friend implementations
+                }
+                if (!matched && !String.IsNullOrEmpty(_status))
+                {
+                    if (_status == "online" && ent.IsOnline())
+                    {
+                        matched = true;
+                    }
+                }
+                if (!matched && !String.IsNullOrEmpty(_search))
+                {
+                    if (_search == ent.Username)
+                    {
+                        matched = true;
+                    }
+                }
+                if (matched) yield return ent;
             }
             yield break;
         }

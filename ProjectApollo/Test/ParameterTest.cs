@@ -45,8 +45,8 @@ namespace Project_Apollo.Test
 
             Assert.That(parms.HasParam("LogLevel"));
             Assert.That(parms.HasParam("ConfigFile"));
-            Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
+            Assert.That(parms.P<string>(AppParams.P_LOGLEVEL).Equals("Debug"));
+            Assert.That(parms.P<string>(AppParams.P_CONFIGFILE).Equals("aSiteValue"));
         }
         [TestCase]
         public void CommandLineBooleanNegation()
@@ -64,10 +64,10 @@ namespace Project_Apollo.Test
 
             Assert.That(parms.HasParam("LogLevel"));
             Assert.That(parms.HasParam("ConfigFile"));
-            Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
-            Assert.That(parms.P<bool>("Quiet"));
-            Assert.That(!parms.P<bool>("Verbose"));
+            Assert.That(parms.P<string>(AppParams.P_LOGLEVEL).Equals("Debug"));
+            Assert.That(parms.P<string>(AppParams.P_CONFIGFILE).Equals("aSiteValue"));
+            Assert.That(parms.P<bool>(AppParams.P_QUIET));
+            Assert.That(!parms.P<bool>(AppParams.P_VERBOSE));
         }
         [TestCase]
         public void CommandLineBooleanWithoutValue()
@@ -85,9 +85,9 @@ namespace Project_Apollo.Test
 
             Assert.That(parms.HasParam("LogLevel"));
             Assert.That(parms.HasParam("ConfigFile"));
-            Assert.That(parms.P<string>("LogLevel").Equals("Debug"));
-            Assert.That(parms.P<string>("ConfigFile").Equals("aSiteValue"));
-            Assert.That(parms.P<bool>("Verbose"));
+            Assert.That(parms.P<string>(AppParams.P_LOGLEVEL).Equals("Debug"));
+            Assert.That(parms.P<string>(AppParams.P_CONFIGFILE).Equals("aSiteValue"));
+            Assert.That(parms.P<bool>(AppParams.P_VERBOSE));
         }
     }
 }

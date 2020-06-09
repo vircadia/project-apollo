@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Logging
 {
@@ -47,8 +48,8 @@ namespace Project_Apollo.Logging
             }
 
             // Initialize the logger with a default log level.
-            int rotateMinutes = Context.Params.P<int>("Logger.RotateMins");
-            bool forceFlush = Context.Params.P<bool>("Logger.ForceFlush");
+            int rotateMinutes = Context.Params.P<int>(AppParams.P_LOGGER_ROTATE_MINS);
+            bool forceFlush = Context.Params.P<bool>(AppParams.P_LOGGER_FORCE_FLUSH);
             _logWriter = new LogWriter(pLogDirectory, "MetaverseServer-", rotateMinutes, forceFlush);
         }
 

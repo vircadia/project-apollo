@@ -42,6 +42,36 @@ namespace Project_Apollo.Configuration
     /// </summary>
     public class AppParams : IParamBlock
     {
+        // Definitions of strings for each parameter.
+        // This exists so code doesn't have to spell the configuration name exactly
+        //      right. This prevents some runtime errors.
+        public static readonly string P_QUIET = "Quiet";
+        public static readonly string P_VERBOSE = "Verbose";
+        public static readonly string P_CONSOLELOG = "ConsoleLog";
+        public static readonly string P_CONFIGFILE = "ConfigFile";
+        public static readonly string P_DEFAULT_ICE_SERVER = "DefaultIceServer";
+
+        public static readonly string P_LISTENER_HOST = "Listener.Host";
+        public static readonly string P_LISTENER_PORT = "Listener.Port";
+        public static readonly string P_LISTENER_RESPONSE_HEADER_SERVER = "Listener.Response.Header.Server";
+
+        public static readonly string P_STORAGE_DIR = "Storage.Dir";
+        public static readonly string P_STORAGE_STATIC_DIR = "Storage.StaticDir";
+
+        public static readonly string P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS = "Account.AuthTokenExpirationCheckSeconds";
+
+        public static readonly string P_SESSION_IDLE_EXPIRE_SECONDS = "Session.IdleExpireSeconds";
+        public static readonly string P_SESSION_IDLE_CHECK_SECONDS = "Session.SessionIdleCheckSeconds";
+
+        public static readonly string P_COMMERCE_MARKETPLACEKEY = "Commerce.MarketplaceKey";
+
+        public static readonly string P_LOGLEVEL = "LogLevel";
+        public static readonly string P_LOGGER_ROTATE_MINS = "Logger.RotateMins";
+        public static readonly string P_LOGGER_FORCE_FLUSH = "Logger.ForceFlush";
+        public static readonly string P_LOGGER_LOG_DIR = "Logger.LogDirectory";
+
+        public static readonly string P_DEBUG_PROCESSING = "Debug.Processing";
+
         private readonly ParamBlock _defaultParameters;
         private readonly ParamPersistant _siteParameters;
         private readonly ParamBlock _commandLineParameters;
@@ -62,7 +92,7 @@ namespace Project_Apollo.Configuration
             _commandLineParameters = new ParamBlock();
             MergeCommandLine(args, null, null);
 
-            _siteParameters = new ParamPersistant(this.P<string>("ConfigFile"));
+            _siteParameters = new ParamPersistant(this.P<string>(AppParams.P_CONFIGFILE));
             _siteParameters.SetParameterDefaultValues();
         }
 
@@ -70,29 +100,33 @@ namespace Project_Apollo.Configuration
         {
             ParamBlock ret = new ParamBlock();
 
-            ret.Add(new ParamBlock.ParameterDefn<bool>("Quiet", "Quiet console output", false));
-            ret.Add(new ParamBlock.ParameterDefn<bool>("Verbose", "Excessive console output", false));
-            ret.Add(new ParamBlock.ParameterDefn<bool>("ConsoleLog", "Also log to the console", true));
-            ret.Add(new ParamBlock.ParameterDefn<string>("ConfigFile", "Per site configuration file", "config.json"));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_QUIET, "Quiet console output", false));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_VERBOSE, "Excessive console output", false));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_CONSOLELOG, "Also log to the console", true));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_CONFIGFILE, "Per site configuration file", "config.json"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("DefaultIceServer", "IP address of ice server. If empty, set to self.", ""));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_DEFAULT_ICE_SERVER, "IP address of ice server. If empty, set to self.", ""));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:9400/ user=everyone
-            ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Host", "HttpListener host", "+"));
-            ret.Add(new ParamBlock.ParameterDefn<int>("Listener.Port", "HttpListener port", 9400));
-            ret.Add(new ParamBlock.ParameterDefn<string>("Listener.Response.Header.Server", "What to return as 'Server: header field", "1.5"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_HOST, "HttpListener host", "+"));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_LISTENER_PORT, "HttpListener port", 9400));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_RESPONSE_HEADER_SERVER, "What to return as 'Server: header field", "1.5"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("Storage.Dir", "Root of entity storage", "Entities"));
-            ret.Add(new ParamBlock.ParameterDefn<string>("Storage.StaticDir", "Directory of static pages served for users", "Static"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_DIR, "Root of entity storage", "Entities"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_STATIC_DIR, "Directory of static pages served for users", "Static"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("Commerce.MarketplaceKey", "Public key for Marketplace access", "lksjdlkjskldjflsd"));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS, "Seconds between times checking for authtoken flushing", 20));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_EXPIRE_SECONDS, "Time to keep idle sessions", 60 * 5));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_CHECK_SECONDS, "How often to check for idle sessions", 60 * 2));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>("LogLevel", "One of 'warn', 'info', 'debug'", "Debug"));
-            ret.Add(new ParamBlock.ParameterDefn<int>("Logger.RotateMins", "Minutes to write to log file before starting next", 60));
-            ret.Add(new ParamBlock.ParameterDefn<bool>("Logger.ForceFlush", "Force a flush after each log write", true));
-            ret.Add(new ParamBlock.ParameterDefn<string>("Logger.LogDirectory", "Directory to put logs into", "Logs"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_COMMERCE_MARKETPLACEKEY, "Public key for Marketplace access", "lksjdlkjskldjflsd"));
 
-            ret.Add(new ParamBlock.ParameterDefn<bool>("Debug.Processing", "Whether to print each API request processing", false));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_LOGLEVEL, "One of 'warn', 'info', 'debug'", "Debug"));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_LOGGER_ROTATE_MINS, "Minutes to write to log file before starting next", 60));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_LOGGER_FORCE_FLUSH, "Force a flush after each log write", true));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_LOGGER_LOG_DIR, "Directory to put logs into", "Logs"));
+
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_DEBUG_PROCESSING, "Whether to print each API request processing", false));
 
             ret.SetParameterDefaultValues();
 

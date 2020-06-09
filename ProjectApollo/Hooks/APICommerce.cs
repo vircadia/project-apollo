@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ using Project_Apollo.Registry;
 using Newtonsoft.Json;
 using RandomNameGeneratorLibrary;
 using Newtonsoft.Json.Linq;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Hooks
 {
@@ -41,7 +42,7 @@ namespace Project_Apollo.Hooks
 
             respBody.Data = new bodyMarketplaceKeyResponse()
             {
-                public_key = Context.Params.P<string>("Commerce.MarketplaceKey")
+                public_key = Context.Params.P<string>(AppParams.P_COMMERCE_MARKETPLACEKEY)
             };
             replyData.Body = respBody;  // serializes JSON
 

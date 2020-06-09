@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ using System.Net;
 using System.Reflection;
 using System.IO;
 using Newtonsoft.Json;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Registry
 {
@@ -194,7 +195,7 @@ namespace Project_Apollo.Registry
             if (foundPath != null)
             {
                 // Found the matching, process the request
-                if (Context.Params.P<bool>("Debug.Processing"))
+                if (Context.Params.P<bool>(AppParams.P_DEBUG_PROCESSING))
                 {
                     Context.Log.Debug("{0} Processing '{1}:{2} from {3}:{4}' with {5}", _logHeader,
                                                 pReq.Method, pReq.RawURL,

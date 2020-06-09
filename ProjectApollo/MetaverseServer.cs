@@ -74,11 +74,11 @@ namespace Project_Apollo
 
             // Setup global Context
             Context.Params = new AppParams(args);
-            Context.Log = new LogFileLogger(Context.Params.P<string>("Logger.LogDirectory"),
-                                            Context.Params.P<bool>("ConsoleLog") );
-            Context.Log.SetLogLevel(Context.Params.P<string>("LogLevel"));
+            Context.Log = new LogFileLogger(Context.Params.P<string>(AppParams.P_LOGGER_LOG_DIR),
+                                            Context.Params.P<bool>(AppParams.P_CONSOLELOG));
+            Context.Log.SetLogLevel(Context.Params.P<string>(AppParams.P_LOGLEVEL));
 
-            if (Context.Params.P<bool>("Verbose") || !Context.Params.P<bool>("Quiet"))
+            if (Context.Params.P<bool>(AppParams.P_VERBOSE) || !Context.Params.P<bool>(AppParams.P_QUIET))
             {
                 Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER");
             }
@@ -101,7 +101,7 @@ namespace Project_Apollo
 
             // If the default ICE server address has not been set in the configuration file,
             //      assume the ice server is on the same host as this application.
-            string defaultIceServer = Context.Params.P<string>("DefaultIceServer");
+            string defaultIceServer = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER);
             if (String.IsNullOrEmpty(defaultIceServer))
             {
                 defaultIceServer = Tools.GetMyExternalIPAddress().Result;
@@ -196,8 +196,8 @@ namespace Project_Apollo
             // NOTE: on Windows10, you must add url to acl:
             //          netsh http add urlacl url=http://+:9400/ user=everyone
             string prefix = String.Format("http://{0}:{1}/",
-                            Context.Params.P<string>("Listener.Host"),
-                            Context.Params.P<int>("Listener.Port"));
+                            Context.Params.P<string>(AppParams.P_LISTENER_HOST),
+                            Context.Params.P<int>(AppParams.P_LISTENER_PORT));
             Context.Log.Debug("{0} HttpListener listening on '{1}", _logHeader, prefix);
             listener.Prefixes.Add(prefix);
 
@@ -235,7 +235,7 @@ namespace Project_Apollo
             // If the processing created any error, it will return reply data with the error.
             RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
 
-            pCtx.Response.Headers.Add("Server", Context.Params.P<string>("Listener.Response.Header.Server"));
+            pCtx.Response.Headers.Add("Server", Context.Params.P<string>(AppParams.P_LISTENER_RESPONSE_HEADER_SERVER));
             
             pCtx.Response.StatusCode = _reply.Status;
             if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;

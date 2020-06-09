@@ -23,6 +23,8 @@ using Project_Apollo.Registry;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
+using System.Threading;
 
 namespace Project_Apollo.Hooks
 {
@@ -106,6 +108,27 @@ namespace Project_Apollo.Hooks
         //          ?page=N
         //          ?search=specificName
         // TODO: is authentication required?
+        public struct bodyUsersReply
+        {
+            public bodyUser[] users;
+        }
+        public struct bodyUser
+        {
+            public string username;
+            public string connection;
+            public UserImages images;
+            public bodyLocationInfo location;
+        }
+        public struct bodyLocationInfo
+        {
+            public string node_id;      // sessionID
+            public bodyNamedLoc root;
+            public bodyNamedLoc domain;
+        }
+        public struct bodyNamedLoc
+        {
+            public string name;
+        }
         [APIPath("/api/v1/users", "GET", true)]
         public RESTReplyData user_get(RESTRequestData pReq, List<string> pArgs)
         {
@@ -115,7 +138,28 @@ namespace Project_Apollo.Hooks
             PaginationInfo pagination = new PaginationInfo(pReq);
             AccountFilterInfo acctFilter = new AccountFilterInfo(pReq);
 
-            var foundUsers = new List<AccountEntity>(pagination.Filter<AccountEntity>(acctFilter.Filter()));
+            SessionEntity aSession = Sessions.Instance.GetSession(pReq.SenderKey);
+
+            // var foundUsers = new List<AccountEntity>(pagination.Filter<AccountEntity>(acctFilter.Filter()));
+            respBody.Data = new bodyUsersReply() {
+                users = pagination.Filter<AccountEntity>(acctFilter.Filter()).Select(acct =>
+                {
+                    return new bodyUser()
+                    {
+                        username = acct.Username,
+                        connection = "",
+                        images = acct.Images,
+                        location = new bodyLocationInfo()
+                        {
+                            node_id = aSession?.SessionID,
+                            root = new bodyNamedLoc()
+                            {
+                                name = acct.Location?.PlaceID
+                            }
+                        }
+                    };
+                }).ToArray()
+            };
 
             pagination.AddReplyFields(respBody);
 

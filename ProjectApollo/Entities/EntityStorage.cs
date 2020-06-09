@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using Newtonsoft.Json;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities
 {
@@ -74,7 +75,7 @@ namespace Project_Apollo.Entities
 
 
             // The GetFullPath() will correct the directory separators in the config path
-            string fullDirPath = Path.GetFullPath(Context.Params.P<string>("Storage.Dir"));
+            string fullDirPath = Path.GetFullPath(Context.Params.P<string>(AppParams.P_STORAGE_DIR));
             _entityStorageDir = Path.Combine( fullDirPath, _storageEntityTypeName);
 
             Context.Log.Debug("{0} Storing {1} entities into {2}", _logHeader, _storageEntityTypeName, _entityStorageDir);
@@ -121,6 +122,10 @@ namespace Project_Apollo.Entities
                         JsonConvert.SerializeObject(pEntity, Formatting.Indented));
             }
         }
+        public virtual void RemoveFromStorage(EntityMem pEntity)
+        {
+            // TODO: delete the entry from storage
+        }
 
         protected string EntityFilename(string pStorageName)
         {
@@ -142,7 +147,7 @@ namespace Project_Apollo.Entities
         /// This is used when starting up to file the list of entities
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        protected IEnumerable<T> AllEntities<T>()
+        protected IEnumerable<T> AllStoredEntities<T>()
         {
             foreach (string dirFile in Directory.EnumerateFiles(_entityStorageDir))
             {

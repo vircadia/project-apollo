@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ using System.Text;
 
 using Project_Apollo.Registry;
 using Microsoft.VisualBasic;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Hooks
 {
@@ -54,7 +55,7 @@ namespace Project_Apollo.Hooks
         public RESTReplyData get_page(RESTRequestData pReq, List<string> pArgs)
         {
             Context.Log.Debug("{0} GET /static/: {1}", _logHeader, pReq.RawURL);
-            string baseDir = Context.Params.P<string>("Storage.StaticDir");
+            string baseDir = Context.Params.P<string>(AppParams.P_STORAGE_STATIC_DIR);
 
             // If the global list of static filenames hasn't been built, build it
             lock (staticFilenames)

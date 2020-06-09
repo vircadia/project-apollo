@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ using System.IO;
 using System.Linq;
 
 using Newtonsoft.Json;
+using Project_Apollo.Configuration;
 using RandomNameGeneratorLibrary;
 
 namespace Project_Apollo.Entities
@@ -63,7 +64,7 @@ namespace Project_Apollo.Entities
             // Fill my list of domains
             lock (_domainsLock)
             {
-                foreach (DomainEntity anEntity in AllEntities<DomainEntity>()) {
+                foreach (DomainEntity anEntity in AllStoredEntities<DomainEntity>()) {
                     ActiveDomains.Add(anEntity.DomainID, anEntity);
                 }
                 Context.Log.Debug("{0} Initialized by reading in {1} DomainEntities",
@@ -211,7 +212,7 @@ namespace Project_Apollo.Entities
             string iceServerAddr = IceServerAddr;
             if (string.IsNullOrEmpty(iceServerAddr) || iceServerAddr == "0.0.0.0")
             {
-                iceServerAddr = Context.Params.P<string>("DefaultIceServer");
+                iceServerAddr = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER);
             }
             return iceServerAddr;
         }

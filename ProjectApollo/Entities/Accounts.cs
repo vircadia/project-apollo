@@ -336,7 +336,8 @@ namespace Project_Apollo.Entities
         public AuthTokenInfo CreateAccessToken(string pScope, string pParam = "")
         {
             // Some quick tokens. Eventually move to JWT tokens.
-            TimeSpan tokenExpirationInterval = new TimeSpan(24, 0, 0);
+            TimeSpan tokenExpirationInterval =
+                    new TimeSpan(Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS), 0, 0);
             int tokenExpirationSeconds = (int)tokenExpirationInterval.TotalSeconds;
             string refreshToken = Tools.SHA256Hash(tokenExpirationSeconds.ToString() + ";" + pParam);
             string accessToken = Tools.SHA256Hash(DateTime.UtcNow.ToString() + ";" + refreshToken);

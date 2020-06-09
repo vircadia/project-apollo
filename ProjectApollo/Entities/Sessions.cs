@@ -148,6 +148,7 @@ namespace Project_Apollo.Entities
             if (TryGetSessionWithSenderKey(pSenderKey, out ret))
             {
                 ret.TimeOfLastHeartbeat = DateTime.UtcNow;
+                ret.Updated();
             }
             else
             {

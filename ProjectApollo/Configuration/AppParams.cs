@@ -117,7 +117,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_STATIC_DIR, "Directory of static pages served for users", "Static"));
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS, "Hours that an AuthToken is allowed to live", 12));
-            ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS, "Seconds between times checking for authtoken flushing", 20));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS, "Seconds between times checking for authtoken flushing", 60));
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_EXPIRE_SECONDS, "Time to keep idle sessions", 60 * 5));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_CHECK_SECONDS, "How often to check for idle sessions", 60 * 2));
@@ -125,7 +125,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_COMMERCE_MARKETPLACEKEY, "Public key for Marketplace access", "lksjdlkjskldjflsd"));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LOGLEVEL, "One of 'warn', 'info', 'debug'", "Debug"));
-            ret.Add(new ParamBlock.ParameterDefn<int>(P_LOGGER_ROTATE_MINS, "Minutes to write to log file before starting next", 60));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_LOGGER_ROTATE_MINS, "Minutes to write to log file before starting next", 24 * 60));
             ret.Add(new ParamBlock.ParameterDefn<bool>(P_LOGGER_FORCE_FLUSH, "Force a flush after each log write", true));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LOGGER_LOG_DIR, "Directory to put logs into", "Logs"));
 

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Linq.Expressions;
 using Newtonsoft.Json;
 using Project_Apollo.Configuration;
 
@@ -118,15 +118,34 @@ namespace Project_Apollo.Entities
         public virtual void StoreInStorage(EntityMem pEntity)
         {
             lock (_storageLock) {
-                File.WriteAllText(EntityFilename(pEntity),
-                        JsonConvert.SerializeObject(pEntity, Formatting.Indented));
+                try
+                {
+                    File.WriteAllText(EntityFilename(pEntity),
+                            JsonConvert.SerializeObject(pEntity, Formatting.Indented));
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} Exception writing entity to storage. dir={1}, storeName={2}, e={3}",
+                                _logHeader, _entityStorageDir, pEntity.StorageName(), e);
+                }
             }
         }
         public virtual void RemoveFromStorage(EntityMem pEntity)
         {
-            // TODO: delete the entry from storage
+            lock (_storageLock)
+            {
+                try
+                {
+                    File.Delete(EntityFilename(pEntity));
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} Exception deleting entity from storage. dir={1}, storeName={2}, e={3}",
+                                _logHeader, _entityStorageDir, pEntity.StorageName(), e);
+                }
+            }
         }
-
+        // Create the storage filename from an entity storage name
         protected string EntityFilename(string pStorageName)
         {
             return _entityStorageDir
@@ -134,6 +153,7 @@ namespace Project_Apollo.Entities
                         + pStorageName
                         + ".json";
         }
+        // Create the storage filename from an entity
         protected string EntityFilename(EntityMem pEntity)
         {
             return _entityStorageDir

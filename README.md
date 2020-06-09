@@ -25,6 +25,7 @@ RandomNameGeneratorLibrary
 HttpMultipartParser
 Microsoft.IO.RecyclableMemoryStream
 BCrypt.Net-Next
+Nerdbank.GitVersioning
 Microsoft.NET.Test.SDK
 NUnit
 NUnit3TestAdaptor
@@ -48,6 +49,21 @@ If you are modifying domain-server sources, the default server address is in
     const QUrl METAVERSE_SERVER_URL_STAGING { "http://127.0.0.1:9400" };
 
 ```
+
+## Versioning and Development
+
+This server uses [Nerdbank.GitVersioning] to add versioning information to
+the build. The file `version.json` specifies the version of the build. The
+Git 'height' is added to the longer version number to uniquify the builds.
+
+The Git branch `master` is used for development and it is updated with the
+latest, untested sources and pull requests. Branches are created for the
+stable releases. For instance, there will be a branch named `v1.1` that is
+created to hold the distributed version 1.1 release.
+This release branch will get fixes before release and will receive the post-release patches.
+
+The complete, uniquifying version number (including version, release status, and Git
+commit number) is printed on the console and in the log file.
 
 ## Configuration
 
@@ -132,6 +148,8 @@ and is licensed under the [MIT License].
 
 **HttpMultipartParser** is Copyright (c) 2013 Jake Woods and licensed under the [MIT License].
 
+**Nerdbank.GitVersioning** is Copyright Andrew Arnott and licensed under the [MIT License].
+
 **Microsoft.IO.RecyclableMemoryStream** is Copyright Microsoft and licensed under the [MIT License].
 
 **NUnit** and **NUnit3TestAdaptor** is Copyright (c) 2019 Charlie Poole, Rob Prouse and is licensed
@@ -148,5 +166,5 @@ the [3-Clause BSD License].
 [Apache License, Version 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [MIT License]: https://opensource.org/licenses/MIT
 [3-Clause BSD License]: https://opensource.org/licenses/BSD-3-Clause
-
+[Nerdbank.GitVersioning]: https://github.com/dotnet/Nerdbank.GitVersioning
 

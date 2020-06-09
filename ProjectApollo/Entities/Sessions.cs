@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -14,6 +14,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using NUnit.Framework;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities
 {
@@ -49,6 +53,8 @@ namespace Project_Apollo.Entities
 
         public Sessions() : base(SessionEntity.SessionEntityTypeName)
         {
+            // Start a background task that checks and deleted idle sessions
+            CreateSessionExpirationBackgroundTask();
         }
 
         public void Init()
@@ -56,7 +62,7 @@ namespace Project_Apollo.Entities
             // Fill my list of domains
             lock (_sessionsLock)
             {
-                foreach (SessionEntity anEntity in AllEntities<SessionEntity>()) {
+                foreach (SessionEntity anEntity in AllStoredEntities<SessionEntity>()) {
                     ActiveSessions.Add(anEntity.SessionID, anEntity);
                 }
                 Context.Log.Debug("{0} Initialized by reading in {1} SessionEntities",
@@ -76,14 +82,7 @@ namespace Project_Apollo.Entities
             {
                 lock (_sessionsLock)
                 {
-                    foreach (var kvp in ActiveSessions)
-                    {
-                        if (kvp.Value.SenderKey == pSessionID)
-                        {
-                            oSession = kvp.Value;
-                            return true;
-                        }
-                    }
+                    return ActiveSessions.TryGetValue(pSessionID, out oSession);
                 }
             }
             oSession = null;
@@ -98,22 +97,41 @@ namespace Project_Apollo.Entities
         /// <returns></returns>
         public bool TryGetSessionWithSenderKey(string pSenderKey, out SessionEntity oSession)
         {
+            oSession = GetSession(pSenderKey);
+            return oSession != null;
+        }
+
+        /// <summary>
+        /// Get the session based on SenderKey.
+        /// </summary>
+        /// <param name="pSenderKey"></param>
+        /// <returns>'null' if no session found</returns>
+        public SessionEntity GetSession(string pSenderKey)
+        {
+            SessionEntity ret = default;
             if (pSenderKey != null)
             {
                 lock (_sessionsLock)
                 {
-                    return ActiveSessions.TryGetValue(pSenderKey, out oSession);
+                    foreach (var kvp in ActiveSessions)
+                    {
+                        if (kvp.Value.SenderKey == pSenderKey)
+                        {
+                            ret = kvp.Value;
+                            break;
+                        }
+                    }
                 }
             }
-            oSession = null;
-            return false;
+            return ret;
         }
-
         public void AddSession(SessionEntity pSessionEntity)
         {
             lock (_sessionsLock)
             {
-                ActiveSessions.Add(pSessionEntity.SenderKey, pSessionEntity);
+                // Using SessionID as the key because it is a GUID and known good a filenames.
+                // Would be best to use SenderKey as index but that might have a colon in it.
+                ActiveSessions.Add(pSessionEntity.SessionID, pSessionEntity);
                 pSessionEntity.Updated();
             }
         }
@@ -144,6 +162,55 @@ namespace Project_Apollo.Entities
                 ret = sess;
             }
             return ret;
+        }
+        /// <summary>
+        /// Go through all the sessions and delete all the old ones.
+        /// </summary>
+        public void ExpireSessions()
+        {
+            Context.Log.Debug("{0} checking for session expiration", _logHeader);
+            lock (_sessionsLock)
+            {
+                List<SessionEntity> toDelete = new List<SessionEntity>();
+                int timeToKeepIdleSessions = Context.Params.P<int>(AppParams.P_SESSION_IDLE_EXPIRE_SECONDS);
+                foreach (var kvp in ActiveSessions)
+                {
+                    if ((DateTime.UtcNow - kvp.Value.TimeOfLastHeartbeat).TotalSeconds > timeToKeepIdleSessions)
+                    {
+                        toDelete.Add(kvp.Value);
+                    }
+                }
+                Context.Log.Debug("{0} Expiring {1} sessions", _logHeader, toDelete.Count);
+                foreach (var sess in toDelete)
+                {
+                    ActiveSessions.Remove(sess.SessionID);
+                    RemoveFromStorage(sess);
+                }
+            }
+        }
+        private void CreateSessionExpirationBackgroundTask()
+        {
+            Context.Log.Debug("{0} creating background task for session expiration", _logHeader);
+            Task.Run(() =>
+            {
+                try
+                {
+                    CancellationToken stopToken = Context.KeepRunning.Token;
+                    WaitHandle waiter = stopToken.WaitHandle;
+                    int sleepMS = Context.Params.P<int>(AppParams.P_SESSION_IDLE_CHECK_SECONDS) * 1000;
+                    while (!Context.KeepRunning.IsCancellationRequested)
+                    {
+                        Sessions.Instance.ExpireSessions();
+                        waiter.WaitOne(sleepMS);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} Exception in Session expiration backround job. {1}",
+                                        _logHeader, e);
+                }
+                Context.Log.Debug("{0} Session expiration backround job exiting", _logHeader);
+            });
         }
     }
 

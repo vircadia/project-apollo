@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
+using System.Threading.Tasks;
 using BCrypt.Net;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities
 {
@@ -24,7 +26,7 @@ namespace Project_Apollo.Entities
     {
         private static readonly string _logHeader = "[Accounts]";
 
-        private static readonly object accountLock = new object();
+        private static readonly object _accountLock = new object();
         private static Accounts _instance;
         public static Accounts Instance
         {
@@ -32,7 +34,7 @@ namespace Project_Apollo.Entities
             {
                 if (_instance == null)
                 {
-                    lock (accountLock)
+                    lock (_accountLock)
                     {
                         // race condition check
                         if (_instance == null)
@@ -49,17 +51,17 @@ namespace Project_Apollo.Entities
         // List of all known domains
         private readonly Dictionary<string, AccountEntity> ActiveAccounts = new Dictionary<string, AccountEntity>();
 
-
         public Accounts() : base(AccountEntity.AccountEntityTypeName)
         {
+            CreateAuthTokenExpirationBackgroundTask();
         }
 
         public void Init()
         {
             // Fill my list of domains
-            lock (accountLock)
+            lock (_accountLock)
             {
-                foreach (AccountEntity anEntity in AllEntities<AccountEntity>())
+                foreach (AccountEntity anEntity in AllStoredEntities<AccountEntity>())
                 {
                     ActiveAccounts.Add(anEntity.AccountID, anEntity);
                 }
@@ -81,7 +83,7 @@ namespace Project_Apollo.Entities
                 oAccount = null;
                 return false;
             }
-            lock (accountLock)
+            lock (_accountLock)
             {
                 return ActiveAccounts.TryGetValue(pAccountID, out oAccount);
             }
@@ -97,7 +99,7 @@ namespace Project_Apollo.Entities
         {
             if (pAuthToken != null)
             {
-                lock (accountLock)
+                lock (_accountLock)
                 {
                     foreach (var kvp in ActiveAccounts)
                     {
@@ -123,7 +125,7 @@ namespace Project_Apollo.Entities
             if (pUsername != null)
             {
                 string lowerUsername = pUsername.ToLower();
-                lock (accountLock)
+                lock (_accountLock)
                 {
                     foreach (var kvp in ActiveAccounts)
                     {
@@ -141,7 +143,7 @@ namespace Project_Apollo.Entities
 
         public void AddAccount(AccountEntity pAccountEntity)
         {
-            lock (accountLock)
+            lock (_accountLock)
             {
                 ActiveAccounts.Add(pAccountEntity.AccountID, pAccountEntity);
                 pAccountEntity.Updated();
@@ -158,7 +160,7 @@ namespace Project_Apollo.Entities
         public AccountEntity CreateAccount(string pUserName, string pPassword, string pEmail)
         {
             AccountEntity newAcct = null;
-            lock (accountLock)
+            lock (_accountLock)
             {
                 // Verify that the user name is unique
                 string lowerUsername = pUserName.ToLower();
@@ -193,7 +195,7 @@ namespace Project_Apollo.Entities
         public IEnumerable<AccountEntity> AllAccountEntities()
         {
             List<AccountEntity> aEntities;
-            lock (accountLock)
+            lock (_accountLock)
             {
                 aEntities = new List<AccountEntity>(ActiveAccounts.Values);
             }
@@ -202,6 +204,53 @@ namespace Project_Apollo.Entities
                 yield return ent;
             }
             yield break;
+        }
+        public void ExpireAuthTokens()
+        {
+            lock (_accountLock)
+            {
+                foreach (var acct in ActiveAccounts.Values)
+                {
+                    for (int ii = acct.AuthTokens.Count - 1; ii >= 0; ii--)
+                    {
+                        var token = acct.AuthTokens[ii];
+                        if (token.HasExpired())
+                        {
+                            acct.AuthTokens.RemoveAt(ii);
+                            Context.Log.Debug("{0} Expiring AuthToken for acct {1}",
+                                            _logHeader, acct.Username);
+                        }
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Create a background thread that periodically checks to see if
+        ///     any account AccessTokens have expired.
+        /// </summary>
+        private void CreateAuthTokenExpirationBackgroundTask()
+        {
+            // TODO: start up AuthToken expiration checker
+            Task.Run(() =>
+            {
+                CancellationToken stopToken = Context.KeepRunning.Token;
+                WaitHandle waiter = stopToken.WaitHandle;
+                int sleepMS = Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS) * 1000;
+                try
+                {
+                    while (!stopToken.IsCancellationRequested)
+                    {
+                        Accounts.Instance.ExpireAuthTokens();
+                        waiter.WaitOne(sleepMS);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} Exception in AuthToken expiration backround job. {1}",
+                                        _logHeader, e);
+                }
+                Context.Log.Debug("{0} AuthToken expiration backround job exiting", _logHeader);
+            });
         }
     }
 

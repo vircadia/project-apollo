@@ -78,11 +78,20 @@ namespace Project_Apollo
                                             Context.Params.P<bool>(AppParams.P_CONSOLELOG));
             Context.Log.SetLogLevel(Context.Params.P<string>(AppParams.P_LOGLEVEL));
 
+            // If asked for the version, just print that out and exit
+            if (Context.Params.P<bool>(AppParams.P_VERSION))
+            {
+                Console.WriteLine("Version=" + ThisAssembly.AssemblyVersion);
+                Console.WriteLine("InformationalVersion=" + ThisAssembly.AssemblyInformationalVersion);
+                return;
+            }
+
             if (Context.Params.P<bool>(AppParams.P_VERBOSE) || !Context.Params.P<bool>(AppParams.P_QUIET))
             {
                 Console.WriteLine("WELCOME TO PROJECT APOLLO METAVERSE API SERVER VERSION "
                                 + ThisAssembly.AssemblyInformationalVersion);
             }
+
             // This log message has a UTC time header and a local time message
             Context.Log.Info("{0} Started at {1}", _logHeader, DateTime.Now.ToString());
             Context.Log.Info("{0}      Version = {1}", _logHeader, ThisAssembly.AssemblyInformationalVersion);

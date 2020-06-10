@@ -50,6 +50,7 @@ namespace Project_Apollo.Configuration
         public static readonly string P_CONSOLELOG = "ConsoleLog";
         public static readonly string P_CONFIGFILE = "ConfigFile";
         public static readonly string P_DEFAULT_ICE_SERVER = "DefaultIceServer";
+        public static readonly string P_VERSION = "Version";
 
         public static readonly string P_LISTENER_HOST = "Listener.Host";
         public static readonly string P_LISTENER_PORT = "Listener.Port";
@@ -105,6 +106,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<bool>(P_VERBOSE, "Excessive console output", false));
             ret.Add(new ParamBlock.ParameterDefn<bool>(P_CONSOLELOG, "Also log to the console", true));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_CONFIGFILE, "Per site configuration file", "config.json"));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_VERSION, "Just print out the appliction version", false));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_DEFAULT_ICE_SERVER, "IP address of ice server. If empty, set to self.", ""));
 

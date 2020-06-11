@@ -49,8 +49,9 @@ namespace Project_Apollo.Configuration
         public static readonly string P_VERBOSE = "Verbose";
         public static readonly string P_CONSOLELOG = "ConsoleLog";
         public static readonly string P_CONFIGFILE = "ConfigFile";
-        public static readonly string P_DEFAULT_ICE_SERVER = "DefaultIceServer";
         public static readonly string P_VERSION = "Version";
+        public static readonly string P_METAVERSE_SERVER_URL = "MetaverseServerUrl";
+        public static readonly string P_DEFAULT_ICE_SERVER = "DefaultIceServer";
 
         public static readonly string P_LISTENER_HOST = "Listener.Host";
         public static readonly string P_LISTENER_PORT = "Listener.Port";
@@ -108,7 +109,8 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_CONFIGFILE, "Per site configuration file", "config.json"));
             ret.Add(new ParamBlock.ParameterDefn<bool>(P_VERSION, "Just print out the appliction version", false));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>(P_DEFAULT_ICE_SERVER, "IP address of ice server. If empty, set to self.", ""));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_METAVERSE_SERVER_URL, "URL for main API access. If empty, set to self", ""));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_DEFAULT_ICE_SERVER, "IP address of ice server. If empty, set to self", ""));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:9400/ user=everyone
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_HOST, "HttpListener host", "+"));
@@ -203,7 +205,15 @@ namespace Project_Apollo.Configuration
         // The
         public void SetSiteParameter(string pParamName, string pValue)
         {
-            _siteParameters.SetParameterValue(pParamName, pValue);
+            if (_siteParameters.HasParam(pParamName))
+            {
+                _siteParameters.SetParameterValue(pParamName, pValue);
+            }
+            else {
+                var newVal = new ParamBlock.ParameterDefn<string>(pParamName, "", pValue);
+                newVal.AssignDefault();
+                _siteParameters.Add(newVal);
+            }
         }
 
         /// <summary>

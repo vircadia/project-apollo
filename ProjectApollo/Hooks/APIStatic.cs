@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ namespace Project_Apollo.Hooks
 
         // A collection of all the filenames in the static directory.
         // This is used to verify that any request is only for a static file.
-        static HashSet<string> staticFilenames = new HashSet<string>();
+        static readonly HashSet<string> staticFilenames = new HashSet<string>();
 
         [APIPath("/static/%", "GET", true)]
         public RESTReplyData get_page1(RESTRequestData pReq, List<string> pArgs)

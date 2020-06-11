@@ -116,9 +116,22 @@ namespace Project_Apollo
             if (String.IsNullOrEmpty(defaultIceServer))
             {
                 defaultIceServer = Tools.GetMyExternalIPAddress().Result;
-                Context.Params.SetSiteParameter("DefaultIceServer", defaultIceServer);
+                Context.Params.SetSiteParameter(AppParams.P_DEFAULT_ICE_SERVER, defaultIceServer);
                 Context.Log.Info("{0} DefaultIceServer not set in config file. Defaulting to {1}",
                                 _logHeader, defaultIceServer);
+            }
+
+            // IF an official metaversere server url is not specified in the config file
+            //      assume the metaverse url is my address
+            string metaverserServerUrl = Context.Params.P<string>(AppParams.P_METAVERSE_SERVER_URL);
+            if (string.IsNullOrEmpty(metaverserServerUrl))
+            {
+                string myIPaddr = Tools.GetMyExternalIPAddress().Result;
+                metaverserServerUrl = "http://" + myIPaddr + ":" + Context.Params.P<int>(AppParams.P_LISTENER_PORT).ToString();
+                Context.Params.SetSiteParameter(AppParams.P_METAVERSE_SERVER_URL, metaverserServerUrl);
+                Context.Log.Info("{0} MetaverseServerUrl not set in config file. Defaulting to {1}",
+                                _logHeader, metaverserServerUrl);
+
             }
 
             // This causes these collection classes to initialize

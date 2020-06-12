@@ -33,7 +33,7 @@ namespace Project_Apollo.Logging
                     || LogLevel == LogLevels.Warn
                     || LogLevel == LogLevels.Debug))
             {
-                System.Console.WriteLine(String.Format(pMsg, pParms));
+                System.Console.WriteLine("INFO: " + String.Format(pMsg, pParms));
             }
         }
         public override void Warn(string pMsg, params object[] pParms)
@@ -41,19 +41,19 @@ namespace Project_Apollo.Logging
             if ( (LogLevel == LogLevels.Warn
                     || LogLevel == LogLevels.Debug))
             {
-                System.Console.WriteLine(String.Format(pMsg, pParms));
+                System.Console.WriteLine("WARN: " + String.Format(pMsg, pParms));
             }
         }
         public override void Debug(string pMsg, params object[] pParms)
         {
             if ( ( LogLevel == LogLevels.Debug))
             {
-                System.Console.WriteLine(String.Format(pMsg, pParms));
+                System.Console.WriteLine("DEBUG: " + String.Format(pMsg, pParms));
             }
         }
         public override void Error(string pMsg, params object[] pParms)
         {
-            System.Console.WriteLine(String.Format(pMsg, pParms));
+            System.Console.WriteLine("ERROR: " + String.Format(pMsg, pParms));
         }
     }
 }

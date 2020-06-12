@@ -87,7 +87,7 @@ namespace Project_Apollo.Logging
                     || LogLevel == LogLevels.Warn
                     || LogLevel == LogLevels.Debug))
             {
-                _logWriter.Write(String.Format(pMsg, pParms));
+                _logWriter.Write("INFO," + String.Format(pMsg, pParms));
                 if (_consoleLogger != null) _consoleLogger.Info(pMsg, pParms);
             }
         }
@@ -97,7 +97,7 @@ namespace Project_Apollo.Logging
                 && (LogLevel == LogLevels.Warn
                     || LogLevel == LogLevels.Debug))
             {
-                _logWriter.Write(String.Format(pMsg, pParms));
+                _logWriter.Write("WARN," + String.Format(pMsg, pParms));
                 if (_consoleLogger != null) _consoleLogger.Debug(pMsg, pParms);
             }
         }
@@ -106,7 +106,7 @@ namespace Project_Apollo.Logging
             if (_logWriter != null
                 && ( LogLevel == LogLevels.Debug))
             {
-                _logWriter.Write(String.Format(pMsg, pParms));
+                _logWriter.Write("DEBUG," + String.Format(pMsg, pParms));
                 if (_consoleLogger != null) _consoleLogger.Debug(pMsg, pParms);
             }
         }
@@ -114,7 +114,7 @@ namespace Project_Apollo.Logging
         {
             if (_logWriter != null)
             {
-                _logWriter.Write(String.Format(pMsg, pParms));
+                _logWriter.Write("ERROR," + String.Format(pMsg, pParms));
                 if (_consoleLogger != null) _consoleLogger.Error(pMsg, pParms);
             }
         }

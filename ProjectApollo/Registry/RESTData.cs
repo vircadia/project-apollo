@@ -200,8 +200,8 @@ namespace Project_Apollo.Registry
             {
                 if (_authToken == null)
                 {
-                    string token = _listenerContext.Request.Headers["Authorization"];
-                    if (token != null)
+                    string token = _listenerContext.Request.Headers.Get("Authorization");
+                    if (!String.IsNullOrEmpty(token))
                     {
                         string[] tokenPieces = token.Split(" ");
                         if (tokenPieces.Length > 1)

@@ -536,7 +536,7 @@ namespace Project_Apollo.Hooks
                 // If there is account authorization in the header, set the account public key.
                 // If no account authorization (the client is not logged in), check for matching
                 //     APIkey and then set the session public key.
-                if (pReq.AuthToken == null)
+                if (String.IsNullOrEmpty(pReq.AuthToken))
                 {
                     if (includedAPIKey != null
                             && Domains.Instance.TryGetDomainWithAPIKey(includedAPIKey, out DomainEntity aDomain))
@@ -558,7 +558,7 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        Context.Log.Error("{0} PUT user/set_public_key requested without auth token. Token={1}",
+                        Context.Log.Error("{0} PUT user/set_public_key requested but could not find acct. Token={1}",
                                                 _logHeader, pReq.AuthToken);
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                     }

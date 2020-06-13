@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -211,15 +211,21 @@ namespace Project_Apollo.Entities
             {
                 foreach (var acct in ActiveAccounts.Values)
                 {
+                    int numExpired = 0;
                     for (int ii = acct.AuthTokens.Count - 1; ii >= 0; ii--)
                     {
                         var token = acct.AuthTokens[ii];
                         if (token.HasExpired())
                         {
                             acct.AuthTokens.RemoveAt(ii);
+                            numExpired++;
                             Context.Log.Debug("{0} Expiring AuthToken for acct {1}",
                                             _logHeader, acct.Username);
                         }
+                    }
+                    if (numExpired > 0)
+                    {
+                        acct.Updated();
                     }
                 }
             }
@@ -390,7 +396,7 @@ namespace Project_Apollo.Entities
         public string RefreshToken;
         public DateTime TokenCreationTime;
         public DateTime TokenExpirationTime;
-        public string Scope;
+        public string Scope;    // "owner" for account access, "domain" for domain access
         public string ExtraParam;
 
         public AuthTokenInfo()

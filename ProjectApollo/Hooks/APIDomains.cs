@@ -90,39 +90,40 @@ namespace Project_Apollo.Hooks
         }
 
         // ===PUT /api/v1/domains/% ==========================================
-        public struct bodyHeartbeatData
+        /*
+        public struct domainMetadataUsers
         {
-            public int num_anon_users;
+            // User domain metadata
             public int num_users;
-            public string protocol;
-            public bool restricted;
-            public string version;
-            // user_hostnames   -    Currently not known what this data looks like,
-            //            however it is probably a Dictionary of some sort
+            public int num_anon_users;
+            public Dictionary<string, int> user_hostnames;
         }
-        public struct bodyDomainPutData
+        public struct domainMetadataDescriptors
         {
             public string description;
             public int capacity;
+            public string restriction;  // one of "open", "hifi", "acl"
             public string maturity;
-            public string restriction;
-            public string api_key;
-            public string[] tags;
             public string[] hosts;
-
-            public string automatic_networking;
-            public string protocol;
-            public bool restricted;
+            public string[] tags;
+        }
+        public struct bodyDomainPutData
+        {
             public string version;
+            public string protocol;
+            public string network_address;
+            public string automatic_networking;
+            public bool restricted;
+            public string api_key;
 
-            public bodyHeartbeatData heartbeat;
+            public domainMetadataUsers heartbeat;
         }
         // Domains call has differing bodies but they all start with a 'Domain' top level
         public struct bodyHeartbeatRequest
         {
             public bodyDomainPutData domain;
         }
-
+        */
         [APIPath("/api/v1/domains/%", "PUT", true)]
         public RESTReplyData domain_heartbeat(RESTRequestData pReq, List<string> pArgs)
         {
@@ -134,35 +135,60 @@ namespace Project_Apollo.Hooks
             {
                 try
                 {
-                    // Context.Log.Debug("{0} domain_heartbest PUT: Domain {1}, received: {2}",
-                    //                     _logHeader, domainID, pReq.RequestBody);
-                    bodyHeartbeatRequest requestData = pReq.RequestBodyObject<bodyHeartbeatRequest>();
+                    // Since the body has a lot of optional fields, we need to pick
+                    //    through what's sent so we only set what was sent.
+                    JObject requestData = pReq.RequestBodyJSON();
+                    JObject domainStuff = (JObject)requestData["domain"];
+                    string apiKey = (string)domainStuff["api_key"];
 
-                    // If there is no api_key, things aren't initialized
-                    if (String.IsNullOrEmpty(aDomain.API_Key))
+                    // Context.Log.Debug("{0} domain_heartbeat. Received {1}", _logHeader, pReq.RequestBody);
+                    if (VerifyDomainAccess(aDomain, pReq, apiKey))
                     {
-                        replyData.Status = (int)HttpStatusCode.Unauthorized;
-                    }
-                    else
-                    {
-                        aDomain.NetworkingMode = requestData.domain.automatic_networking;
-                        bodyHeartbeatData dat = requestData.domain.heartbeat;
-                        aDomain.Protocol = dat.protocol;
-                        aDomain.Restricted = dat.restricted;
-                        aDomain.Version = dat.version;
-                        aDomain.LoggedIn = dat.num_users;
-                        aDomain.Anon = dat.num_anon_users;
-                        aDomain.TotalUsers = dat.num_anon_users + dat.num_users;
+                        SetIfSpecified<string>(domainStuff, "version", ref aDomain.Version);
+                        SetIfSpecified<string>(domainStuff, "protocol", ref aDomain.Protocol);
+                        SetIfSpecified<string>(domainStuff, "network_address", ref aDomain.NetworkAddr);
+                        SetIfSpecified<string>(domainStuff, "automatic_networking", ref aDomain.NetworkingMode);
+                        SetIfSpecified<bool>(domainStuff, "restricted", ref aDomain.Restricted);
+
+                        SetIfSpecified<int>(domainStuff, "capacity", ref aDomain.Capacity);
+                        SetIfSpecified<string>(domainStuff, "description", ref aDomain.Description);
+                        SetIfSpecified<string>(domainStuff, "maturity", ref aDomain.Maturity);
+                        SetIfSpecified<string>(domainStuff, "restriction", ref aDomain.Restriction);
+                        JArray hosts = (JArray)domainStuff["hosts"];
+                        if (hosts != null)
+                        {
+                            aDomain.Hosts = domainStuff["hosts"].ToObject<string[]>();
+                        }
+                        JArray tags = (JArray)domainStuff["tags"];
+                        if (tags != null)
+                        {
+                            aDomain.Tags = domainStuff["tags"].ToObject<string[]>();
+                        }
+
+                        JObject heartbeat = (JObject)domainStuff["heartbeat"];
+                        if (heartbeat != null)
+                        {
+                            SetIfSpecified<int>(heartbeat, "num_users", ref aDomain.NumUsers);
+                            SetIfSpecified<int>(heartbeat, "num_anon_users", ref aDomain.AnonUsers);
+                            aDomain.TotalUsers = aDomain.NumUsers + aDomain.AnonUsers;
+                            // TODO: what to do with user_hostnames
+                        }
 
                         aDomain.TimeOfLastHeartbeat = DateTime.UtcNow;
                         aDomain.LastSenderKey = pReq.SenderKey;
 
                         aDomain.Updated();
                     }
+                    else
+                    {
+                        Context.Log.Error("{0} domain_heartbeat with bad authorization. domainID={1}",
+                                                _logHeader, domainID);
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
+                    }
                 }
                 catch (Exception e)
                 {
-                    Context.Log.Error("{0} domain_heartbeat: Exception parsing body: {1}", _logHeader, e.ToString());
+                    Context.Log.Error("{0} domain_heartbeat: Exception processing body: {1}", _logHeader, e.ToString());
                     replyData.Status = (int)HttpStatusCode.BadRequest;
                 }
             }
@@ -174,6 +200,52 @@ namespace Project_Apollo.Hooks
 
             // replyData.Body = respBody; there is no body in the response
             return replyData;
+        }
+        /// <summary>
+        /// A domain is either using an apikey (if not registered with a user account) or is
+        /// using a user authtoken (if registered). This routine checks whether this
+        /// domain request includes the right stuff for now.
+        /// </summary>
+        /// <param name="pDomain"></param>
+        /// <param name="pReq"></param>
+        /// <returns></returns>
+        private bool VerifyDomainAccess(DomainEntity pDomain, RESTRequestData pReq, string pPossibleApiKey)
+        {
+            bool ret = false;
+            if (String.IsNullOrEmpty(pDomain.API_Key) && !String.IsNullOrEmpty(pReq.AuthToken))
+            {
+                // No apikey so there must be an authenticated user
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+                {
+                    // TODO: verify this is the account for this domain
+                    ret = true;
+                }
+            }
+            else
+            {
+                // There is an apikey so make sure it matches
+                ret = pDomain.API_Key.Equals(pPossibleApiKey);
+            }
+            if (!ret)
+            {
+                Context.Log.Debug("{0} VerifyDomainAccess: failed auth. DomainID={1}, domain.apikey= {2}, AuthToken={3}, apikey={4}",
+                                    _logHeader, pDomain.DomainID, pDomain.API_Key, pReq.AuthToken, pPossibleApiKey);
+            }
+            return ret;
+        }
+        // See if the item is specified in the JObject and, if so, set the destination location.
+        private void SetIfSpecified<T>(JObject pSpecs, string pItem, ref T pDest)
+        {
+            JToken maybe = pSpecs[pItem];
+            if (maybe != null)
+            {
+                pDest = maybe.ToObject<T>();
+                // Context.Log.Debug("{0} SetIfSpecified: Setting {1}={2}", _logHeader, pItem, pDest);
+            }
+            else
+            {
+                // Context.Log.Debug("{0} SetIfSpecified: Not setting {1}", _logHeader, pItem);
+            }
         }
         // == PUT /api/v1/domains/%/ice_server_address ===========================
         public struct bodyIceServerPutData
@@ -204,12 +276,14 @@ namespace Project_Apollo.Hooks
                 // Context.Log.Debug("{0} domains/ice_server_addr PUT. Body={1}", _logHeader, pReq.RequestBody);
                 bodyIceServerPut isr = pReq.RequestBodyObject<bodyIceServerPut>();
                 string includeAPIKey = isr.domain.api_key;
-                if (String.IsNullOrEmpty(aDomain.API_Key) || includeAPIKey == aDomain.API_Key)
+                if (VerifyDomainAccess(aDomain, pReq, includeAPIKey))
                 {
                     aDomain.IceServerAddr = isr.domain.ice_server_address;
                 }
                 else
                 {
+                    Context.Log.Error("{0} PUT domains/%/ice_server_address not authorized. DomainID={1}",
+                                        _logHeader, domainID);
                     respBody.RespondFailure();
                     replyData.Status = (int)HttpStatusCode.Unauthorized;
                 }
@@ -273,10 +347,7 @@ namespace Project_Apollo.Hooks
                 try
                 {
                     string includedAPIKey = pReq.RequestBodyMultipart("api_key");
-
-                    // If this is a temp domain, the supplied API key must match
-                    // TODO: is there another Authorization later (ie, maybe user auth?)
-                    if (String.IsNullOrEmpty(aDomain.API_Key) || aDomain.API_Key == includedAPIKey)
+                    if (VerifyDomainAccess(aDomain, pReq, includedAPIKey))
                     {
                         // The PUT sends the key as binary but it is later sent around
                         //    and processed as a Base64 string.
@@ -299,7 +370,7 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        Context.Log.Error("{0} attempt to set public_key with non-matching APIKeys: domain {1}",
+                        Context.Log.Error("{0} attempt to set public_key when no authorized: domain {1}",
                                             _logHeader, domainID);
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                         respBody.RespondFailure();

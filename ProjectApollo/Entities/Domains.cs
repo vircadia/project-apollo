@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -166,16 +166,28 @@ namespace Project_Apollo.Entities
 
         public string DomainID;     // globally unique domain identifier
         public string PlaceName;    // place name
-        public string IceServerAddr;// IP address of ICE server being used by this domain
-        public string API_Key;      // Access key if a temp domain
         public string Public_Key;   // DomainServers's public key
-        public string Protocol;     // Protocol version
+        public string API_Key;      // Access key if a temp domain
+        public string IceServerAddr;// IP address of ICE server being used by this domain
+
+        // Information that comes in via heartbeat
         public string Version;      // DomainServer's build version (like "K3")
+        public string Protocol;     // Protocol version
+        public string NetworkAddr;  // reported network address
+        public string NetworkingMode;   // one of "full", ?
         public bool Restricted;     // 'true' if restricted to users with accounts
+        public int NumUsers;        // regular users logged in
+        public int AnonUsers;       // number of anonymous users
         public int TotalUsers;      // number of users
-        public int Anon;            // number of anonymous users
-        public int LoggedIn;        // regular users logged in
-        public string NetworkingMode;   // 'full' or ?
+        public Dictionary<string, int> Hostnames;  // User segmentation
+
+        // More information that's metadata that's passed in PUT domain
+        public int Capacity;        // Total possible users
+        public string Description;  // Short description of domain
+        public string Maturity;     // Maturity rating
+        public string Restriction;  // Access restrictions ("open")
+        public string[] Hosts;      // Usernames of people who can be domain "hosts"
+        public string[] Tags;       // Categories for describing the domain
 
         // admin stuff
         public string IPAddrOfFirstContact;     // IP address that registered this domain

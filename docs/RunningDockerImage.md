@@ -7,6 +7,14 @@ As of 20200611, the Docker image is stored at
 hub.docker.com with the name "misterblue/vircadia-metaverse-server".
 Someday CI will be integrated with this project and then the image may move.
 
+To create your own Docker image, the process is:
+
+```sh
+git clone https://github.com/kasenvr/project-apollo.git
+cd project-apollo/docker
+docker build -t vircadiamvsrv .
+```
+
 I have been running the Docker image in a [DigitalOcean] droplet.
 The process I use has the following steps:
 
@@ -91,6 +99,10 @@ docker run -d \
         misterblue/vircadia-metaverse-server
 ```
 
-[DigitalOcean]: https://DigitalOcean.com/ DigitalOcean
+If you change the port in the configuration file, remember to change the `-p`
+parameter above.
+
+
+[DigitalOcean]: https://DigitalOcean.com/
 [instructions]: https://www.digitalocean.com/docs/droplets/how-to/create/
 [RunningIceServer]: ./RunningIceServer.md

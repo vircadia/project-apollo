@@ -14,7 +14,7 @@ All four of this services run as separate processes, can run on different comput
 and all have to properly link to each other.
 
 Below is described building the different servers.
-Especially check out the *Modifications* section for the changes that must
+Especially check out the [Modifications]("#Modification") section for the changes that must
 be made to the sources to get all the URLs correct.
 The original sources from High Fidelity contained many, many URLs as in-source
 constants which need changing to run a different metaverse-server instance.
@@ -36,7 +36,7 @@ For the ice-server and domain-server, I've been using the
 [vircadia-builder] project to build a properly configured
 version of these services.
 
-I user [vircadia-builder] to build all the pieces, then I modify
+I use [vircadia-builder] to build all the pieces, then I modify
 the sources, and then do a rebuild to create images with the modifications.
 The process is:
 
@@ -80,10 +80,11 @@ export HIFI_METAVERSE_URL=http://192.168.86.41:9400
 The IP addresses above are for my development environment: 192.168.86.41 is
 the Windows10 box running the metaverse-server and Interface, and
 192.168.86.56 is my Linux box running the ice-server and domain-server.
+Be sure to change these for your network setup.
 
 Note that the ice-server and the domain-server get an environment variable
 that points them at the new metaverse-server. This setting works for most of
-the C++ code. The Javascript and QML code, on the other hand, needs other
+the C++ code. The Javascript and QML code, on the other hand, need other
 changes.
 
 Once everything is built, the process is:
@@ -95,8 +96,26 @@ Once everything is built, the process is:
 
 ## Modifications
 
-TODO:
+As of 20200614 (June 14, 2020), there are several pull requests ("PR"s) that have not
+yet been applied to the [Project Athena] sources. These are 
+[Move metaverse server URL info into central files for easier updating](https://github.com/kasenvr/project-athena/pull/411)
+(which centralizes some of the URL references scattered in [Project Athena])
+and
+[Bug: ice-server uses the wrong RSA private key decoder](https://github.com/kasenvr/project-athena/pull/400)
+(which fixes an ice-server public-key encoding problem).
 
+These two PRs must be applied to the sources. They will be accepted someday so,
+when you're reading this, you might not need to make the above changes.
+If, after starting the ice-server and domain-server, the domain-server continuiously
+outputs messages about recreating its public/private key, the ice-server PR has not been applied.
+
+With the above PRs applied, you modify `libraries/networking/src/NetworkingConstants.h` so
+that all references are to your metaverse-server.
+That file also points to several High Fidelity locations and they do not need changing yet --
+someday they will all point to Vircadia content.
+
+You need to modify `domain-server/resources/web/js/shared.js` so `METAVERSE_URL` points
+to your metaverse-server.
 
 ## Interface
 

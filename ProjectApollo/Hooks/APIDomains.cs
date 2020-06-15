@@ -212,20 +212,42 @@ namespace Project_Apollo.Hooks
         private bool VerifyDomainAccess(DomainEntity pDomain, RESTRequestData pReq, string pPossibleApiKey)
         {
             bool ret = false;
-            if (String.IsNullOrEmpty(pDomain.API_Key) && !String.IsNullOrEmpty(pReq.AuthToken))
+            if (String.IsNullOrEmpty(pReq.AuthToken))
             {
-                // No apikey so there must be an authenticated user
-                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+                // No auth token. See if there is an APIKey and use that 
+                if (!String.IsNullOrEmpty(pDomain.API_Key))
                 {
-                    // TODO: verify this is the account for this domain
-                    ret = true;
+                    ret = pDomain.API_Key.Equals(pPossibleApiKey);
                 }
             }
             else
             {
-                // There is an apikey so make sure it matches
-                ret = pDomain.API_Key.Equals(pPossibleApiKey);
-            }
+                // If the domain passed an auth token, get access with that
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+                {
+                    // Make sure this domain and this account are working together
+                    if (String.IsNullOrEmpty(pDomain.SponserAccountID))
+                    {
+                        // The domain doesn't have a sponser so assign
+                        pDomain.SponserAccountID = oAccount.AccountID;
+                        ret = true;
+                    }
+                    else
+                    {
+                        // There is a sponser for this domain. Make sure it stays the same
+                        if (pDomain.SponserAccountID.Equals(oAccount.AccountID))
+                        {
+                            ret = true;
+                        }
+                        else
+                        {
+                            Context.Log.Error("{0} Domain used authtoken from different acct. DomainID={1}, SponserID={2}, newAcct={3}",
+                                    _logHeader, pDomain.DomainID, pDomain.SponserAccountID, oAccount.AccountID);
+                            ret = false;
+                        };
+                    };
+                };
+            };
             if (!ret)
             {
                 Context.Log.Debug("{0} VerifyDomainAccess: failed auth. DomainID={1}, domain.apikey= {2}, AuthToken={3}, apikey={4}",

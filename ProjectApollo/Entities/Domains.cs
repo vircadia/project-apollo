@@ -168,6 +168,7 @@ namespace Project_Apollo.Entities
         public string PlaceName;    // place name
         public string Public_Key;   // DomainServers's public key
         public string API_Key;      // Access key if a temp domain
+        public string SponserAccountID; // The account that gave this domain an access key
         public string IceServerAddr;// IP address of ICE server being used by this domain
 
         // Information that comes in via heartbeat

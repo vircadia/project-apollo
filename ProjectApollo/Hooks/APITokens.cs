@@ -226,8 +226,7 @@ namespace Project_Apollo.Hooks
                 string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
                 AuthTokenInfo token = oAccount.CreateAccessToken(scope);
                 // The domain/account association lasts longer
-                token.TokenExpirationTime = DateTime.UtcNow
-                            + new TimeSpan(Context.Params.P<int>(AppParams.P_DOMAIN_TOKEN_EXPIRATION_DAYS), 0, 0, 0);
+                token.TokenExpirationTime = new DateTime(2999, 12, 31);
 
                 respBody.Data = new
                 {

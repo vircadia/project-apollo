@@ -140,13 +140,13 @@ namespace Project_Apollo.Registry
                     }
 
                     string[] matchPieces = apiPath.PathLike.Split(new[] { '/' });
-                    string[] reqPieces = requestString.ToLower().Split(new[] { '/' });
+                    string[] reqPieces = requestString.Split(new[] { '/' });
 
-                    bool matchFound = true;
                     // if the length doesn't match, this cannot match
                     if (matchPieces.Length == reqPieces.Length)
                     {
                         // Loop through the pieces and verify they match
+                        bool matchFound = true;
                         for (int ii = 0; ii < matchPieces.Length; ii++)
                         {
                             if (matchPieces[ii] == "%")

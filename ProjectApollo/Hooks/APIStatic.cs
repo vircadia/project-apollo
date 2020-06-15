@@ -70,7 +70,7 @@ namespace Project_Apollo.Hooks
 
             string afterString = String.Join(Path.DirectorySeparatorChar, pArgs);
 
-            string filename = Path.Combine(baseDir, afterString);
+            string filename = Path.Combine(baseDir, afterString).ToLower();
             if (staticFilenames.Contains(filename))
             {
                 if (File.Exists(filename))
@@ -105,7 +105,10 @@ namespace Project_Apollo.Hooks
         private void AddToStaticFilenames(string pDir)
         {
             // Add all the filenames to the collection
-            staticFilenames.UnionWith(Directory.EnumerateFiles(pDir));
+            staticFilenames.UnionWith(Directory.EnumerateFiles(pDir).Select( dir =>
+            {
+                return dir.ToLower();
+            }) );
             // Recurse into each of the directories and collect the files therein
             foreach (var dir in Directory.EnumerateDirectories(pDir))
             {

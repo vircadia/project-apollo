@@ -82,7 +82,7 @@ or domain name of the ice-server.
 
 The last three lines says "Debug" level logging, flush write each
 log file entry (this helps make sure information is in the log file
-if the application crashes) and to output a debug log line when
+if the application crashes), and to output a debug log line when
 any API call is received.
 
 ## Run the Metaverse-Server Docker Image
@@ -95,7 +95,7 @@ I use a script to run the docker image:
 docker run -d \
         --restart=unless-stopped \
         -p 9400:9400 \
-        --volume /home/metaverseserver/content/:/var/vircadia/content \
+        --volume /home/mvsrv/content/:/var/vircadia/content \
         misterblue/vircadia-metaverse-server
 ```
 

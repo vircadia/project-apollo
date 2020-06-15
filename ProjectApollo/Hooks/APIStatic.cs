@@ -70,8 +70,8 @@ namespace Project_Apollo.Hooks
 
             string afterString = String.Join(Path.DirectorySeparatorChar, pArgs);
 
-            string filename = Path.Combine(baseDir, afterString).ToLower();
-            if (staticFilenames.Contains(filename))
+            string filename = Path.Combine(baseDir, afterString);
+            if (staticFilenames.Contains(filename.ToLower()))
             {
                 if (File.Exists(filename))
                 {

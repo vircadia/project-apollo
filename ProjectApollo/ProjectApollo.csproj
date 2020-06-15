@@ -26,4 +26,10 @@
     <Folder Include="Statistics\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="static\DomainTokenLogin.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

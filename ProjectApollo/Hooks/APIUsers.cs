@@ -271,7 +271,7 @@ namespace Project_Apollo.Hooks
         // = GET /api/v1/user/friends ==================================================
         public struct bodyUserFriendsReply
         {
-            List<string> friends;
+            public List<string> friends;
         };
         [APIPath("/api/v1/user/friends", "GET", true)]
         public RESTReplyData user_friends_get(RESTRequestData pReq, List<string> pArgs)
@@ -281,7 +281,10 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                respBody.Data = new bodyUserFriendsReply();
+                respBody.Data = new bodyUserFriendsReply()
+                {
+                    friends = new List<string>()
+                };
             }
             else
             {

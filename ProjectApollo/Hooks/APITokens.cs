@@ -20,6 +20,7 @@ using Project_Apollo.Entities;
 using Project_Apollo.Registry;
 
 using Newtonsoft.Json;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Hooks
 {
@@ -165,82 +166,83 @@ namespace Project_Apollo.Hooks
             });
         }
 
-        /*
         // = GET /user/tokens/new =================================================
-        // THIS IS EXPERIMENTAL AND NEW SO HANDS OFF!!
+        // This request is used by the domain-server to get user tokens. Used as part
+        //    of the "associate domain with account" logic.
+        // This is a human readable form that exists for backward compatibility.
+        // Remove when domain initialization is completely replaced with the other form.
+        // Example: http://192.168.86.41:19400/user/tokens/new?for_domain_server=true
         [APIPath("/user/tokens/new", "GET", true)]
         public RESTReplyData user_tokens(RESTRequestData pReq, List<string> pArgs)
         {
-            if(pReq.Headers.ContainsKey("Authorization") == false)
-            {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
 
-                RESTReplyData rd = new RESTReplyData();
-                rd.Status = 401;
-                rd.Body = "";
-                Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
-                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
-                rd.Body = "<h2>You are not logged in!";
-                rd.CustomOutputHeaders.Add("Content-Type", "text/html");
-                return rd;
-            } else
+            if (pReq.Queries.TryGetValue("for_domain_server", out string oForDomainServer))
             {
-                // Validate login!
-                string[] req = pArgs[0].Split(new[] { '?', '&', '=' });
-                string[] authHeader = pReq.Headers["Authorization"].Split(new[] { ' ' });
-
-                if(authHeader[0] == "Basic" && Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()))
+                if (Boolean.Parse(oForDomainServer))
                 {
-                    // Validate credentials!
-                    UserAccounts ua = UserAccounts.GetAccounts();
-
-                    string[] auth = Tools.Base64Decode(authHeader[1]).Split(new[] { ':' });
-
-                    if(ua.Login(auth[0], auth[1], "web"))
+                    // Getting a token for a domain server
+                    if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
                     {
-                        // Continue to generate the token!
-                        UserAccounts.Account act = ua.AllAccounts[auth[0]]; 
-                        for (int i = 0; i < req.Length; i++)
-                        {
-                            if (req[i] == "for_domain_server" && req[i + 1] == "true")
-                            {
-                                // Generate the domain server token!
-                                int expiry = 1 * 24 * 60 * 60;
-                                int time = Tools.getTimestamp();
-                                string token_type = "domain";
+                        AuthTokenInfo token = oAccount.CreateAccessToken("domain");
+                        // The domain/account association is permenant... expiration is far from now
+                        token.TokenExpirationTime = new DateTime(2999, 12, 31);
 
-                                string Token = Tools.MD5Hash(expiry.ToString() + ":" + time.ToString() + "::" + token_type + ":" + act.name);
-                                // Token has now been issued!
-                                // Because you can obviously have more than 1 domain, this will save the token as : domain-timestamp
-
-                                act.ActiveTokens.Add(Token, "domain");
-                                ua.AllAccounts[auth[0]] = act;
-                                ua.save();
-
-                                // Exit this loop, and reply to the user!
-
-                                Session.Instance.TemporaryStackData.Remove(pReq.RemoteUser.ToString());
-                                RESTReplyData rd1 = new RESTReplyData();
-                                rd1.Status = 200;
-                                rd1.Body = $"<center><h2>Your domain's access token is: {Token}</h2></center>";
-                                rd1.CustomOutputHeaders.Add("Content-Type", "text/html");
-
-                                return rd1;
-                            }
-                        }
+                        replyData.Body = $"<center><h2>Your domain's access token is: {token.Token}</h2></center>";
+                        replyData.MIMEType = "text/html";
+                    }
+                    else
+                    {
+                        // The user is not logged in so push back and ask for login
+                        /*
+                        replyData.Status = (int)HttpStatusCode.Unauthorized;
+                        replyData.Body = "<h2>You are not logged in!</h2>";
+                        replyData.MIMEType = "text/html";
+                        */
+                        // If the user is not logged in, go to a page to login and set things up
+                        replyData.Status = (int)HttpStatusCode.Found;
+                        replyData.CustomOutputHeaders.Add("Location", "/static/domainTokenLogin.html");
+                        replyData.MIMEType = "text/html";
                     }
                 }
-
-                RESTReplyData rd = new RESTReplyData();
-                rd.Body = "Invalid authorization header was provided!<br/>If you were not prompted for credentials again, close the tab or the browser and try again";
-                rd.Status = 401;
-                if (Session.Instance.TemporaryStackData.Contains(pReq.RemoteUser.ToString()) == false)
-                    Session.Instance.TemporaryStackData.Add(pReq.RemoteUser.ToString());
-                rd.CustomOutputHeaders.Add("WWW-Authenticate", "Basic realm='Tokens'");
-                return rd;
             }
-                RESTReplyData rd = new RESTReplyData();
-                return rd;
+            return replyData;
         }
-            */
+        // = GET /api/v1/token/new =================================================
+        // Get a new authorization token associated with the account of the header authorization.
+        // The token is for the account. A scope can be specified with "?scope=SCOPE".
+        // This request is often used to get a domain's access token for it's sponsering account.
+        //     In this case, "?scope=domain".
+        // Example: http://metaverse.vircadia.com:9400/api/v1/token/new?scope=domain
+        [APIPath("/api/v1/token/new", "GET", true)]
+        public RESTReplyData new_domain_token(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();
+
+            // Getting a token for a domain server
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+            {
+                string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
+                AuthTokenInfo token = oAccount.CreateAccessToken(scope);
+                // The domain/account association lasts longer
+                token.TokenExpirationTime = DateTime.UtcNow
+                            + new TimeSpan(Context.Params.P<int>(AppParams.P_DOMAIN_TOKEN_EXPIRATION_DAYS), 0, 0, 0);
+
+                respBody.Data = new
+                {
+                    domain_token = token.Token,
+                    token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
+                    account_name = oAccount.Username
+                };
+            }
+            else
+            {
+                // Not a known account.
+                respBody.RespondFailure();
+            }
+            replyData.Body = respBody;
+            return replyData;
+        }
     }
 }

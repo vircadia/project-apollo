@@ -57,7 +57,7 @@ namespace Project_Apollo.Hooks
                     replyData.Status = (int)HttpStatusCode.NotFound;
                 }
             }
-            catch (Exception e)
+            catch
             {
                 Context.Log.Error("{0} Badly formed user_activities request from {1}",
                                         _logHeader, pReq.SenderKey);

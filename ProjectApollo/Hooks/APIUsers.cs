@@ -339,7 +339,7 @@ namespace Project_Apollo.Hooks
         // = GET /api/v1/user/connections ==================================================
         public struct bodyUserConnectionsReply
         {
-            List<string> connections;
+            public List<string> connections;
         };
         [APIPath("/api/v1/user/connections", "GET", true)]
         public RESTReplyData user_connections_get(RESTRequestData pReq, List<string> pArgs)
@@ -349,7 +349,10 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                respBody.Data = new bodyUserConnectionsReply();
+                respBody.Data = new bodyUserConnectionsReply()
+                {
+                    connections = new List<string>()
+                };
             }
             else
             {
@@ -416,7 +419,7 @@ namespace Project_Apollo.Hooks
                     aAccount.Location = locInfo.location;
                     aAccount.Updated();
                 }
-                catch (Exception e)
+                catch
                 {
                     Context.Log.Error("{0} PUT user/location Failed body parsing. Acct={1}",
                                         _logHeader, aAccount.AccountID);

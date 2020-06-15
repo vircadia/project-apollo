@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ namespace Project_Apollo.Registry
                     {
                         asm = AppDomain.CurrentDomain.GetAssemblies()[i];
                     }
-                    catch(Exception e)
+                    catch
                     {
                         // nothing needs be done here
                         Context.Log.Error("{0} No assemblies found", _logHeader);

@@ -193,15 +193,10 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        // The user is not logged in so push back and ask for login
-                        /*
-                        replyData.Status = (int)HttpStatusCode.Unauthorized;
-                        replyData.Body = "<h2>You are not logged in!</h2>";
-                        replyData.MIMEType = "text/html";
-                        */
                         // If the user is not logged in, go to a page to login and set things up
                         replyData.Status = (int)HttpStatusCode.Found;
-                        replyData.CustomOutputHeaders.Add("Location", "/static/domainTokenLogin.html");
+                        replyData.CustomOutputHeaders.Add("Location",
+                                    Context.Params.P<string>(AppParams.P_DOMAIN_TOKENGEN_URL));
                         replyData.MIMEType = "text/html";
                     }
                 }

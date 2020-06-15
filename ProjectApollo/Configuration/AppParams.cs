@@ -63,6 +63,8 @@ namespace Project_Apollo.Configuration
         public static readonly string P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS = "Account.AuthToken.Lifetime";
         public static readonly string P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS = "Account.AuthTokenExpirationCheckSeconds";
 
+        public static readonly string P_DOMAIN_TOKENGEN_URL = "Domain.TokenGenURL";
+
         public static readonly string P_SESSION_IDLE_EXPIRE_SECONDS = "Session.IdleExpireSeconds";
         public static readonly string P_SESSION_IDLE_CHECK_SECONDS = "Session.SessionIdleCheckSeconds";
 
@@ -118,10 +120,12 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_RESPONSE_HEADER_SERVER, "What to return as 'Server: header field", "1.5"));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_DIR, "Root of entity storage", "Entities"));
-            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_STATIC_DIR, "Directory of static pages served for users", "Static"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_STATIC_DIR, "Directory of static pages served for users", "static"));
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS, "Hours that an AuthToken is allowed to live", 12));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS, "Seconds between times checking for authtoken flushing", 60));
+
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_DOMAIN_TOKENGEN_URL, "URL for user domain token generation", "/static/DomainTokenLogin.html"));
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_EXPIRE_SECONDS, "Time to keep idle sessions", 60 * 5));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_CHECK_SECONDS, "How often to check for idle sessions", 60 * 2));

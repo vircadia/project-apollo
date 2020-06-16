@@ -27,7 +27,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="static\domaintoken.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="static\DomainTokenLogin.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="static\tokenlogin.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -215,25 +215,36 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
-            // Getting a token for a domain server
-            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+            if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.TOKEN_CREATE))
             {
-                string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
-                AuthTokenInfo token = oAccount.CreateAccessToken(scope);
-                // The domain/account association lasts longer
-                token.TokenExpirationTime = new DateTime(2999, 12, 31);
-
+                respBody.RespondFailure();
                 respBody.Data = new
                 {
-                    domain_token = token.Token,
-                    token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
-                    account_name = oAccount.Username
+                    operation = "throttled"
                 };
             }
             else
             {
-                // Not a known account.
-                respBody.RespondFailure();
+                // Getting a token for a domain server
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+                {
+                    string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
+                    AuthTokenInfo token = oAccount.CreateAccessToken(scope);
+                    // The domain/account association lasts longer
+                    token.TokenExpirationTime = new DateTime(2999, 12, 31);
+
+                    respBody.Data = new
+                    {
+                        domain_token = token.Token,
+                        token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
+                        account_name = oAccount.Username
+                    };
+                }
+                else
+                {
+                    // Not a known account.
+                    respBody.RespondFailure();
+                }
             }
             replyData.Body = respBody;
             return replyData;

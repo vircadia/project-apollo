@@ -130,6 +130,8 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             // ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
+            SessionEntity aSession = Sessions.Instance.UpdateSession(pReq.SenderKey);
+
             string domainID = pArgs.Count == 1 ? pArgs[0] : null;
             if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
             {

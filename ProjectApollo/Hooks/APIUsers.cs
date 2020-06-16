@@ -179,9 +179,16 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
-            // Verify that this call is coming from a known DomainServer
-            // if (Domains.Instance.TryGetDomainWithSenderKey(pReq.SenderKey, out DomainEntity oDomain))
-            // {
+            if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.ACCOUNT_CREATE))
+            {
+                respBody.RespondFailure();
+                respBody.Data = new
+                {
+                    operation = "throttled"
+                };
+            }
+            else
+            {
                 try
                 {
                     bodyUsersPost requestData = pReq.RequestBodyObject<bodyUsersPost>();
@@ -215,12 +222,7 @@ namespace Project_Apollo.Hooks
                     replyData.Status = (int)HttpStatusCode.BadRequest;
                     Context.Log.Error("{0} Badly formed create account request. {1}", _logHeader, e);
                 }
-            // }
-            // else {
-            //     respBody.RespondFailure();
-            //     Context.Log.Debug("{0} user_create request from unknown sender. SenderKey={1}",
-            //                         _logHeader, pReq.SenderKey);
-            // }
+            }
 
             replyData.Body = respBody;
             return replyData;

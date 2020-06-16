@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -45,6 +45,13 @@ namespace Project_Apollo.Entities
                 }
                 return _instance;
             }
+        }
+
+        // The operations one might do in a session the might need throttling
+        public enum Op
+        {
+            TOKEN_CREATE,
+            ACCOUNT_CREATE
         }
 
         // List of all known domains
@@ -125,6 +132,53 @@ namespace Project_Apollo.Entities
             }
             return ret;
         }
+        // Return 'true' if the sender should be throttled from doing the passed op
+        private int _throttleAccountCreate = 0;
+        private int _throttleTokenCreate = 0;
+        public bool ShouldBeThrottled(string pSenderKey, Op pOp)
+        {
+            bool ret = true;
+            if (TryGetSessionWithSenderKey(pSenderKey, out SessionEntity oSession))
+            {
+                switch (pOp)
+                {
+                    case Op.ACCOUNT_CREATE:
+                        if (++oSession.AccountCreateCount <= Context.Params.P<int>(AppParams.P_SESSION_THROTTLE_ACCOUNT_CREATE))
+                        {
+                            ret = false;
+                        }
+                        break;
+                    case Op.TOKEN_CREATE:
+                        if (++oSession.TokenCreateCount <= Context.Params.P<int>(AppParams.P_SESSION_THROTTLE_TOKEN_CREATE))
+                        {
+                            ret = false;
+                        }
+                        break;
+                    default:
+                        ret = true;
+                        break;
+                }
+
+            }
+            else
+            {
+                // If there is no session, create one so we can track this creator
+                SessionEntity sess = new SessionEntity()
+                {
+                    SenderKey = pSenderKey,
+                    TimeOfLastHeartbeat = DateTime.UtcNow
+                };
+                AddSession(sess);
+                Context.Log.Debug("{0} Creating a throttle session for {1}", _logHeader, pSenderKey);
+                ret = false;
+            }
+            return ret;
+        }
+        public void ClearThrottleCounters(SessionEntity pSession)
+        {
+            pSession.AccountCreateCount = 0;
+            pSession.TokenCreateCount = 0;
+        }
         public void AddSession(SessionEntity pSessionEntity)
         {
             lock (_sessionsLock)
@@ -148,6 +202,7 @@ namespace Project_Apollo.Entities
             if (TryGetSessionWithSenderKey(pSenderKey, out ret))
             {
                 ret.TimeOfLastHeartbeat = DateTime.UtcNow;
+                ClearThrottleCounters(ret);
                 ret.Updated();
             }
             else
@@ -228,6 +283,8 @@ namespace Project_Apollo.Entities
         // admin stuff
         public DateTime WhenSessionEntryCreated; // What the variable name says
         public DateTime TimeOfLastHeartbeat;    // time of last heartbeat 
+        public int AccountCreateCount;
+        public int TokenCreateCount;
 
         public SessionEntity() : base(Sessions.Instance)
         {

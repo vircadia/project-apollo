@@ -184,7 +184,7 @@ namespace Project_Apollo.Entities
                                 _logHeader, dirFile, e.ToString());
                     fetchSuccess = false;
                 }
-                if (fetchSuccess)
+                if (fetchSuccess && anEntity != null)
                 {
                     yield return anEntity;
                 }

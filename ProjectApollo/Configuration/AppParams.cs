@@ -67,6 +67,8 @@ namespace Project_Apollo.Configuration
 
         public static readonly string P_SESSION_IDLE_EXPIRE_SECONDS = "Session.IdleExpireSeconds";
         public static readonly string P_SESSION_IDLE_CHECK_SECONDS = "Session.SessionIdleCheckSeconds";
+        public static readonly string P_SESSION_THROTTLE_ACCOUNT_CREATE = "Session.Throttle.AccountCreate";
+        public static readonly string P_SESSION_THROTTLE_TOKEN_CREATE = "Session.Throttle.TokenCreate";
 
         public static readonly string P_COMMERCE_MARKETPLACEKEY = "Commerce.MarketplaceKey";
 
@@ -129,6 +131,8 @@ namespace Project_Apollo.Configuration
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_EXPIRE_SECONDS, "Time to keep idle sessions", 60 * 5));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_IDLE_CHECK_SECONDS, "How often to check for idle sessions", 60 * 2));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_THROTTLE_ACCOUNT_CREATE, "Account creatable per heartbeat", 2));
+            ret.Add(new ParamBlock.ParameterDefn<int>(P_SESSION_THROTTLE_TOKEN_CREATE, "Access tokens creatable per heartbeat", 2));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_COMMERCE_MARKETPLACEKEY, "Public key for Marketplace access", "lksjdlkjskldjflsd"));
 

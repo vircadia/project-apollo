@@ -14,9 +14,14 @@ good for development.
 Eventually, this project will allow people to create and run
 their own personal portion of the Metaverse.
 
-For working with this code,
-refer to [Notes On Development] for information on building and
-running the code in this project.
+For building and running this code,
+refer to [Notes On Development] for that information.
+
+As of 20200616 (June 16, 2020), there is an experimental version
+of the Project Apollo metaverse-server running at `http://metaverse.bluestuff.org`.
+To use that setup to either test the metaverse-server implementation
+or to test a domain-server, follow the information in
+[test setup].
 
 ## Docker Image
 
@@ -69,4 +74,5 @@ the [3-Clause BSD License].
 [Nerdbank.GitVersioning]: https://github.com/dotnet/Nerdbank.GitVersioning
 [Notes On Development]: docs/NotesOnDevelopment.md
 [instructions for running Docker image]: docs/RunningDockerImage.md
+[test setup]: docs/TestSetup.md
 

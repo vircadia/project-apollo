@@ -7,6 +7,10 @@ As of 20200611, the Docker image is stored at
 hub.docker.com with the name "misterblue/vircadia-metaverse-server".
 Someday CI will be integrated with this project and then the image may move.
 
+As of 20200616, there is an instance of the Docker image running
+at `metaverse.bluestuff.org`. For a description of that instance,
+refer to the [test setup] document.
+
 To create your own Docker image, the process is:
 
 ```sh
@@ -106,3 +110,4 @@ parameter above.
 [DigitalOcean]: https://DigitalOcean.com/
 [instructions]: https://www.digitalocean.com/docs/droplets/how-to/create/
 [RunningIceServer]: ./RunningIceServer.md
+[test setup]: ./TestSetup.md

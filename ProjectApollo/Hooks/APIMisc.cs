@@ -14,10 +14,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
-
+using Newtonsoft.Json.Linq;
 using Project_Apollo.Configuration;
+using Project_Apollo.Entities;
 using Project_Apollo.Registry;
+
+using Newtonsoft.Json;
 
 namespace Project_Apollo.Hooks
 {
@@ -26,25 +30,48 @@ namespace Project_Apollo.Hooks
         public static readonly string _logHeader = "[APIMisc]";
 
         // == GET /api/metaverse_info ==================================
-        private struct bodyMetaverseInfoResponse
-        {
-            public string metaverse_url;
-            public string ice_server_url;
-            public string metaverse_server_version;
-        }
+        private static string _metaverse_info;
+
         [APIPath("/api/metaverse_info", "GET", true)]
         public RESTReplyData get_metaverse_info(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
-            respBody.Data = new bodyMetaverseInfoResponse()
+            if (_metaverse_info == null)
             {
-                metaverse_url = Context.Params.P<string>(AppParams.P_METAVERSE_SERVER_URL),
-                ice_server_url = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER),
-                metaverse_server_version = ThisAssembly.AssemblyInformationalVersion
-            };
-            replyData.Body = respBody;  // serializes JSON
+                JObject jo = new JObject();
+
+                // Start with the basic parameters
+                jo["metaverse_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NAME);
+                jo["metaverse_nick_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NICKNAME);
+                jo["metaverse_url"] = Context.Params.P<string>(AppParams.P_METAVERSE_SERVER_URL);
+                jo["ice_server_url"] = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER);
+                jo["metaverse_server_version"] = ThisAssembly.AssemblyInformationalVersion;
+
+                // See if there are additions in the info file
+                string infoFile = EntityStorage.GenerateAbsStorageLocation(null, Context.Params.P<string>(AppParams.P_METAVERSE_INFO_FILE));
+                if (File.Exists(infoFile))
+                {
+                    try
+                    {
+                        string fContents = File.ReadAllText(infoFile);
+                        JObject jContents = JObject.Parse(fContents);
+                        foreach (JProperty jprop in jContents.Properties())
+                        {
+                            jo[jprop.Name] = jprop.Value;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Context.Log.Error("{0} Exception reading metaverse info file {1}: {2}",
+                                            _logHeader, infoFile, e);
+                    }
+                }   
+                _metaverse_info = JsonConvert.SerializeObject(jo, Formatting.Indented);
+            }
+
+            replyData.Body = _metaverse_info;
 
             return replyData;
         }

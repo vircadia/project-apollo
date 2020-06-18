@@ -1,6 +1,5 @@
 {
-    "Storage.Dir": "/var/vircadia/content/Entries",
-    "Logger.LogDirectory": "/var/vircadia/content/Logs",
+    "Storage.Dir": "/var/vircadia/content/",
 
     "LogLevel": "Debug",
     "Logger.ForceFlush": true,

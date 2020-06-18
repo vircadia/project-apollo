@@ -69,14 +69,54 @@ namespace Project_Apollo.Entities
 
         protected string _entityStorageDir;
 
+        /// <summary>
+        /// Given a directory name and an optional filename, create the absolute
+        /// address to that item. If only a directory is passed, this returns
+        /// the computed directory path. If the directory passed is relative,
+        /// it is made absolute based on "Storage.Dir" parameter.
+        /// </summary>
+        /// <param name="pDir">directory for the item. May be null or empty.</param>
+        /// <param name="pItem">Optional filename to add to the path</param>
+        /// <returns>Absolute directory path</returns>
+        public static string GenerateAbsStorageLocation(string pDir, string pItem = null)
+        {
+            string ret;
+            string storageDir = Path.GetFullPath(Context.Params.P<string>(AppParams.P_STORAGE_DIR));
+
+            if (String.IsNullOrEmpty(pDir))
+            {
+                // No dir specified. Just return the base storage directory.
+                ret = storageDir;
+            }
+            else
+            {
+                if (pDir.StartsWith("/") || pDir.StartsWith(Path.DirectorySeparatorChar))
+                {
+                    // The passed directory is absolute so it's good enough
+                    ret = Path.GetFullPath(pDir);
+                }
+                else
+                {
+                    // path is relative. Make abs relative to "Storage.Dir"
+                    // The GetFullPath() will correct the directory separators in the config path
+                    ret = Path.Combine(storageDir, pDir);
+                }
+            }
+            // If a trailing filename was specified, add it
+            if (!String.IsNullOrEmpty(pItem))
+            {
+                ret = Path.Combine(ret, pItem);
+            }
+            return ret;
+        }
         public EntityStorage(string pEntityTypeName)
         {
             _storageEntityTypeName = pEntityTypeName;
 
 
-            // The GetFullPath() will correct the directory separators in the config path
-            string fullDirPath = Path.GetFullPath(Context.Params.P<string>(AppParams.P_STORAGE_DIR));
-            _entityStorageDir = Path.Combine( fullDirPath, _storageEntityTypeName);
+            _entityStorageDir = EntityStorage.GenerateAbsStorageLocation(
+                                    Context.Params.P<string>(AppParams.P_ENTITY_DIR),
+                                    _storageEntityTypeName);
 
             Context.Log.Debug("{0} Storing {1} entities into {2}", _logHeader, _storageEntityTypeName, _entityStorageDir);
             lock (_storageLock)

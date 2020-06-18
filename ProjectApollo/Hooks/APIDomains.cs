@@ -90,7 +90,7 @@ namespace Project_Apollo.Hooks
         }
 
         // ===PUT /api/v1/domains/% ==========================================
-        /*
+        /* Not using structures because fields are optional and cannot differentiate non-specified and null.
         public struct domainMetadataUsers
         {
             // User domain metadata

@@ -16,7 +16,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+
 using Project_Apollo.Configuration;
+using Project_Apollo.Entities;
 
 namespace Project_Apollo.Logging
 {
@@ -35,10 +37,11 @@ namespace Project_Apollo.Logging
         /// <param name="pAlsoLogToConsole">if 'true', also write to the console each message</param>
         public LogFileLogger(string pLogDirectory, bool pAlsoLogToConsole=false) : base()
         {
+            string logDir = EntityStorage.GenerateAbsStorageLocation(pLogDirectory);
             // Verify the log directory exists
-            if (!Directory.Exists(pLogDirectory))
+            if (!Directory.Exists(logDir))
             {
-                Directory.CreateDirectory(pLogDirectory);
+                Directory.CreateDirectory(logDir);
             }
 
             if (pAlsoLogToConsole)
@@ -50,7 +53,7 @@ namespace Project_Apollo.Logging
             // Initialize the logger with a default log level.
             int rotateMinutes = Context.Params.P<int>(AppParams.P_LOGGER_ROTATE_MINS);
             bool forceFlush = Context.Params.P<bool>(AppParams.P_LOGGER_FORCE_FLUSH);
-            _logWriter = new LogWriter(pLogDirectory, "MetaverseServer-", rotateMinutes, forceFlush);
+            _logWriter = new LogWriter(logDir, "MetaverseServer-", rotateMinutes, forceFlush);
         }
 
         public override void SetLogLevel(string pLevel)

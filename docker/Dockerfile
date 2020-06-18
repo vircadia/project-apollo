@@ -67,10 +67,7 @@ RUN mkdir -p ${VIRDIR} \
 WORKDIR /home/${USER}
 USER ${USER}:${USER}
 
-RUN mkdir -p ${VIRDISTDIR} \
-    && mkdir -p ${VIRCONTENTDIR}/Entries \
-    && mkdir -p ${VIRCONTENTDIR}/Config \
-    && mkdir -p ${VIRCONTENTDIR}/Logs
+RUN mkdir -p ${VIRDISTDIR}
 
 # Bring over all the built code from the build version
 COPY --from=project-apollo-build --chown=${USER}:${USER} /usr/local/src/dist ${VIRDISTDIR}
@@ -79,7 +76,7 @@ COPY ./files/run-MetaverseServer.sh /home/${USER}
 COPY ./files/GetVersion.sh /home/${USER}
 
 # Default configuration file which can be overwritten by mounting a volume on this directory
-COPY ./files/config.json ${VIRCONTENTDIR}/Config
+COPY ./files/config.json ${VIRCONTENTDIR}
 
 # Mount over this to save entries in persistant storage
 VOLUME ${VIRCONTENTDIR}

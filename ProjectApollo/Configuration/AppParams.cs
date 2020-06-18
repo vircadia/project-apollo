@@ -16,6 +16,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using Project_Apollo.Entities;
+
 namespace Project_Apollo.Configuration
 {
     /// <summary>
@@ -53,11 +55,16 @@ namespace Project_Apollo.Configuration
         public static readonly string P_METAVERSE_SERVER_URL = "MetaverseServerUrl";
         public static readonly string P_DEFAULT_ICE_SERVER = "DefaultIceServer";
 
+        public static readonly string P_METAVERSE_NAME = "Metaverse.Name";
+        public static readonly string P_METAVERSE_NICKNAME = "Metaverse.Nickname";
+        public static readonly string P_METAVERSE_INFO_FILE = "Metaverse.InfoFile";
+
         public static readonly string P_LISTENER_HOST = "Listener.Host";
         public static readonly string P_LISTENER_PORT = "Listener.Port";
         public static readonly string P_LISTENER_RESPONSE_HEADER_SERVER = "Listener.Response.Header.Server";
 
         public static readonly string P_STORAGE_DIR = "Storage.Dir";
+        public static readonly string P_ENTITY_DIR = "Storage.Entity.Dir";
         public static readonly string P_STORAGE_STATIC_DIR = "Storage.StaticDir";
 
         public static readonly string P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS = "Account.AuthToken.Lifetime";
@@ -80,7 +87,7 @@ namespace Project_Apollo.Configuration
         public static readonly string P_DEBUG_PROCESSING = "Debug.Processing";
 
         private readonly ParamBlock _defaultParameters;
-        private readonly ParamPersistant _siteParameters;
+        private ParamPersistant _siteParameters;
         private readonly ParamBlock _commandLineParameters;
 
         /// <summary>
@@ -98,8 +105,13 @@ namespace Project_Apollo.Configuration
             // Build the command line parameters
             _commandLineParameters = new ParamBlock();
             MergeCommandLine(args, null, null);
+        }
 
-            _siteParameters = new ParamPersistant(this.P<string>(AppParams.P_CONFIGFILE));
+        // Load the site parameters.
+        // The initialization of AppParams is a two step process because this step depends on the default and command line parameters
+        public void LoadSiteParameters()
+        {
+            _siteParameters = new ParamPersistant(EntityStorage.GenerateAbsStorageLocation(null, this.P<string>(AppParams.P_CONFIGFILE)) );
             _siteParameters.SetParameterDefaultValues();
         }
 
@@ -115,13 +127,17 @@ namespace Project_Apollo.Configuration
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_METAVERSE_SERVER_URL, "URL for main API access. If empty, set to self", ""));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_DEFAULT_ICE_SERVER, "IP address of ice server. If empty, set to self", ""));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_METAVERSE_NAME, "Long name of the Metaverse", "Vircadia Noobie"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_METAVERSE_NICKNAME, "Short form of the name of the Metaverse", "Noobie"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_METAVERSE_INFO_FILE, "File of addition infor for metaverse_info request", "MetaverseInfo.json"));
 
             // NOTE: on Windows10, you must add url to acl: netsh http add urlacl url=http://+:9400/ user=everyone
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_HOST, "HttpListener host", "+"));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_LISTENER_PORT, "HttpListener port", 9400));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_RESPONSE_HEADER_SERVER, "What to return as 'Server: header field", "1.5"));
 
-            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_DIR, "Root of entity storage", "Entities"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_DIR, "Root of storage", "."));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_ENTITY_DIR, "Root of entity storage", "Entities"));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_STATIC_DIR, "Directory of static pages served for users", "static"));
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS, "Hours that an AuthToken is allowed to live", 12));

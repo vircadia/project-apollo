@@ -36,18 +36,19 @@ namespace Project_Apollo.Hooks
         public RESTReplyData get_metaverse_info(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
-            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
             if (_metaverse_info == null)
             {
-                JObject jo = new JObject();
+                JObject jo = new JObject
+                {
 
-                // Start with the basic parameters
-                jo["metaverse_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NAME);
-                jo["metaverse_nick_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NICKNAME);
-                jo["metaverse_url"] = Context.Params.P<string>(AppParams.P_METAVERSE_SERVER_URL);
-                jo["ice_server_url"] = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER);
-                jo["metaverse_server_version"] = ThisAssembly.AssemblyInformationalVersion;
+                    // Start with the basic parameters
+                    ["metaverse_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NAME),
+                    ["metaverse_nick_name"] = Context.Params.P<string>(AppParams.P_METAVERSE_NICKNAME),
+                    ["metaverse_url"] = Context.Params.P<string>(AppParams.P_METAVERSE_SERVER_URL),
+                    ["ice_server_url"] = Context.Params.P<string>(AppParams.P_DEFAULT_ICE_SERVER),
+                    ["metaverse_server_version"] = ThisAssembly.AssemblyInformationalVersion
+                };
 
                 // See if there are additions in the info file
                 string infoFile = EntityStorage.GenerateAbsStorageLocation(null, Context.Params.P<string>(AppParams.P_METAVERSE_INFO_FILE));

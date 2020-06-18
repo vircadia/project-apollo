@@ -76,12 +76,16 @@ namespace Project_Apollo.Hooks
                 if (File.Exists(filename))
                 {
                     replyData.Body = File.ReadAllText(filename);
-                    string mimeType = "text/text";
-                    if (filename.EndsWith(".css")) mimeType = "text/css";
-                    if (filename.EndsWith(".json")) mimeType = "text/json";
-                    if (filename.EndsWith(".yaml")) mimeType = "text/yaml";
-                    if (filename.EndsWith(".html")) mimeType = "text/html";
-                    if (filename.EndsWith(".js")) mimeType = "text/javascript";
+                    string exten = Path.GetExtension(filename);
+                    var mimeType = exten switch
+                    {
+                        ".css" => "text/css",
+                        ".json" => "text/json",
+                        ".yaml" => "text/yaml",
+                        ".html" => "text/html",
+                        ".js" => "text/javascript",
+                        _ => "text/text",
+                    };
                     replyData.MIMEType = mimeType;
                 }
                 else

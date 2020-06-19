@@ -68,7 +68,7 @@ WORKDIR /home/${USER}
 USER ${USER}:${USER}
 
 RUN mkdir -p ${VIRDISTDIR} \
-    mkdir -p ${VIRCONTENTDIR}
+    && mkdir -p ${VIRCONTENTDIR}
 
 # Bring over all the built code from the build version
 COPY --from=project-apollo-build --chown=${USER}:${USER} /usr/local/src/dist ${VIRDISTDIR}

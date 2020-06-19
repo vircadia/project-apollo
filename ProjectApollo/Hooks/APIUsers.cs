@@ -593,8 +593,8 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
-            string accountID = pArgs.Count == 1 ? pArgs[0] : null;
-            if (Accounts.Instance.TryGetAccountWithID(accountID, out AccountEntity aAccount))
+            string username = pArgs.Count == 1 ? pArgs[0] : null;
+            if (Accounts.Instance.TryGetAccountWithUsername(username, out AccountEntity aAccount))
             {
                 respBody.Data = new bodyUserPublicKeyReply()
                 {
@@ -603,6 +603,8 @@ namespace Project_Apollo.Hooks
             }
             else
             {
+                Context.Log.Error("{0} GET fetch of user public key for unknown acct. SenderKey: {1}, Username: {2}",
+                                        _logHeader, pReq.SenderKey, username);
                 respBody.RespondFailure();
             }
 

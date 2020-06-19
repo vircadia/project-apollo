@@ -282,6 +282,8 @@ namespace Project_Apollo.Entities
 
         public LocationInfo Location;           // Where the user says they are
 
+        public List<string> Friends = new List<string>();
+
         // Old stuff
         public string xmpp_password;
         public string discourse_api_key;

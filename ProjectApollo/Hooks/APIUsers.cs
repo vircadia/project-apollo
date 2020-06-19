@@ -25,6 +25,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Threading;
+using Microsoft.VisualBasic;
 
 namespace Project_Apollo.Hooks
 {
@@ -285,7 +286,7 @@ namespace Project_Apollo.Hooks
             {
                 respBody.Data = new bodyUserFriendsReply()
                 {
-                    friends = new List<string>()
+                    friends = aAccount.Friends
                 };
             }
             else
@@ -298,7 +299,11 @@ namespace Project_Apollo.Hooks
             return replyData;
         }
         // = PUT /api/v1/user/friends/% ==================================================
-        [APIPath("/api/v1/user/friends/%", "POST", true)]
+        public struct bodyUserFriendsPost
+        {
+            public string username;
+        }
+        [APIPath("/api/v1/user/friends", "POST", true)]
         public RESTReplyData user_friends_post(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
@@ -306,7 +311,23 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: Should put something
+                bodyUserFriendsPost body = pReq.RequestBodyObject<bodyUserFriendsPost>();
+                string friendname = body.username;
+                Context.Log.Debug("{0} user_friends_post: adding friend {1} for user {2}",
+                                _logHeader, body.username, aAccount.Username);
+                if (Accounts.Instance.TryGetAccountWithUsername(friendname, out AccountEntity _))
+                {
+                    if (!aAccount.Friends.Contains(friendname))
+                    {
+                        aAccount.Friends.Add(friendname);
+                    }
+                }
+                else
+                {
+                    Context.Log.Error("{0} user_friends_post: attempt to add friend that does not exist. Requestor={1}, friend={2}",
+                                                _logHeader, aAccount.Username, friendname);
+                    respBody.RespondFailure();
+                }
             }
             else
             {
@@ -324,13 +345,16 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
+            string friendname = pArgs.Count == 1 ? pArgs[0] : null;
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: Should put something
+                Context.Log.Debug("{0} user_friends_delete: removing friend {1} for user {2}",
+                                _logHeader, friendname, aAccount.Username);
+                aAccount.Friends.Remove(friendname);
             }
             else
             {
-                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                Context.Log.Error("{0} DELETE user/friends requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
                 respBody.RespondFailure();
             }

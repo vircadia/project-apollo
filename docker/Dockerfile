@@ -58,16 +58,17 @@ ENV VIRCONTENTDIR=${VIRDIR}/content
 # Add a user for the server to run under
 RUN adduser --disabled-password --gecos 'MetaverseServer user' ${USER}
 
-# Create the configuration and runtime data directory
+# Create the content directory and make it owned by the user
 RUN mkdir -p ${VIRDIR} \
-    && chown ${USER}:${USER} ${VIRDIR} \
+    && chown -R ${USER}:${USER} ${VIRDIR} \
     && chmod 775 ${VIRDIR}
 
 # Switch to user who will be running the server
 WORKDIR /home/${USER}
 USER ${USER}:${USER}
 
-RUN mkdir -p ${VIRDISTDIR}
+RUN mkdir -p ${VIRDISTDIR} \
+    mkdir -p ${VIRCONTENTDIR}
 
 # Bring over all the built code from the build version
 COPY --from=project-apollo-build --chown=${USER}:${USER} /usr/local/src/dist ${VIRDISTDIR}

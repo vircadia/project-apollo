@@ -58,7 +58,7 @@ namespace Project_Apollo.Configuration
             _filename = pFilename;
             if (File.Exists(_filename))
             {
-                Context.Log.Debug("{0} Reading configuration file {1}", _logHeader, _filename);
+                Context.Log.Info("{0} Reading configuration file {1}", _logHeader, _filename);
                 try
                 {
                     JObject configs = JObject.Parse(File.ReadAllText(_filename));
@@ -100,7 +100,7 @@ namespace Project_Apollo.Configuration
             }
             else
             {
-                Context.Log.Debug("{0} Could not open config file {1}", _logHeader, _filename);
+                Context.Log.Info("{0} Could not open config file {1}", _logHeader, _filename);
             }
         }
 

@@ -392,15 +392,33 @@ namespace Project_Apollo.Entities
         }
 
     }
+    public class UserImages
+    {
+        public string Hero;
+        public string Thumbnail;
+        public string Tiny;
+    }
+    public class LocationInfo
+    {
+        // Location information passed in heartbeat
+        public bool Connected;
+        public string Path;
+        public string PlaceID;
+        public string NetworkAddress;
+        public int NetworkPort;
+        public string NodeID;
+        public string Availability;
+    };
 
     public class AuthTokenInfo
     {
         public string Token;
+        public string TokenId;
         public string RefreshToken;
         public DateTime TokenCreationTime;
         public DateTime TokenExpirationTime;
         public string Scope;    // "owner" for account access, "domain" for domain access
-        public string ExtraParam;
+        public string ExtraParam;   // extra data used in token creation
 
         public AuthTokenInfo()
         {
@@ -422,23 +440,5 @@ namespace Project_Apollo.Entities
             return TokenExpirationTime < DateTime.UtcNow;
         }
     }
-
-    public class UserImages
-    {
-        public string Hero;
-        public string Thumbnail;
-        public string Tiny;
-    }
-    public class LocationInfo
-    {
-        // Location information passed in heartbeat
-        public bool Connected;
-        public string Path;
-        public string PlaceID;
-        public string NetworkAddress;
-        public int NetworkPort;
-        public string NodeID;
-        public string Availability;
-    };
 }
 

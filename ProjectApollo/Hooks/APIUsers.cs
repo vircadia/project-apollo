@@ -298,7 +298,7 @@ namespace Project_Apollo.Hooks
             replyData.Body = respBody;
             return replyData;
         }
-        // = PUT /api/v1/user/friends/% ==================================================
+        // = POST /api/v1/user/friends ==================================================
         public struct bodyUserFriendsPost
         {
             public string username;
@@ -362,35 +362,40 @@ namespace Project_Apollo.Hooks
             return replyData;
         }
 
-        // = GET /api/v1/user/connections ==================================================
-        public struct bodyUserConnectionsReply
+        // = POST /api/v1/user/connection_request ==================================================
+        public struct bodyUserConnectionRequestPost
         {
-            public List<string> connections;
-        };
-        [APIPath("/api/v1/user/connections", "GET", true)]
-        public RESTReplyData user_connections_get(RESTRequestData pReq, List<string> pArgs)
+            string node_id;
+            string proposed_node_id;
+        }
+        [APIPath("/api/v1/user/connection_request", "POST", true)]
+        public RESTReplyData user_connections_request_post(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                respBody.Data = new bodyUserConnectionsReply()
-                {
-                    connections = new List<string>()
-                };
+                // Not implemented
+                respBody.RespondFailure();
+                Context.Log.Debug("{0} user/connection_request: user={1}, body={2}",
+                                _logHeader, aAccount.Username, pReq.RequestBody);
             }
             else
             {
-                Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
+                Context.Log.Error("{0} POST user/connection_request for unauthorized user. Token={1}",
                                         _logHeader, pReq.AuthToken);
                 respBody.RespondFailure();
             }
             replyData.Body = respBody;
             return replyData;
         }
-        // = PUT /api/v1/user/connections/% ==================================================
-        [APIPath("/api/v1/user/connections/%", "POST", true)]
+        // = POST /api/v1/user/connections ==================================================
+        public struct bodyUserConnectionsPost
+        {
+            public string username;
+        }
+        [APIPath("/api/v1/user/connections", "POST", true)]
         public RESTReplyData user_connections_post(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
@@ -399,6 +404,23 @@ namespace Project_Apollo.Hooks
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
                 // TODO: Should put something
+                bodyUserConnectionsPost body = pReq.RequestBodyObject<bodyUserConnectionsPost>();
+                string connectionname = body.username;
+                Context.Log.Debug("{0} user_connections_post: adding connection {1} for user {2}",
+                                _logHeader, body.username, aAccount.Username);
+                if (Accounts.Instance.TryGetAccountWithUsername(connectionname, out AccountEntity _))
+                {
+                    if (!aAccount.Connections.Contains(connectionname))
+                    {
+                        aAccount.Connections.Add(connectionname);
+                    }
+                }
+                else
+                {
+                    Context.Log.Error("{0} user_friends_post: attempt to add friend that does not exist. Requestor={1}, friend={2}",
+                                                _logHeader, aAccount.Username, connectionname);
+                    respBody.RespondFailure();
+                }
             }
             else
             {
@@ -416,13 +438,16 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
 
+            string connectionname = pArgs.Count == 1 ? pArgs[0] : null;
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                // TODO: Should put something
+                Context.Log.Debug("{0} user_connections_delete: removing connection {1} for user {2}",
+                                _logHeader, connectionname, aAccount.Username);
+                aAccount.Friends.Remove(connectionname);
             }
             else
             {
-                Context.Log.Error("{0} GET user/connections requested without auth token. Token={1}",
+                Context.Log.Error("{0} DELETE user/connections requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
                 respBody.RespondFailure();
             }

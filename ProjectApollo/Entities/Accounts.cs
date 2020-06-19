@@ -282,6 +282,7 @@ namespace Project_Apollo.Entities
 
         public LocationInfo Location;           // Where the user says they are
 
+        public List<string> Connections = new List<string>();
         public List<string> Friends = new List<string>();
 
         // Old stuff

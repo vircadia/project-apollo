@@ -568,13 +568,9 @@ namespace Project_Apollo.Hooks
                 Stream byteStream = pReq.RequestBodyMultipartStream("public_key");
                 if (byteStream != null)
                 {
-                    using var memStream = new MemoryStream();
-                    byteStream.CopyTo(memStream);
-                    includedPublicKey= Convert.ToBase64String(memStream.ToArray());
-
+                    includedPublicKey = Tools.ConvertPublicKeyStreamToBase64(byteStream);
                     // There might has been an APIKey
                     includedAPIKey = pReq.RequestBodyMultipart("api_key");
-
                     parsed = true;
                 }
                 else

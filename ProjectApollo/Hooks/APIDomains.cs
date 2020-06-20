@@ -14,17 +14,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.IO;
+using System.Net;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
 
 using Newtonsoft.Json;
-using RandomNameGeneratorLibrary;
 using Newtonsoft.Json.Linq;
-using System.Text;
-using System.Globalization;
-using System.Net;
+using RandomNameGeneratorLibrary;
 
 namespace Project_Apollo.Hooks
 {
@@ -378,9 +377,7 @@ namespace Project_Apollo.Hooks
                         Stream byteStream = pReq.RequestBodyMultipartStream("public_key");
                         if (byteStream != null)
                         {
-                            using var memStream = new MemoryStream();
-                            byteStream.CopyTo(memStream);
-                            aDomain.Public_Key= Convert.ToBase64String(memStream.ToArray());
+                            aDomain.Public_Key = Tools.ConvertPublicKeyStreamToBase64(byteStream);
                             aDomain.Updated();
                             // Context.Log.Debug("{0} successful set of public_key for {1}", _logHeader, domainID);
                         }

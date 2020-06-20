@@ -71,6 +71,21 @@ namespace Project_Apollo
             SHA256 Hasher = SHA256.Create();
             return Tools.Hash2String(Hasher.ComputeHash(ToHash));
         }
+
+        // For unknown reasons, public keys are sent to the metaverse server
+        //    in RSA PKCS#1 format but the keys are sent out as
+        //    Base64 converted SubjectPublicKeyInfo formatted keys.
+        // This takes a stream of bytes of a PKCS#1 binary formatted key
+        //    and returns the Base64 string.
+        public static string ConvertPublicKeyStreamToBase64(Stream pKeyStream)
+        {
+            using var memStream = new MemoryStream();
+            pKeyStream.CopyTo(memStream);
+            var publicKey = RSA.Create();
+            publicKey.ImportRSAPublicKey(memStream.ToArray(), out int bytesRead);
+            byte[] outPublicKey = publicKey.ExportSubjectPublicKeyInfo();
+            return Convert.ToBase64String(outPublicKey);
+        }
         
         public static Dictionary<string,string> PostBody2Dict(string body)
         {

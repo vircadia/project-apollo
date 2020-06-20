@@ -224,7 +224,7 @@ namespace Project_Apollo.Entities
         /// </summary>
         public void ExpireSessions()
         {
-            Context.Log.Debug("{0} checking for session expiration", _logHeader);
+            // Context.Log.Debug("{0} checking for session expiration", _logHeader);
             lock (_sessionsLock)
             {
                 List<SessionEntity> toDelete = new List<SessionEntity>();
@@ -236,11 +236,14 @@ namespace Project_Apollo.Entities
                         toDelete.Add(kvp.Value);
                     }
                 }
-                Context.Log.Debug("{0} Expiring {1} sessions", _logHeader, toDelete.Count);
-                foreach (var sess in toDelete)
+                if (toDelete.Count > 0)
                 {
-                    ActiveSessions.Remove(sess.SessionID);
-                    RemoveFromStorage(sess);
+                    Context.Log.Debug("{0} Expiring {1} sessions", _logHeader, toDelete.Count);
+                    foreach (var sess in toDelete)
+                    {
+                        ActiveSessions.Remove(sess.SessionID);
+                        RemoveFromStorage(sess);
+                    }
                 }
             }
         }

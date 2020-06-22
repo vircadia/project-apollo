@@ -422,6 +422,7 @@ namespace Project_Apollo.Entities
 
         public AuthTokenInfo()
         {
+            TokenId = Guid.NewGuid().ToString();
             TokenCreationTime = DateTime.UtcNow;
             // Default expiration is one day
             TokenExpirationTime = TokenCreationTime + new TimeSpan(24, 0, 0);

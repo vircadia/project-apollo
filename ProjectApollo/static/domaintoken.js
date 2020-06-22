@@ -137,7 +137,7 @@
                             if (response.status && response.status === 'success') {
                                 // Successful fetch of new domain token using account token
                                 Logg('Successful fetch of domain token');
-                                resolve(response.data.domain_token);
+                                resolve(response.data.token);
                             }
                             else {
                                 reject('Fetch of domain token failed: ' + JSON.stringify(response.data));
@@ -149,7 +149,7 @@
                     }
                 };
                 Logg('Starting fetch of domain token');
-                request.open('GET', API_GET_TOKEN + "?scope=domain");
+                request.open('POST', API_GET_TOKEN + "?scope=domain");
                 request.setRequestHeader('Authorization',
                                 pAccountTokenInfo.token_type + ' ' + pAccountTokenInfo.token);
                 request.send();

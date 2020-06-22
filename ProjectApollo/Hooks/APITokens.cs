@@ -209,8 +209,8 @@ namespace Project_Apollo.Hooks
         // This request is often used to get a domain's access token for it's sponsering account.
         //     In this case, "?scope=domain".
         // Example: http://metaverse.vircadia.com:9400/api/v1/token/new?scope=domain
-        [APIPath("/api/v1/token/new", "GET", true)]
-        public RESTReplyData new_domain_token(RESTRequestData pReq, List<string> pArgs)
+        [APIPath("/api/v1/token/new", "POST", true)]
+        public RESTReplyData new_scope_token(RESTRequestData pReq, List<string> pArgs)
         {
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();
@@ -228,17 +228,38 @@ namespace Project_Apollo.Hooks
                 // Getting a token for a domain server
                 if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
                 {
-                    string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
-                    AuthTokenInfo token = oAccount.CreateAccessToken(scope);
-                    // The domain/account association lasts longer
-                    token.TokenExpirationTime = new DateTime(2999, 12, 31);
+                    AuthTokenInfo token = null;
 
-                    respBody.Data = new
+                    string scope = pReq.Queries.ContainsKey("scope") ? pReq.Queries["scope"] : "owner";
+                    switch (scope)
                     {
-                        domain_token = token.Token,
-                        token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
-                        account_name = oAccount.Username
-                    };
+                        case "domain":
+                            token = oAccount.CreateAccessToken(scope);
+                            // The domain/account association lasts longer
+                            token.TokenExpirationTime = new DateTime(2999, 12, 31);
+                            break;
+                        case "owner":
+                            token = oAccount.CreateAccessToken(scope);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (token != null)
+                    {
+                        respBody.Data = new
+                        {
+                            token = token.Token,
+                            token_id = token.TokenId,
+                            refresh_token = token.RefreshToken,
+                            token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
+                            account_name = oAccount.Username
+                        };
+                    }
+                    else
+                    {
+                        respBody.RespondFailure();
+                    }
                 }
                 else
                 {

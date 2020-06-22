@@ -3,7 +3,7 @@
 **TL:DR version**: a test metaverse using the latest Project Apollo
 sources (metaverse-server and ice-server) has been created.
 Do testing by running domain-servers
-and Interfaces created in [Project Athena] pull request #458 ([PR #458]).
+and Interfaces created in [Project Athena] pull request #458 ([PR #472]).
 
 Long version:
 
@@ -30,12 +30,12 @@ Command line parameters exist to change most of metaverse-server
 links, there are some (especially in the scripts) that must
 be changed in the source.
 
-There is a pull request ([PR #458]) on [Project Athena]'s Github
+There is a pull request ([PR #472]) on [Project Athena]'s Github
 repository that applies the source patches and thus builds
 images of the domain-server and Interface that should work
 with this test metaverse server.
 
-Download the executables from [PR #458], install them on
+Download the executables from [PR #472], install them on
 your computer. You can create accounts on the BlueStuff
 using either the login screen in Interface or on the domain
 token fetch dialog.
@@ -60,4 +60,4 @@ the links must be `http:`.
 [Docker]: https://docker.io/
 [DigitalOcean]: https://DigitalOcean.com/
 [Running Docker Image]: ./RunningDockerImage.md
-[PR #458]: https://github.com/kasenvr/project-athena/pull/458
+[PR #472]: https://github.com/kasenvr/project-athena/pull/472

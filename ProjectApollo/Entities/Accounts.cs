@@ -377,10 +377,13 @@ namespace Project_Apollo.Entities
             try
             {
                 AuthTokenInfo refreshable = this.AuthTokens.Where(tok => { return pRefreshToken == tok.RefreshToken; }).First();
-                // If one of  the tokens is refreshable, create a new one
+                // If one of  the tokens is refreshable, move its expiration forward
                 if (refreshable != null)
                 {
-                    ret = CreateAccessToken(refreshable.Scope, refreshable.ExtraParam);
+                    TimeSpan tokenExpirationInterval =
+                            new TimeSpan(Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS), 0, 0);
+                    refreshable.TokenExpirationTime = DateTime.UtcNow + tokenExpirationInterval;
+                    ret = refreshable;
                 }
             }
             catch

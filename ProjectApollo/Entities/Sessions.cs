@@ -133,8 +133,6 @@ namespace Project_Apollo.Entities
             return ret;
         }
         // Return 'true' if the sender should be throttled from doing the passed op
-        private int _throttleAccountCreate = 0;
-        private int _throttleTokenCreate = 0;
         public bool ShouldBeThrottled(string pSenderKey, Op pOp)
         {
             bool ret = true;

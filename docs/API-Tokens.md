@@ -11,9 +11,9 @@ The post body is an "applicaton/json" structure that depends on the grant type:
 
 ```
     {
-        grant_type: "password",
-        username: username,
-        password: password
+        "grant_type": "password",
+        "username": username,
+        "password": password
     }
 ```
 
@@ -23,11 +23,11 @@ future addition.
 
 ```
     {
-        grant_type: "authorization_code",
-        client_id: stringIDofClient,
-        client_secret: stringSecret,
-        code: stringAuthorizationTokenFromService,
-        redirect_url: loginRedirectionURL
+        "grant_type": "authorization_code",
+        "client_id": stringIDofClient,
+        "client_secret": stringSecret,
+        "code": stringAuthorizationTokenFromService,
+        "redirect_url": loginRedirectionURL
     }
 ```
 
@@ -37,9 +37,9 @@ account access token with an extended expiration time.
 
 ```
     {
-        grant_type: "refresh_token",
-        refresh_token: refreshTokenForAccountsAccessToken,
-        scope: "owner"
+        "grant_type": "refresh_token",
+        "refresh_token": refreshTokenForAccountsAccessToken,
+        "scope": "owner"
     }
 ```
 
@@ -48,12 +48,12 @@ body formatted:
 
 ```
     {
-        access_token: tokenString,
-        token_type: "Bearer",
-        expires_in: integerSecondsUntilTokenExpiration,
-        refresh_token: tokenToUseToRefreshThisToken,
-        scope: scopeOfTokenUse,
-        created_at: integerUnixTimeSeconds
+        "access_token": tokenString,
+        "token_type": "Bearer",
+        "expires_in": integerSecondsUntilTokenExpiration,
+        "refresh_token": tokenToUseToRefreshThisToken,
+        "scope": scopeOfTokenUse,
+        "created_at": integerUnixTimeSeconds
     }
 ```
 
@@ -61,7 +61,7 @@ The failure of the request will return an "application/json" body:
 
 ```
     {
-        error: stringDescribingError
+        "error": stringDescribingError
     }
 ```
 
@@ -106,13 +106,13 @@ The POST request returns an "application/json" body:
 
 ```
     {
-        status: "success",
-        data: {
-            token: tokenString,
-            token_id: tokenIdentifierString,
-            refresh_token: tokenToUseToRefreshThisToken,
-            token_expiration_seconds: integerOfSecondsUntilExpiration,
-            account_name: accountNameString
+        "status": "success",
+        "data": {
+            "token": tokenString,
+            "token_id": tokenIdentifierString,
+            "refresh_token": tokenToUseToRefreshThisToken,
+            "token_expiration_seconds": integerOfSecondsUntilExpiration,
+            "account_name": accountNameString
         }
     }
 ```
@@ -121,6 +121,6 @@ If, for some reason, the token cannot be created, this returns the JSON string:
 
 <pre>
     {
-        status: "fail"
+        "status": "fail"
     }
 </pre>

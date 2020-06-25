@@ -50,7 +50,7 @@ Tell server public_key ------------------------------>
                          }
 
 
-If DomainServer is logged in/
+If DomainServer is logged in TODO
 
 <pre>
 

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ using Project_Apollo.Entities;
 using Project_Apollo.Registry;
 using System.Data.Common;
 using Microsoft.VisualBasic.CompilerServices;
+using NUnit.Framework.Constraints;
+using System.Text.RegularExpressions;
 
 namespace Project_Apollo.Hooks
 {
@@ -117,30 +119,124 @@ namespace Project_Apollo.Hooks
             }
         }
 
-        public IEnumerable<AccountEntity> Filter()
+        /// <summary>
+        /// Generate an enumerable of filtered accounts.
+        /// </summary>
+        /// <param name="pMustBeOnline">if 'true', all returned accounts are 'online'</param>
+        /// <param name="pRequestingAcct">requesting account. Used for admin permissions and connective checks.
+        ///     Optional. If not specified, connectivity will be false.</param>
+        /// <returns></returns>
+        public IEnumerable<AccountEntity> Filter(AccountEntity pRequestingAcct = null)
         {
             // Don't do any filtering yet
-            foreach (AccountEntity ent in Accounts.Instance.AllAccountEntities()) {
+            foreach (AccountEntity acct in Accounts.Instance.AllAccountEntities()) {
                 bool matched = false;
-                if (!String.IsNullOrEmpty(_filter))
+
+                if (!matched && !String.IsNullOrEmpty(_filter))
                 {
-                    // TODO: add connection and friend implementations
+                    string[] pieces = _filter.Split(",");
+                    foreach (var filterCheck in pieces)
+                    {
+                        if (matched) break;
+
+                        switch (filterCheck)
+                        {
+                            case "online":
+                                if (acct.IsOnline)
+                                {
+                                    matched = true;
+                                }
+                                break;
+                            case "friends":
+                                if (acct.IsFriend(pRequestingAcct))
+                                {
+                                    matched = true;
+                                }
+                                break;
+                            case "connections":
+                                if (acct.IsConnected(pRequestingAcct))
+                                {
+                                    matched = true;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                 }
                 if (!matched && !String.IsNullOrEmpty(_status))
                 {
-                    if (_status == "online" && ent.IsOnline())
+                    string[] pieces = _status.Split(",");
+                    foreach (var statusCheck in pieces)
                     {
-                        matched = true;
+                        if (matched) break;
+
+                        switch (statusCheck)
+                        {
+                            case "online":
+                                if (acct.IsOnline)
+                                {
+                                    matched = true;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
                 if (!matched && !String.IsNullOrEmpty(_search))
                 {
-                    if (_search == ent.Username)
+                    // TODO: does this do wildcard things?
+                    if (_search == acct.Username)
                     {
                         matched = true;
                     }
                 }
-                if (matched) yield return ent;
+                if (matched) yield return acct;
+            }
+            yield break;
+        }
+    }
+
+    /// <summary>
+    /// Filter for an enumerable of AccountEntities.
+    /// Normally, a user can only see a collection of accounts that they
+    /// are connected to. This filter has logic for that and for other
+    /// scope information.
+    /// </summary>
+    public class AccountScopeFilter
+    {
+        private static readonly string _logHeader = "[AccountScopeInfo]";
+        AccountEntity _contextAccount;
+        public AccountScopeFilter(AccountEntity pAccount)
+        {
+            _contextAccount = pAccount;
+        }
+
+        /// <summary>
+        /// Generate an enumerable of filtered accounts.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<AccountEntity> Filter(IEnumerable<AccountEntity> pAccounts)
+        {
+            // Don't do any filtering yet
+            foreach (AccountEntity acct in pAccounts) {
+                bool matched = false;
+                if (_contextAccount != null)
+                {
+                    if (_contextAccount.IsAdmin)
+                    {
+                        matched = true;
+                    }
+                    else
+                    {
+                        if (_contextAccount.IsConnected(acct))
+                        {
+                            matched = true;
+                        }
+                    }
+                }
+                if (matched) yield return acct;
             }
             yield break;
         }

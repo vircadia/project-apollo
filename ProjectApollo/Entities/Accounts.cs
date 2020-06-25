@@ -291,6 +291,7 @@ namespace Project_Apollo.Entities
         public string wallet_id;
 
         // admin stuff
+        public bool Administrator;
         public string IPAddrOfCreator;          // IP address that created this account
         public DateTime WhenAccountCreated;     // What the variable name says
         public DateTime TimeOfLastHeartbeat;    // time that we had a heartbeat for this account
@@ -299,6 +300,7 @@ namespace Project_Apollo.Entities
         {
             AccountID = Guid.NewGuid().ToString();
             WhenAccountCreated = DateTime.UtcNow;
+            Administrator = false;
 
             // Old stuff
             xmpp_password = Tools.SHA256Hash("deprecated");
@@ -316,11 +318,41 @@ namespace Project_Apollo.Entities
         {
             return AccountID;
         }
-        public bool IsOnline()
+        public bool IsOnline
         {
-            // Presume the account is online if there has been a heartbest in the last minute
-            return TimeOfLastHeartbeat != null
-                    && (DateTime.UtcNow - TimeOfLastHeartbeat).TotalSeconds < 60;
+            get
+            {
+                // Presume the account is online if there has been a heartbest in the last minute
+                return TimeOfLastHeartbeat != null
+                        && (DateTime.UtcNow - TimeOfLastHeartbeat).TotalSeconds < 60;
+            }
+        }
+        public bool IsAdmin
+        {
+            get
+            {
+                return Administrator;
+            }
+        }
+        public bool IsConnected(AccountEntity pOtherAccount)
+        {
+            bool ret = false;
+            if (pOtherAccount != null)
+            {
+                // TODO: check other account for connected information
+                ret = true;
+            }
+            return ret;
+        }
+        public bool IsFriend(AccountEntity pOtherAccount)
+        {
+            bool ret = false;
+            if (pOtherAccount != null)
+            {
+                // TODO: check other account for connected information
+                ret = true;
+            }
+            return ret;
         }
         // Get the authorization information for a particular token.
         // Returns 'null' if there is no such authorization.
@@ -395,22 +427,31 @@ namespace Project_Apollo.Entities
         }
 
     }
+
+    public enum Discoverability
+    {
+        None,
+        Friends,
+        Connections,
+        All
+    };
     public class UserImages
     {
         public string Hero;
         public string Thumbnail;
         public string Tiny;
-    }
+    };
     public class LocationInfo
     {
         // Location information passed in heartbeat
-        public bool Connected;
-        public string Path;
-        public string PlaceID;
-        public string NetworkAddress;
-        public int NetworkPort;
-        public string NodeID;
-        public string Availability;
+        public bool Connected;  // domain.connected && discoverable
+        public string Path;     // floatX,floatY,floatZ/floatX,floatY,floatZ,floatW
+        public string PlaceID;  // uuid of root place
+        public string DomainID; // uuid of domain in
+        public string NetworkAddress;   // if no domainID, the domain host address
+        public int NetworkPort;     // if no domainID, the domain port
+        public string NodeID;   // sessionUUID
+        public Discoverability Availability; // Discoverability
     };
 
     public class AuthTokenInfo

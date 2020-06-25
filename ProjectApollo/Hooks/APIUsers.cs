@@ -15,17 +15,14 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.IO;
+using System.Web;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
 
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Linq;
-using System.Threading;
-using Microsoft.VisualBasic;
 
 namespace Project_Apollo.Hooks
 {
@@ -37,9 +34,20 @@ namespace Project_Apollo.Hooks
         // The heartbeat depends on whether logged in or not.
         // If not logged in, it just pings the server
         // If logged in, sends location data if it has changed
-        public struct bodyUserHeartbeatLocation {
+        public struct bodyUserHeartbeatLocation
+        {
             // whole section is optional and sent if changed
-            public LocationInfo location;
+            public bodyHeartbeatLocationInfo location;
+        }
+        public struct bodyHeartbeatLocationInfo {
+            public bool connected;      // 'true' if discoverable and domain.connected
+            public string path;         // XYZ/XYZW
+            public string place_id;     // UUID of root place
+            public string domain_id;    // UUID of domain
+            public string network_address;  // network address of domain
+            public string network_port; // domain port
+            public string node_id;      // sessionUUID
+            public string availability;   // Discoverabiliy mode
         };
         public struct bodyUserHeartbeatResponse {
             public string session_id;
@@ -58,26 +66,12 @@ namespace Project_Apollo.Hooks
                 if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
                 {
                     aAccount.TimeOfLastHeartbeat = DateTime.UtcNow;
-                    try
+                    GetAccountLocationIfSpecified(aAccount, pReq);
+
+                    respBody.Data = new bodyUserHeartbeatResponse()
                     {
-                        // The 'location' information is sent only when it changes
-                        JObject requestBodyJSON = pReq.RequestBodyJSON();
-                        if (requestBodyJSON.ContainsKey("location"))
-                        {
-                            bodyUserHeartbeatLocation requestData = pReq.RequestBodyObject<bodyUserHeartbeatLocation>();
-                            aAccount.Location = requestData.location;
-                        }
-                        respBody.Data = new bodyUserHeartbeatResponse()
-                        {
-                            session_id = aSession?.SessionID
-                        };
-                    }
-                    catch (Exception e)
-                    {
-                        Context.Log.Error("{0} Exception parsing body of /api/v1/user/heartbeat. AccountID={1}. {2}",
-                                        _logHeader, aAccount.AccountID, e);
-                        respBody.RespondFailure();
-                    }
+                        session_id = aSession?.SessionID
+                    };
                 }
                 else
                 {
@@ -118,17 +112,29 @@ namespace Project_Apollo.Hooks
             public string username;
             public string connection;
             public UserImages images;
+            // the code seems to allow "location", "place", or "domain"
             public bodyLocationInfo location;
         }
         public struct bodyLocationInfo
         {
             public string node_id;      // sessionID
             public bodyNamedLoc root;
-            public bodyNamedLoc domain;
+            public string path;
+            public bool online;
         }
         public struct bodyNamedLoc
         {
             public string name;
+            public bodyDomainInfo domain;
+        }
+        public struct bodyDomainInfo
+        {
+            public string id;
+            public string name;
+            public string default_place_name;
+            public string network_address;
+            public string network_port;
+            public string ice_server_address;
         }
         [APIPath("/api/v1/users", "GET", true)]
         public RESTReplyData user_get(RESTRequestData pReq, List<string> pArgs)
@@ -141,27 +147,25 @@ namespace Project_Apollo.Hooks
 
             SessionEntity aSession = Sessions.Instance.GetSession(pReq.SenderKey);
 
-            // var foundUsers = new List<AccountEntity>(pagination.Filter<AccountEntity>(acctFilter.Filter()));
-            respBody.Data = new bodyUsersReply() {
-                users = pagination.Filter<AccountEntity>(acctFilter.Filter()).Select(acct =>
-                {
-                    return new bodyUser()
-                    {
-                        username = acct.Username,
-                        connection = "",
-                        images = acct.Images,
-                        location = new bodyLocationInfo()
-                        {
-                            node_id = aSession?.SessionID,
-                            root = new bodyNamedLoc()
-                            {
-                                name = acct.Location?.PlaceID
-                            }
-                        }
-                    };
-                }).ToArray()
-            };
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                AccountScopeFilter scopeFilter = new AccountScopeFilter(aAccount);
 
+                respBody.Data = new bodyUsersReply() {
+                    users = pagination.Filter<AccountEntity>(scopeFilter.Filter(acctFilter.Filter(aAccount))).Select(acct =>
+                    {
+                        bodyUser ret = new bodyUser()
+                        {
+                            username = acct.Username,
+                            images = acct.Images,
+                        };
+                        ret.location = BuildLocationInfo(acct);
+                        return ret;
+                    }).ToArray()
+                };
+            }
+
+            // Pagination fills the top level of the reply with paging info
             pagination.AddReplyFields(respBody);
 
             replyData.Body = respBody;  // serializes JSON
@@ -172,7 +176,7 @@ namespace Project_Apollo.Hooks
         public struct bodyUsersPost
         {
             public Dictionary<string,string> user;
-        }
+        };
         // TODO: What authorization is needed for this? DDOS attack possibility?
         [APIPath("/api/v1/users", "POST", true)]
         public RESTReplyData user_create(RESTRequestData pReq, List<string> pArgs)
@@ -466,9 +470,7 @@ namespace Project_Apollo.Hooks
             {
                 try
                 {
-                    bodyUserHeartbeatLocation locInfo = pReq.RequestBodyObject<bodyUserHeartbeatLocation>();
-                    aAccount.Location = locInfo.location;
-                    aAccount.Updated();
+                    GetAccountLocationIfSpecified(aAccount, pReq);
                 }
                 catch
                 {
@@ -484,6 +486,36 @@ namespace Project_Apollo.Hooks
             replyData.Body = respBody;
             return replyData;
         }
+        private void GetAccountLocationIfSpecified(AccountEntity pAccount, RESTRequestData pReq) {
+            try
+            {
+                // The 'location' information is sent only when it changes
+                JObject requestBodyJSON = pReq.RequestBodyJSON();
+                if (requestBodyJSON.ContainsKey("location"))
+                {
+                    bodyUserHeartbeatLocation requestData = pReq.RequestBodyObject<bodyUserHeartbeatLocation>();
+
+                    bodyHeartbeatLocationInfo loc = requestData.location;
+                    pAccount.Location = new LocationInfo()
+                    {
+                        Connected = loc.connected,
+                        Path = loc.path,
+                        PlaceID = loc.place_id,
+                        DomainID = loc.domain_id,
+                        NetworkAddress = loc.network_address,
+                        NetworkPort = Int32.Parse(loc.network_port),
+                        NodeID = loc.node_id,
+                        Availability = Enum.Parse<Discoverability>(loc.availability, false)
+                    };
+                    pAccount.Updated();
+                }
+            }
+            catch (Exception e)
+            {
+                Context.Log.Error("{0} GetAccountLocationIfSpecified: Exception parsing body of message. AccountID={1}. {2}",
+                                _logHeader, pAccount.AccountID, e);
+            }
+        }
 
 
         // == GET /api/v1/users/%/location ==================================================
@@ -495,10 +527,30 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                respBody.Data = new bodyUserHeartbeatLocation()
+                // aAccount = the requesting account
+                // TODO: lookup the specified user and see if requestor can see their location
+                string otherAccountName = pArgs.Count == 1 ? pArgs[0] : null;
+                if (!String.IsNullOrEmpty(otherAccountName))
                 {
-                    location = aAccount.Location
-                };
+                    // Convert the %20's to spaces, etc
+                    otherAccountName = HttpUtility.UrlDecode(otherAccountName);
+                    if (Accounts.Instance.TryGetAccountWithUsername(otherAccountName, out AccountEntity otherAccount))
+                    {
+                        // Using only one field in 'bodyUser', others will be null and thus not sent
+                        respBody.Data = new bodyUser()
+                        {
+                            location = BuildLocationInfo(aAccount)
+                        };
+                    }
+                    else
+                    {
+                        respBody.RespondFailure();
+                    }
+                }
+                else
+                {
+                    respBody.RespondFailure();
+                }
             }
             else
             {
@@ -507,6 +559,62 @@ namespace Project_Apollo.Hooks
             }
             replyData.Body = respBody;
             return replyData;
+        }
+        private bodyLocationInfo BuildLocationInfo(AccountEntity pAccount, SessionEntity pSession = null)
+        {
+            bodyLocationInfo ret;
+            if (pAccount.Location != null)
+            {
+                if (!String.IsNullOrEmpty(pAccount.Location.DomainID)
+                    && Domains.Instance.TryGetDomainWithID(pAccount.Location.DomainID, out DomainEntity aDomain))
+                {
+                    ret = new bodyLocationInfo()
+                    {
+                        node_id = pSession?.SessionID,
+                        root = new bodyNamedLoc()
+                        {
+                            domain = new bodyDomainInfo()
+                            {
+                                id = aDomain.DomainID,
+                                name = aDomain.PlaceName,
+                                network_address = aDomain.NetworkAddr,
+                                // network_port = pDomain.?,
+                                ice_server_address = aDomain.IceServerAddr
+                            },
+                            name = aDomain.PlaceName
+                        },
+                        path = pAccount.Location.Path,
+                        online = pAccount.IsOnline
+                    };
+                }
+                else
+                {
+                    // The domain does not have an ID
+                    ret = new bodyLocationInfo()
+                    {
+                        node_id = pSession?.SessionID,
+                        online = pAccount.IsOnline,
+                        root = new bodyNamedLoc()
+                        {
+                            domain = new bodyDomainInfo()
+                            {
+                                network_address = pAccount.Location.NetworkAddress,
+                                network_port = pAccount.Location.NetworkPort.ToString()
+                            }
+
+                        }
+                    };
+                }
+            }
+            else
+            {
+                ret = new bodyLocationInfo()
+                {
+                    node_id = pSession?.SessionID,
+                    online = pAccount.IsOnline
+                };
+            }
+            return ret;
         }
 
         // = GET /api/v1/user/profile =======================================================

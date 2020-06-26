@@ -37,13 +37,9 @@ namespace Project_Apollo.Hooks
         //    on the request. If it's not set, don't retun that field.
         public struct bodyDomainReplyData
         {
-            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string id;
-            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string name;
-            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string ice_server_address;
-            [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
             public string api_key;
         }
         public struct bodyDomainResponse

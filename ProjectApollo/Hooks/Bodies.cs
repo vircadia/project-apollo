@@ -83,7 +83,10 @@ namespace Project_Apollo.Hooks
             {
                 respBody.Add("data", Data);
             }
-            return JsonConvert.SerializeObject(respBody);
+            return JsonConvert.SerializeObject(respBody, Formatting.None, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            });
         }
     }
 }

@@ -63,7 +63,16 @@ namespace Project_Apollo.Hooks
                         // string userPassword = reqArgs["oculus_nonce"];
                         // string userPassword = reqArgs["oculus_id"];
 
-                        string userScope = reqArgs["scope"] ?? "owner";
+                        AuthTokenInfo.ScopeCode userScope = AuthTokenInfo.ScopeCode.owner;
+                        try
+                        {
+                            userScope = Enum.Parse<AuthTokenInfo.ScopeCode>(reqArgs["scope"] ?? "owner");
+                        }
+                        catch
+                        {
+                            Context.Log.Error("{0} /oauth/token: unknown scope code: {1}", _logHeader, reqArgs["scope"]);
+                            userScope = AuthTokenInfo.ScopeCode.owner;
+                        }
 
                         // Context.Log.Debug("{0} Get access token for {1} with password", _logHeader, userName);
 
@@ -161,7 +170,7 @@ namespace Project_Apollo.Hooks
                 token_type = "Bearer",
                 expires_in = (int)(pTokenInfo.TokenExpirationTime - pTokenInfo.TokenCreationTime).TotalSeconds,
                 refresh_token = pTokenInfo.RefreshToken,
-                scope = pTokenInfo.Scope,
+                scope = pTokenInfo.Scope.ToString(),
                 created_at = ((DateTimeOffset)pTokenInfo.TokenCreationTime).ToUnixTimeSeconds()
             });
         }
@@ -184,7 +193,7 @@ namespace Project_Apollo.Hooks
                     // Getting a token for a domain server
                     if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
                     {
-                        AuthTokenInfo token = oAccount.CreateAccessToken("domain");
+                        AuthTokenInfo token = oAccount.CreateAccessToken(AuthTokenInfo.ScopeCode.domain);
                         // The domain/account association is permenant... expiration is far from now
                         token.TokenExpirationTime = new DateTime(2999, 12, 31);
 
@@ -234,12 +243,12 @@ namespace Project_Apollo.Hooks
                     switch (scope)
                     {
                         case "domain":
-                            token = oAccount.CreateAccessToken(scope);
+                            token = oAccount.CreateAccessToken(AuthTokenInfo.ScopeCode.domain);
                             // The domain/account association lasts longer
                             token.TokenExpirationTime = new DateTime(2999, 12, 31);
                             break;
                         case "owner":
-                            token = oAccount.CreateAccessToken(scope);
+                            token = oAccount.CreateAccessToken(AuthTokenInfo.ScopeCode.owner);
                             break;
                         default:
                             break;

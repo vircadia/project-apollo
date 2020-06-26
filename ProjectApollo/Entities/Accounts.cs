@@ -103,7 +103,8 @@ namespace Project_Apollo.Entities
                 {
                     foreach (var kvp in ActiveAccounts)
                     {
-                        if (kvp.Value.GetAuthTokenInfo(pAuthToken) != null)
+                        // TODO: decide if we shoud only look for 'owner' auth tokens
+                        if (kvp.Value.GetAuthTokenInfo(pAuthToken, AuthTokenInfo.ScopeCode.any) != null)
                         {
                             oAccount = kvp.Value;
                             return true;
@@ -356,11 +357,11 @@ namespace Project_Apollo.Entities
         }
         // Get the authorization information for a particular token.
         // Returns 'null' if there is no such authorization.
-        public AuthTokenInfo GetAuthTokenInfo(string pToken)
+        public AuthTokenInfo GetAuthTokenInfo(string pToken, AuthTokenInfo.ScopeCode pScope = AuthTokenInfo.ScopeCode.any)
         {
             foreach (var authInfo in AuthTokens)
             {
-                if (authInfo.Token == pToken)
+                if (authInfo.Token == pToken && (pScope == AuthTokenInfo.ScopeCode.any || authInfo.Scope == pScope) )
                 {
                     return authInfo;
                 }
@@ -374,25 +375,11 @@ namespace Project_Apollo.Entities
         /// <param name="pScope">scope of token (usually 'owner')</param>
         /// <param name="pParam">an extra uniquifying string to add to generated token</param>
         /// <returns>The created token</returns>
-        public AuthTokenInfo CreateAccessToken(string pScope, string pParam = "")
+        public AuthTokenInfo CreateAccessToken(AuthTokenInfo.ScopeCode pScope, string pParam = "")
         {
-            // Some quick tokens. Eventually move to JWT tokens.
-            TimeSpan tokenExpirationInterval =
-                    new TimeSpan(Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS), 0, 0);
-            int tokenExpirationSeconds = (int)tokenExpirationInterval.TotalSeconds;
-            string refreshToken = Tools.SHA256Hash(tokenExpirationSeconds.ToString() + ";" + pParam);
-            string accessToken = Tools.SHA256Hash(DateTime.UtcNow.ToString() + ";" + refreshToken);
-
-            AuthTokenInfo authInfo = new AuthTokenInfo(accessToken, refreshToken)
-            {
-                TokenExpirationTime = DateTime.UtcNow + tokenExpirationInterval,
-                Scope = pScope,
-                ExtraParam = pParam
-            };
-
+            AuthTokenInfo authInfo = AuthTokenInfo.NewToken(pScope, pParam);
             this.AuthTokens.Add(authInfo);
             this.Updated();
-
             return authInfo;
         }
         /// <summary>
@@ -456,12 +443,20 @@ namespace Project_Apollo.Entities
 
     public class AuthTokenInfo
     {
+        public enum ScopeCode
+        {
+            any,        // used in searching to match any scope
+            owner,      // account authorization
+            domain,     // domain authorization
+            web         // web access authorization
+        };
+
         public string Token;
         public string TokenId;
         public string RefreshToken;
         public DateTime TokenCreationTime;
         public DateTime TokenExpirationTime;
-        public string Scope;    // "owner" for account access, "domain" for domain access
+        public ScopeCode Scope;    // "owner" for account access, "domain" for domain access
         public string ExtraParam;   // extra data used in token creation
 
         public AuthTokenInfo()
@@ -480,6 +475,28 @@ namespace Project_Apollo.Entities
             Token = pToken;
             RefreshToken = pRefreshToken;
         }
+
+        public static AuthTokenInfo NewToken(ScopeCode pScope, string pParam)
+        {
+            // Some quick tokens. Eventually move to JWT tokens.
+            TimeSpan tokenExpirationInterval =
+                    new TimeSpan(Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS), 0, 0);
+            int tokenExpirationSeconds = (int)tokenExpirationInterval.TotalSeconds;
+            // string refreshToken = Tools.SHA256Hash(tokenExpirationSeconds.ToString() + ";" + pParam);
+            // string accessToken = Tools.SHA256Hash(DateTime.UtcNow.ToString() + ";" + refreshToken);
+            string refreshToken = Guid.NewGuid().ToString();
+            string accessToken = Guid.NewGuid().ToString();
+
+            AuthTokenInfo authInfo = new AuthTokenInfo(accessToken, refreshToken)
+            {
+                TokenExpirationTime = DateTime.UtcNow + tokenExpirationInterval,
+                Scope = pScope,
+                ExtraParam = pParam
+            };
+
+            return authInfo;
+        }
+
         public bool HasExpired()
         {
             return TokenExpirationTime < DateTime.UtcNow;

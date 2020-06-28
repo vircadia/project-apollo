@@ -85,6 +85,7 @@ namespace Project_Apollo.Configuration
         public static readonly string P_LOGGER_LOG_DIR = "Logger.LogDirectory";
 
         public static readonly string P_DEBUG_PROCESSING = "Debug.Processing";
+        public static readonly string P_DEBUG_QUERIES = "Debug.Queries";
 
         private readonly ParamBlock _defaultParameters;
         private ParamPersistant _siteParameters;
@@ -158,6 +159,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LOGGER_LOG_DIR, "Directory to put logs into", "Logs"));
 
             ret.Add(new ParamBlock.ParameterDefn<bool>(P_DEBUG_PROCESSING, "Whether to print each API request processing", false));
+            ret.Add(new ParamBlock.ParameterDefn<bool>(P_DEBUG_QUERIES, "Whether to print each query request processing", false));
 
             ret.SetParameterDefaultValues();
 

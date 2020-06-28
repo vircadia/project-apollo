@@ -14,18 +14,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.IO;
-
-using Newtonsoft.Json;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
-using System.Data.Common;
-using Microsoft.VisualBasic.CompilerServices;
-using NUnit.Framework.Constraints;
-using System.Text.RegularExpressions;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Hooks
 {
@@ -112,6 +104,11 @@ namespace Project_Apollo.Hooks
                 pReq.Queries.TryGetValue("filter", out _filter);
                 pReq.Queries.TryGetValue("status", out _status);
                 pReq.Queries.TryGetValue("search", out _search);
+                if (Context.Params.P<bool>(AppParams.P_DEBUG_QUERIES))
+                {
+                    Context.Log.Debug("{0} AccountFilterInfo: filter={1}, status={2}, search={3}",
+                                _logHeader, _filter, _status, _search);
+                }
             }
             catch (Exception e)
             {
@@ -128,7 +125,6 @@ namespace Project_Apollo.Hooks
         /// <returns></returns>
         public IEnumerable<AccountEntity> Filter(AccountEntity pRequestingAcct = null)
         {
-            // Don't do any filtering yet
             foreach (AccountEntity acct in Accounts.Instance.AllAccountEntities()) {
                 bool matched = false;
 
@@ -142,22 +138,13 @@ namespace Project_Apollo.Hooks
                         switch (filterCheck)
                         {
                             case "online":
-                                if (acct.IsOnline)
-                                {
-                                    matched = true;
-                                }
+                                matched = acct.IsOnline;
                                 break;
                             case "friends":
-                                if (acct.IsFriend(pRequestingAcct))
-                                {
-                                    matched = true;
-                                }
+                                matched = acct.IsFriend(pRequestingAcct);
                                 break;
                             case "connections":
-                                if (acct.IsConnected(pRequestingAcct))
-                                {
-                                    matched = true;
-                                }
+                                matched = acct.IsConnected(pRequestingAcct);
                                 break;
                             default:
                                 break;
@@ -230,10 +217,7 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        if (_contextAccount.IsConnected(acct))
-                        {
-                            matched = true;
-                        }
+                        matched = _contextAccount.IsConnected(acct);
                     }
                 }
                 if (matched) yield return acct;

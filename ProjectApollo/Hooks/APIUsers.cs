@@ -503,9 +503,9 @@ namespace Project_Apollo.Hooks
                         PlaceID = loc.place_id,
                         DomainID = loc.domain_id,
                         NetworkAddress = loc.network_address,
-                        NetworkPort = Int32.Parse(loc.network_port),
+                        NetworkPort = Int32.Parse(loc.network_port ?? "9400"),
                         NodeID = loc.node_id,
-                        Availability = Enum.Parse<Discoverability>(loc.availability, false)
+                        Availability = Enum.Parse<Discoverability>(loc.availability ?? "none", false)
                     };
                     pAccount.Updated();
                 }
@@ -514,6 +514,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} GetAccountLocationIfSpecified: Exception parsing body of message. AccountID={1}. {2}",
                                 _logHeader, pAccount.AccountID, e);
+                Context.Log.Error("{0} GetAccountLocationIfSpecified:     Body = {1}", _logHeader, pReq.RequestBody);
             }
         }
 

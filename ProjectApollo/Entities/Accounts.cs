@@ -417,10 +417,10 @@ namespace Project_Apollo.Entities
 
     public enum Discoverability
     {
-        None,
-        Friends,
-        Connections,
-        All
+        none,
+        friends,
+        connections,
+        all
     };
     public class UserImages
     {

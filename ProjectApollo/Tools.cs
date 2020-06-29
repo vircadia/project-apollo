@@ -24,6 +24,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json.Linq;
+
 namespace Project_Apollo
 {
     public class Tools
@@ -190,6 +192,22 @@ namespace Project_Apollo
             }
 
             return retIPAddr;
+        }
+
+        // JSON tools
+        // See if the item is specified in the JObject and, if so, set the destination location.
+        public static void SetIfSpecified<T>(JObject pSpecs, string pItem, ref T pDest)
+        {
+            JToken maybe = pSpecs[pItem];
+            if (maybe != null)
+            {
+                pDest = maybe.ToObject<T>();
+                // Context.Log.Debug("{0} SetIfSpecified: Setting {1}={2}", _logHeader, pItem, pDest);
+            }
+            else
+            {
+                // Context.Log.Debug("{0} SetIfSpecified: Not setting {1}", _logHeader, pItem);
+            }
         }
     }
 }

@@ -14,7 +14,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.IO;
 using System.Net;
 
@@ -141,16 +140,16 @@ namespace Project_Apollo.Hooks
                     // Context.Log.Debug("{0} domain_heartbeat. Received {1}", _logHeader, pReq.RequestBody);
                     if (VerifyDomainAccess(aDomain, pReq, apiKey))
                     {
-                        SetIfSpecified<string>(domainStuff, "version", ref aDomain.Version);
-                        SetIfSpecified<string>(domainStuff, "protocol", ref aDomain.Protocol);
-                        SetIfSpecified<string>(domainStuff, "network_address", ref aDomain.NetworkAddr);
-                        SetIfSpecified<string>(domainStuff, "automatic_networking", ref aDomain.NetworkingMode);
-                        SetIfSpecified<bool>(domainStuff, "restricted", ref aDomain.Restricted);
+                        Tools.SetIfSpecified<string>(domainStuff, "version", ref aDomain.Version);
+                        Tools.SetIfSpecified<string>(domainStuff, "protocol", ref aDomain.Protocol);
+                        Tools.SetIfSpecified<string>(domainStuff, "network_address", ref aDomain.NetworkAddr);
+                        Tools.SetIfSpecified<string>(domainStuff, "automatic_networking", ref aDomain.NetworkingMode);
+                        Tools.SetIfSpecified<bool>(domainStuff, "restricted", ref aDomain.Restricted);
 
-                        SetIfSpecified<int>(domainStuff, "capacity", ref aDomain.Capacity);
-                        SetIfSpecified<string>(domainStuff, "description", ref aDomain.Description);
-                        SetIfSpecified<string>(domainStuff, "maturity", ref aDomain.Maturity);
-                        SetIfSpecified<string>(domainStuff, "restriction", ref aDomain.Restriction);
+                        Tools.SetIfSpecified<int>(domainStuff, "capacity", ref aDomain.Capacity);
+                        Tools.SetIfSpecified<string>(domainStuff, "description", ref aDomain.Description);
+                        Tools.SetIfSpecified<string>(domainStuff, "maturity", ref aDomain.Maturity);
+                        Tools.SetIfSpecified<string>(domainStuff, "restriction", ref aDomain.Restriction);
                         JArray hosts = (JArray)domainStuff["hosts"];
                         if (hosts != null)
                         {
@@ -165,8 +164,8 @@ namespace Project_Apollo.Hooks
                         JObject heartbeat = (JObject)domainStuff["heartbeat"];
                         if (heartbeat != null)
                         {
-                            SetIfSpecified<int>(heartbeat, "num_users", ref aDomain.NumUsers);
-                            SetIfSpecified<int>(heartbeat, "num_anon_users", ref aDomain.AnonUsers);
+                            Tools.SetIfSpecified<int>(heartbeat, "num_users", ref aDomain.NumUsers);
+                            Tools.SetIfSpecified<int>(heartbeat, "num_anon_users", ref aDomain.AnonUsers);
                             aDomain.TotalUsers = aDomain.NumUsers + aDomain.AnonUsers;
                             // TODO: what to do with user_hostnames
                         }
@@ -251,20 +250,6 @@ namespace Project_Apollo.Hooks
                                     _logHeader, pDomain.DomainID, pDomain.API_Key, pReq.AuthToken, pPossibleApiKey);
             }
             return ret;
-        }
-        // See if the item is specified in the JObject and, if so, set the destination location.
-        private void SetIfSpecified<T>(JObject pSpecs, string pItem, ref T pDest)
-        {
-            JToken maybe = pSpecs[pItem];
-            if (maybe != null)
-            {
-                pDest = maybe.ToObject<T>();
-                // Context.Log.Debug("{0} SetIfSpecified: Setting {1}={2}", _logHeader, pItem, pDest);
-            }
-            else
-            {
-                // Context.Log.Debug("{0} SetIfSpecified: Not setting {1}", _logHeader, pItem);
-            }
         }
         // == PUT /api/v1/domains/%/ice_server_address ===========================
         public struct bodyIceServerPutData

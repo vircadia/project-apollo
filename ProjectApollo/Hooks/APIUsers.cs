@@ -149,7 +149,7 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
-                AccountScopeFilter scopeFilter = new AccountScopeFilter(aAccount);
+                AccountScopeFilter scopeFilter = new AccountScopeFilter(pReq, aAccount);
 
                 respBody.Data = new bodyUsersReply() {
                     users = pagination.Filter<AccountEntity>(scopeFilter.Filter(acctFilter.Filter(aAccount))).Select(acct =>

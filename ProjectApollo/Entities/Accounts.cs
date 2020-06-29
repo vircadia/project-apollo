@@ -18,6 +18,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BCrypt.Net;
+using Newtonsoft.Json;
 using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities
@@ -104,7 +105,7 @@ namespace Project_Apollo.Entities
                     foreach (var kvp in ActiveAccounts)
                     {
                         // TODO: decide if we shoud only look for 'owner' auth tokens
-                        if (kvp.Value.GetAuthTokenInfo(pAuthToken, AuthTokenInfo.ScopeCode.any) != null)
+                        if (kvp.Value.TryGetAuthTokenInfo(pAuthToken, out _, AuthTokenInfo.ScopeCode.any))
                         {
                             oAccount = kvp.Value;
                             return true;
@@ -200,11 +201,7 @@ namespace Project_Apollo.Entities
             {
                 aEntities = new List<AccountEntity>(ActiveAccounts.Values);
             }
-            foreach (AccountEntity ent in aEntities)
-            {
-                yield return ent;
-            }
-            yield break;
+            return aEntities.AsEnumerable();
         }
         public void ExpireAuthTokens()
         {
@@ -212,20 +209,15 @@ namespace Project_Apollo.Entities
             {
                 foreach (var acct in ActiveAccounts.Values)
                 {
-                    int numExpired = 0;
-                    for (int ii = acct.AuthTokens.Count - 1; ii >= 0; ii--)
+                    List<AuthTokenInfo> toExpire = acct.AuthTokens.Enumerate().Where(
+                            auth => { return auth.HasExpired(); }
+                        ).ToList();
+                    if (toExpire.Count > 0)
                     {
-                        var token = acct.AuthTokens[ii];
-                        if (token.HasExpired())
+                        foreach (var tok in toExpire)
                         {
-                            acct.AuthTokens.RemoveAt(ii);
-                            numExpired++;
-                            Context.Log.Debug("{0} Expiring AuthToken for acct {1}",
-                                            _logHeader, acct.Username);
+                            acct.AuthTokens.Delete(tok);
                         }
-                    }
-                    if (numExpired > 0)
-                    {
                         acct.Updated();
                     }
                 }
@@ -275,7 +267,7 @@ namespace Project_Apollo.Entities
 
         public string Public_Key;
         // tokens for access by this user
-        public List<AuthTokenInfo> AuthTokens = new List<AuthTokenInfo>();
+        public ControlledList<AuthTokenInfo> AuthTokens = new ControlledList<AuthTokenInfo>();
 
         public string AccountSettings;          // JSON of client settings
 
@@ -283,8 +275,8 @@ namespace Project_Apollo.Entities
 
         public LocationInfo Location;           // Where the user says they are
 
-        public List<string> Connections = new List<string>();
-        public List<string> Friends = new List<string>();
+        public ControlledList<string> Connections = new ControlledList<string>();
+        public ControlledList<string> Friends = new ControlledList<string>();
 
         // Old stuff
         public string xmpp_password;
@@ -319,6 +311,7 @@ namespace Project_Apollo.Entities
         {
             return AccountID;
         }
+        [JsonIgnore]
         public bool IsOnline
         {
             get
@@ -328,6 +321,7 @@ namespace Project_Apollo.Entities
                         && (DateTime.UtcNow - TimeOfLastHeartbeat).TotalSeconds < 60;
             }
         }
+        [JsonIgnore]
         public bool IsAdmin
         {
             get
@@ -357,16 +351,19 @@ namespace Project_Apollo.Entities
         }
         // Get the authorization information for a particular token.
         // Returns 'null' if there is no such authorization.
-        public AuthTokenInfo GetAuthTokenInfo(string pToken, AuthTokenInfo.ScopeCode pScope = AuthTokenInfo.ScopeCode.any)
+        public bool TryGetAuthTokenInfo(string pToken, out AuthTokenInfo oAuthToken,
+                                    AuthTokenInfo.ScopeCode pScope = AuthTokenInfo.ScopeCode.any)
         {
-            foreach (var authInfo in AuthTokens)
+            foreach (var authInfo in AuthTokens.Enumerate())
             {
                 if (authInfo.Token == pToken && (pScope == AuthTokenInfo.ScopeCode.any || authInfo.Scope == pScope) )
                 {
-                    return authInfo;
+                    oAuthToken = authInfo;
+                    return true;
                 }
             }
-            return null;
+            oAuthToken = null;
+            return false;
         }
         /// <summary>
         /// Create an access token for this account and add it to the list
@@ -378,7 +375,7 @@ namespace Project_Apollo.Entities
         public AuthTokenInfo CreateAccessToken(AuthTokenInfo.ScopeCode pScope, string pParam = "")
         {
             AuthTokenInfo authInfo = AuthTokenInfo.NewToken(pScope, pParam);
-            this.AuthTokens.Add(authInfo);
+            this.AuthTokens.Insert(authInfo);
             this.Updated();
             return authInfo;
         }
@@ -412,7 +409,51 @@ namespace Project_Apollo.Entities
             }
             return ret;
         }
+        public bool DeleteAuthToken(string pAuthTokenId)
+        {
+            bool ret = false;
+            if (this.TryGetAuthTokenInfo(pAuthTokenId, out AuthTokenInfo deleteToken))
+            {
+                AuthTokens.Delete(deleteToken);
+                ret = true;
+            }
+            return ret;
+        }
+    }
 
+    /// <summary>
+    /// Class for list of items that must be locked before access.
+    /// It subclasses List so this doesn't need JSON serialization overloads.
+    /// This allows callers to use the base list operations which could
+    /// cause problems if locking is ignored.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class ControlledList<T> : List<T>
+    {
+        public ControlledList<T> Insert(T pToAdd)
+        {
+            lock (this)
+            {
+                this.Add(pToAdd);
+            }
+            return this;
+        }
+        public void Delete(T pToRemove)
+        {
+            lock (this)
+            {
+                this.Remove(pToRemove);
+            }
+        }
+        public IEnumerable<T> Enumerate()
+        {
+            List<T> copyOf;
+            lock (this)
+            {
+                copyOf = new List<T>(this);
+            }
+            return copyOf.AsEnumerable<T>();
+        }
     }
 
     public enum Discoverability
@@ -451,12 +492,12 @@ namespace Project_Apollo.Entities
             web         // web access authorization
         };
 
-        public string Token;
-        public string TokenId;
-        public string RefreshToken;
-        public DateTime TokenCreationTime;
-        public DateTime TokenExpirationTime;
-        public ScopeCode Scope;    // "owner" for account access, "domain" for domain access
+        public string TokenId;      // A unique id identifying this token instance
+        public string Token;        // The actual token
+        public string RefreshToken; // A token used to refresh this token
+        public DateTime TokenCreationTime;  // When the token was created
+        public DateTime TokenExpirationTime;// When the token expires
+        public ScopeCode Scope;     // "owner" for account access, "domain" for domain access
         public string ExtraParam;   // extra data used in token creation
 
         public AuthTokenInfo()
@@ -481,7 +522,7 @@ namespace Project_Apollo.Entities
             // Some quick tokens. Eventually move to JWT tokens.
             TimeSpan tokenExpirationInterval =
                     new TimeSpan(Context.Params.P<int>(AppParams.P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS), 0, 0);
-            int tokenExpirationSeconds = (int)tokenExpirationInterval.TotalSeconds;
+            // int tokenExpirationSeconds = (int)tokenExpirationInterval.TotalSeconds;
             // string refreshToken = Tools.SHA256Hash(tokenExpirationSeconds.ToString() + ";" + pParam);
             // string accessToken = Tools.SHA256Hash(DateTime.UtcNow.ToString() + ";" + refreshToken);
             string refreshToken = Guid.NewGuid().ToString();

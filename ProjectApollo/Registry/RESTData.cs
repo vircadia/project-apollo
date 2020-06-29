@@ -22,6 +22,7 @@ using Newtonsoft.Json.Linq;
 
 using HttpMultipartParser;
 using System.Linq;
+using System.Text.Encodings.Web;
 
 namespace Project_Apollo.Registry
 {
@@ -184,7 +185,32 @@ namespace Project_Apollo.Registry
             {
                 if (_queryParameters == null)
                 {
-                    _queryParameters = Tools.NVC2Dict(_listenerContext.Request.QueryString);
+                    // 'Request.QueryString' is odd for queries without values so
+                    //     this does its own parsing
+                    _queryParameters = new Dictionary<string, string>();
+
+                    var queryString = _listenerContext.Request.Url.Query;
+                    if (queryString.StartsWith("?"))
+                    {
+                        queryString = queryString.Substring(1);
+                    }
+
+                    string[] queries = queryString.Split("&");
+                    foreach (var query in queries)
+                    {
+                        string[] queryPieces = query.Split("=");
+                        if (queryPieces.Length == 1)
+                        {
+                            _queryParameters.Add(queryPieces[0], "true");
+                        }
+                        else
+                        {
+                            if (queryPieces.Length == 2)
+                            {
+                                _queryParameters.Add(queryPieces[0], WebUtility.UrlDecode(queryPieces[1]));
+                            }
+                        }
+                    }
                 }
                 return _queryParameters;
             }

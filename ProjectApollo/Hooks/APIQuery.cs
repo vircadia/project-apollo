@@ -126,60 +126,68 @@ namespace Project_Apollo.Hooks
         public IEnumerable<AccountEntity> Filter(AccountEntity pRequestingAcct = null)
         {
             foreach (AccountEntity acct in Accounts.Instance.AllAccountEntities()) {
-                bool matched = false;
+                bool filtering = !String.IsNullOrEmpty(_filter);
+                bool matchedFilter = false;
+                bool statusing = !String.IsNullOrEmpty(_status);
+                bool matchedStatus = false;
+                bool searching = !String.IsNullOrEmpty(_search);
+                bool matchedSearch = false;
 
-                if (!matched && !String.IsNullOrEmpty(_filter))
+                if (filtering)
                 {
                     string[] pieces = _filter.Split(",");
                     foreach (var filterCheck in pieces)
                     {
-                        if (matched) break;
+                        if (matchedFilter) break;
 
                         switch (filterCheck)
                         {
                             case "online":
-                                matched = acct.IsOnline;
+                                matchedFilter = acct.IsOnline;
                                 break;
                             case "friends":
-                                matched = acct.IsFriend(pRequestingAcct);
+                                matchedFilter = acct.IsFriend(pRequestingAcct);
                                 break;
                             case "connections":
-                                matched = acct.IsConnected(pRequestingAcct);
+                                matchedFilter = acct.IsConnected(pRequestingAcct);
                                 break;
                             default:
                                 break;
                         }
                     }
                 }
-                if (!matched && !String.IsNullOrEmpty(_status))
+                if (statusing)
                 {
                     string[] pieces = _status.Split(",");
                     foreach (var statusCheck in pieces)
                     {
-                        if (matched) break;
+                        if (matchedStatus) break;
 
                         switch (statusCheck)
                         {
                             case "online":
-                                if (acct.IsOnline)
-                                {
-                                    matched = true;
-                                }
+                                matchedStatus = acct.IsOnline;
                                 break;
                             default:
                                 break;
                         }
                     }
                 }
-                if (!matched && !String.IsNullOrEmpty(_search))
+                if (searching)
                 {
                     // TODO: does this do wildcard things?
                     if (_search == acct.Username)
                     {
-                        matched = true;
+                        matchedSearch = true;
                     }
                 }
-                if (matched) yield return acct;
+                if ((!filtering && !statusing && !searching)    // if not doing any selection
+                    || ((filtering && matchedFilter)            // if any of the filters matched
+                        || (statusing && matchedStatus)
+                        || (searching && matchedSearch)))
+                {
+                    yield return acct;
+                }
             }
             yield break;
         }
@@ -195,8 +203,16 @@ namespace Project_Apollo.Hooks
     {
         private static readonly string _logHeader = "[AccountScopeInfo]";
         AccountEntity _contextAccount;
-        public AccountScopeFilter(AccountEntity pAccount)
+        bool _asAdmin = false;
+        public AccountScopeFilter(RESTRequestData pReq, AccountEntity pAccount)
         {
+            _asAdmin = pReq.Queries.TryGetValue("asAdmin", out _);
+            _contextAccount = pAccount;
+        }
+
+        public AccountScopeFilter(AccountEntity pAccount, bool pAsAdmin)
+        {
+            _asAdmin = pAsAdmin;
             _contextAccount = pAccount;
         }
 
@@ -211,7 +227,7 @@ namespace Project_Apollo.Hooks
                 bool matched = false;
                 if (_contextAccount != null)
                 {
-                    if (_contextAccount.IsAdmin)
+                    if (_asAdmin && _contextAccount.IsAdmin)
                     {
                         matched = true;
                     }

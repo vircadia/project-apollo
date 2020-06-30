@@ -1,213 +1,170 @@
-# MetaverseAPI - Account Related Operations
+# MetaverseAPI - Account Management
 
-Requests that create and manage accounts.
+- [Accounts](#Accounts)
+- [Account Tokens](#AccountTokens)
+- [Domains](#Domains)
 
-- [Users](#Users) - Get information on other users
-- [Friends](#Friends) - Get information on friends
-- [Connections](#Connections) - Get and set connections
-- [Administrative](#Administrative) - administrative account requests
 
-# Users
+## Accounts
 
-## GET /api/v1/users
+## POST /oauth/token
 
-Returns a list of users.
+This request mimics and official OAuth request interface. The POST request
+sends authentication information and returns an account access token.
 
-TODO: the list of users returns depends on who the requesting account can "see".
-What is the definition of that?
+The post body is an "applicaton/json" structure that depends on the grant type:
 
-The GET request url can have queries added which controls the user's returned by
-the request. These queries are:
+```
+    {
+        "grant_type": "password",
+        "username": username,
+        "password": password
+    }
+```
+
+The following is for a "login" using an external service. Was used for
+Steam login. As of 2200621, this is not implemented but kept here for
+future addition.
+
+```
+    {
+        "grant_type": "authorization_code",
+        "client_id": stringIDofClient,
+        "client_secret": stringSecret,
+        "code": stringAuthorizationTokenFromService,
+        "redirect_url": loginRedirectionURL
+    }
+```
+
+Grant type "refresh_token" is used to create a new token that extends the
+life of an account's access token. If successful, this returns the refreshed
+account access token with an extended expiration time.
+
+```
+    {
+        "grant_type": "refresh_token",
+        "refresh_token": refreshTokenForAccountsAccessToken,
+        "scope": "owner"
+    }
+```
+
+A successful response (HTTP response code "200 OK"), returns an "application/json"
+body formatted:
+
+```
+    {
+        "access_token": tokenString,
+        "token_type": "Bearer",
+        "expires_in": integerSecondsUntilTokenExpiration,
+        "refresh_token": tokenToUseToRefreshThisToken,
+        "scope": scopeOfTokenUse,
+        "created_at": integerUnixTimeSeconds
+    }
+```
+
+The failure of the request will return an "application/json" body:
+
+```
+    {
+        "error": stringDescribingError
+    }
+```
+
+## GET /api/v1/accounts
+
+Get a list of accounts. The requestor must be logged in and normally it will
+return only the user's 'connections'. If the requestor
+is an administrator and the URL includes the query "asAdmin", all accounts
+are returned (limited by pagination).
 
 - per_page: maximum number of entries to return
 - page: the group of "per_page" to return. For instance, if there are 100 users and `per_page=10` and `page=2`, the request will return entries 11 thru 20.
 - filter: select type of user. A comma separated list of "connections", "friends"
 - status: status of user. A comma separated list of "online"
 - search: TODO: figure this one out
-
-So `GET /api/v1/users?per_page=10&filter=friends&status=online` will return the first 10 users
-who are online friends.
-
-When asking the server about other users, a requestor will only get information about
-other users they have connections with.
-
-The response body is an "applicaton/json" structure that contains an array of user information.
-
+- asAdmin: if logged in account is administrator, list all accounts. Value is optional.
 
 ```
     {
         "status": "success",
         "data": {
-            "users": [
+            "accounts": [
                 {
-                    "username": username,
-                    "connection": bool,
+                    "accountid": "uniqueAccountId",
+                    "username: "username",
+                    "email": "email",
+                    "public_key": "usersPublicKey",
                     "images": {
-                        "Hero": heroImageURL,
-                        "Thumbnail": thumbnailImageURL,
-                        "tiny": tinyImageURL
+                        "hero": stringUrlToImage,
+                        "thumbnail": stringUrlToImage,
+                        "tiny": stringUrlToImage
                     },
                     "location": {
-                        "node_id": stringSessionId,
-                        "root": {
-                            "domain": {
-                                "id":
-                                "network_address": stringHostname,
-                                "network_port": intPortNum,
-                                "ice_server_address": stringHostname,
-                                "name": name,
-                                "default_place_name": name
-                            },
-                            "name": placeName
-                        },
-                        "path": stringXYZXYZW
-                        "online": bool
-                    }
-                },
-                ...
-            ]
-        }
-    }
-```
-
-## GET /api/v1/user/profile
-
-Returns a user's profile.
-
-Not much information is returned and this will probably expand in the future.
-
-If the user making the request has  a valid account token
-(Header "Authorization:" contains a valid token).
-
-The response body is an "applicaton/json" structure that contains an array of user information.
-
-```
-    {
-        "status": "success",
-        "data": {
-            "user": {
-                "username": userName,
-                "xmpp_password": stringDeprecatedPassword,
-                "discourse_api_key": stringDeprecatedAPIKey,
-                "wallet_id": stringWalletId
-            }
-        }
-    }
-```
-
----
-# Friends
-
-## GET /api/v1/user/friends
-
-The response body is an "applicaton/json" structure that contains an array of user information.
-
-If the user making the request has  a valid account token
-(Header "Authorization:" contains a valid token).
-
-```
-    {
-        "status": "success",
-        "data": {
-            "friends": [
-                username,
-                username,
-                ...
-            ]
-        }
-    }
-```
-
-## POST /api/v1/user/friends
-
-Set a user as a friend. The other use must already have a "connection" with this user.
-
-
-```
-    {
-        "username": stringUsername
-    }
-```
-
-```
-    {
-        "status": "success"
-    }
-```
-
-## DELETE /api/v1/user/friends/{username}
-
-```
-    {
-        "status": "success"
-    }
-```
-
----
-# Connections
-
-## POST /api/v1/user/connections
-## DELETE /api/v1/user/connections/{username}
-## GET /api/v1/user/connection_request
-
----
-# Administrative
-
-## PUT /api/v1/user/location
-## GET /api/v1/users/{username}/location
-
-The `username` is percent-encoded for inclusion to the URL.
-
-```
-    {
-        "status": "success",
-        "data": {
-            "location": {   // can be "place"
-                "root": {
-                    "domain": {
-                        "id":
-                        "network_address":
-                        "network_port":
-                        "ice_server_address":
-                        "name":
-                        "default_place_name":
+                        "connected": false,             // whether currently active
+                        "path": "X,Y,Z/X,Y,Z,W",
+                        "placeid": stringIdOfPlace,
+                        "domainid": stringIdOfDomain,
+                        "availability": stringWhoCanSee // one of "all", "none", "connections", "friends"
                     },
-                    "name": placeName,
+                    "friends": [ "friendName", "friendName", ... ],
+                    "connections": [ "connectionName", "connectionName", ...],
+                    "administator": false,
+                    "when_account_created": "YYYY-MM-DDTHH:MM:SS.MMMZ",
+                    "time_of_last_heartbeat": "YYYY-MM-DDTHH:MM:SS.MMMZ"
                 },
-                "path": stringXYZXYZW
-                "online": bool
-            }
+                ...
+            ]
         }
     }
 ```
 
-## PUT /api/v1/user/public_key
-## GET /api/v1/users/{username}/public_key
+## POST /api/v1/account/{accountId}
 
-The `username` is percent-encoded for inclusion to the URL.
+Update account information.
 
-## POST /api/v1/users
+## DELETE /api/v1/account/{accountId}
 
-## PUT /api/v1/user/heartbeat
+Delete an account.
 
+---
 
-```
-    {
-        "location": {
-        }
-    }
-```
+## Account Tokens
+
+## GET /api/v1/account/{accountId}/tokens
+
+Get the tokens held by the account. The requesting account must be
+logged in and be either the account identified in "{accountId}" or
+be an administrative account.
 
 ```
     {
         "status": "success",
         "data": {
-            "session_id": stringSessionId
+            "tokens": [
+                {
+                    "tokenid": stringTokenIdentifier,
+                    "token": stringToken,
+                    "refresh_token": stringTokenForRefreshingToken,
+                    "token_creation_time": "YYYY-MM-DDTHH:MM:SS.MMMZ",
+                    "token_expiration_time": "YYYY-MM-DDTHH:MM:SS.MMMZ",
+                    "scope": stringScope    // one of "any", "owner", "domain", "web"
+                },
+                ...
+            ]
         }
     }
 ```
 
+## DELETE /api/v1/account/{accountId}/tokens/{tokenId}
 
-## GET /api/v1/user/locker
-## POST /api/v1/user/locker
+Delete a particular token held by account.
 
+---
+
+## Domains
+
+## GET /api/v1/domains
+
+## POST /api/v1/domain/%
+
+## DELETE /api/v1/domain/%

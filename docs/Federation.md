@@ -20,24 +20,50 @@ The services the metaverse-server provides for the domain services are:
 - user interconnections ("connections" and "friends")
 - cross domain communication ("groups" and group chat)
 
-So the metaverse-server has the very limited function of providing identity management,
+Thus the metaverse-server has the very limited function of providing identity management,
 discovery, and some over-domain-server communication.
+
+Now consider that there are several of these metaverses -- independent metaverse-servers
+with their associated domain-server and with Interfaces providing views.
+Each of these metaverses has their own collection of user accounts and configured
+networking addresses and paths. These metaverses are administrated separately and
+probably are available and unavailable on their own schedule.
+
+I propose to define "federation" as the ability for a user from one of
+these metaverses to visit (view, interact, be present) in a domain-server
+of another metaverse. Such visiting, though, introduces questions of permission,
+authorization, and management.
+
+Additionally, to add to "federation", once users can visit other domain-servers, they
+will create new friend relationships and join groups in the other metaverse. They
+will want to chat with their new friends in the other metaverse.
 
 TODO:
 
 
 ## ActivityPub
 
+I propose using the [ActivityPub] messages for metaverse-server to metaverse-server
+communication.
+
 Model is "actors" and "activities".
 
-- https://www.w3.org/TR/activitypub/
-
-### Advantages
 
 ## Federation Operations
 
 ## Identity, Authentication, Authorization, and Verification
 
+### User Teleporting to non-Home Metaverse
+
+### Chat
+
+### Groups
+
+### Notes
+
+### Script Access/Use
+
+---
 
 ## Hubzilla
 
@@ -54,24 +80,10 @@ Model is "actors" and "activities".
 - the grid servers are expected to be there and communicating
 
 
-
-### User Teleporting to non-Home Metaverse
-
-### Chat
-
-### Groups
-
-### Notes
-
-### Script Access/Use
-
----
-
 ### Notes
 
 - Go Implementation: https://github.com/go-fed/activity
 - C# Implementation: https://github.com/jfmcbrayer/Kroeg
-
 
 - OpenID-OIDC: https://openid.net/connect/
   - JWT tokens with an API for verifying tokens
@@ -106,7 +118,7 @@ Other notes
   - Open/federated instant messaging, VoIP (WebRTC), IoT communication
   - Realtime communication
   - JSON over REST
-  - Nearly the same side of network as Mastodon
+  - Nearly the same size of network as Mastodon
   - "clients" generate "events" in "rooms": client => server
     - "rooms" are synchronized across "homeServers": server <=> server
     - pub/sub with authorization and encryption
@@ -120,4 +132,9 @@ Other notes
 - Distributed Friends and Relations Network: DFRN Protocol: https://github.com/friendica/friendica/blob/master/spec/dfrn2.pdf
 
 
+
+[Hubzilla]: https://zotlabs.org/page/hubzilla/hubzilla-project
+[Mastodon]: https://joinmastodon.org/
+[Vircadia]: https://vircadia.com/
+[ActivityPub]: https://www.w3.org/TR/activitypub/
 

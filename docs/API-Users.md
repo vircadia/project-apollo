@@ -1,6 +1,6 @@
-# MetaverseAPI - Account Related Operations
+# MetaverseAPI - User Related Operations
 
-Requests that create and manage accounts.
+Requests that create and manage list of users.
 
 - [Users](#Users) - Get information on other users
 - [Friends](#Friends) - Get information on friends
@@ -13,8 +13,10 @@ Requests that create and manage accounts.
 
 Returns a list of users.
 
-TODO: the list of users returns depends on who the requesting account can "see".
-What is the definition of that?
+A user can only see the other accounts they are 'connected' to so
+this request returns a subset of all accounts depending on the account 
+of the requestor. If the requestor is an administrator and the query
+parameter 'asAdmin' is part of the request, all user are returned.
 
 The GET request url can have queries added which controls the user's returned by
 the request. These queries are:
@@ -24,12 +26,10 @@ the request. These queries are:
 - filter: select type of user. A comma separated list of "connections", "friends"
 - status: status of user. A comma separated list of "online"
 - search: TODO: figure this one out
+- asAdmin: if requesting account is an administrator, return all users
 
 So `GET /api/v1/users?per_page=10&filter=friends&status=online` will return the first 10 users
 who are online friends.
-
-When asking the server about other users, a requestor will only get information about
-other users they have connections with.
 
 The response body is an "applicaton/json" structure that contains an array of user information.
 
@@ -73,11 +73,9 @@ The response body is an "applicaton/json" structure that contains an array of us
 ## GET /api/v1/user/profile
 
 Returns a user's profile.
+The profile returned is of the account that is making the request (token in "Authorization:" header).
 
 Not much information is returned and this will probably expand in the future.
-
-If the user making the request has  a valid account token
-(Header "Authorization:" contains a valid token).
 
 The response body is an "applicaton/json" structure that contains an array of user information.
 
@@ -101,10 +99,9 @@ The response body is an "applicaton/json" structure that contains an array of us
 
 ## GET /api/v1/user/friends
 
-The response body is an "applicaton/json" structure that contains an array of user information.
+Return a list of friends of the requesting account.
 
-If the user making the request has  a valid account token
-(Header "Authorization:" contains a valid token).
+The response body is an "applicaton/json" structure that contains an array of user information.
 
 ```
     {
@@ -212,5 +209,6 @@ The `username` is percent-encoded for inclusion to the URL.
 
 
 ## GET /api/v1/user/locker
+
 ## POST /api/v1/user/locker
 

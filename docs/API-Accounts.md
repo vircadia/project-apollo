@@ -7,69 +7,6 @@
 
 ## Accounts
 
-## POST /oauth/token
-
-This request mimics and official OAuth request interface. The POST request
-sends authentication information and returns an account access token.
-
-The post body is an "applicaton/json" structure that depends on the grant type:
-
-```
-    {
-        "grant_type": "password",
-        "username": username,
-        "password": password
-    }
-```
-
-The following is for a "login" using an external service. Was used for
-Steam login. As of 2200621, this is not implemented but kept here for
-future addition.
-
-```
-    {
-        "grant_type": "authorization_code",
-        "client_id": stringIDofClient,
-        "client_secret": stringSecret,
-        "code": stringAuthorizationTokenFromService,
-        "redirect_url": loginRedirectionURL
-    }
-```
-
-Grant type "refresh_token" is used to create a new token that extends the
-life of an account's access token. If successful, this returns the refreshed
-account access token with an extended expiration time.
-
-```
-    {
-        "grant_type": "refresh_token",
-        "refresh_token": refreshTokenForAccountsAccessToken,
-        "scope": "owner"
-    }
-```
-
-A successful response (HTTP response code "200 OK"), returns an "application/json"
-body formatted:
-
-```
-    {
-        "access_token": tokenString,
-        "token_type": "Bearer",
-        "expires_in": integerSecondsUntilTokenExpiration,
-        "refresh_token": tokenToUseToRefreshThisToken,
-        "scope": scopeOfTokenUse,
-        "created_at": integerUnixTimeSeconds
-    }
-```
-
-The failure of the request will return an "application/json" body:
-
-```
-    {
-        "error": stringDescribingError
-    }
-```
-
 ## GET /api/v1/accounts
 
 Get a list of accounts. The requestor must be logged in and normally it will
@@ -122,9 +59,57 @@ are returned (limited by pagination).
 
 Update account information.
 
+The requestor must be either the account being modified or an administrator account.
+
+The POST body has the same format as the GET request. If a field is present, then that
+value is modified. Most of the fields cannot be modified, though, and these are ignored.
+
+The fields that can be changed are:
+
+```
+    {
+        "accounts": {
+            "username": newUsername,
+            "email": newEmail,
+            "public_key": newPublicKey,
+            "images": {
+                "hero": newHeroImageUrl,
+                "thumbnail: newThumbnailImageUrl,
+                "tiny": newTinyImageUrl
+            }
+        }
+    }
+```
+
 ## DELETE /api/v1/account/{accountId}
 
 Delete an account.
+
+The requestor must be an administrator.
+
+## POST /api/v1/users
+
+Request for creating an account.
+
+The following is sent in the POST request:
+
+```
+    {
+        "user": {
+            "username": stringUserName,
+            "password": stringPassword,
+            "email": stringEmail
+        }
+    }
+```
+
+A successful creation, will return:
+
+```
+    {
+        "status": "success"
+    }
+```
 
 ---
 

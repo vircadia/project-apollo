@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -107,9 +107,35 @@ namespace Project_Apollo.Hooks
         {
             return APITargetedAccountOperation(pReq, pArgs, (pRespBody, pSrcAcct, pTargetAcct) =>
             {
-                Context.Log.Error("{0} UNIMPLIMENTED: POST /api/v1/account/%. From={1}",
-                                _logHeader, pReq.SenderKey);
-                pRespBody.RespondFailure();
+                try
+                {
+                    JObject body = pReq.RequestBodyJSON();
+                    if (body.ContainsKey("accounts"))
+                    {
+                        JObject acctInfo = (JObject)body["accounts"];
+                        Tools.SetIfSpecified<string>(acctInfo, "username", ref pTargetAcct.Username);
+                        Tools.SetIfSpecified<string>(acctInfo, "email", ref pTargetAcct.Email);
+                        Tools.SetIfSpecified<string>(acctInfo, "public_key", ref pTargetAcct.Public_Key);
+                        if (acctInfo.ContainsKey("images"))
+                        {
+                            JObject imageInfo = (JObject)acctInfo["images"];
+                            if (pTargetAcct.Images == null)
+                            {
+                                pTargetAcct.Images = new UserImages();
+                            }
+                            Tools.SetIfSpecified<string>(imageInfo, "hero", ref pTargetAcct.Images.Hero);
+                            Tools.SetIfSpecified<string>(imageInfo, "thumbnail", ref pTargetAcct.Images.Thumbnail);
+                            Tools.SetIfSpecified<string>(imageInfo, "tiny", ref pTargetAcct.Images.Tiny);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Context.Log.Error("{0} POST /api/v1/account/%: exception parsing body '{1}' from {2} account {3}",
+                                _logHeader, pReq.RequestBody, pReq.SenderKey, pSrcAcct.Username);
+                    pRespBody.RespondFailure();
+                    pRespBody.ErrorData("error", "parse body failure");
+                }
             });
         }
 

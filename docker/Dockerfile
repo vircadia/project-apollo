@@ -47,7 +47,6 @@ FROM mcr.microsoft.com/dotnet/core/runtime:3.1-bionic as project-apollo-run
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=true
 
 # An account is created in the docker file for building and running the app.
-# Set the real password in the calling environment. This is just a default.
 ENV USER=mvsvr
 
 # Directory configuration and runtime data is stored

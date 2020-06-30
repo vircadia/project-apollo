@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -187,10 +187,7 @@ namespace Project_Apollo.Hooks
             if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.ACCOUNT_CREATE))
             {
                 respBody.RespondFailure();
-                respBody.Data = new
-                {
-                    operation = "throttled"
-                };
+                respBody.ErrorData("operation", "throttled");
             }
             else
             {
@@ -208,9 +205,7 @@ namespace Project_Apollo.Hooks
                     if (newAcct == null)
                     {
                         respBody.RespondFailure();
-                        respBody.Data = new Dictionary<string, string>() {
-                            { "username", "already exists" }
-                        };
+                        respBody.ErrorData("username", "already exists");
                         Context.Log.Debug("{0} Failed acct creation. Username already exists. User={1}",
                                         _logHeader, userName);
                     }

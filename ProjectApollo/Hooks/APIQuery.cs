@@ -125,7 +125,7 @@ namespace Project_Apollo.Hooks
         /// <returns></returns>
         public IEnumerable<AccountEntity> Filter(AccountEntity pRequestingAcct = null)
         {
-            foreach (AccountEntity acct in Accounts.Instance.AllAccountEntities()) {
+            foreach (AccountEntity acct in Accounts.Instance.Enumerate()) {
                 bool filtering = !String.IsNullOrEmpty(_filter);
                 bool matchedFilter = false;
                 bool statusing = !String.IsNullOrEmpty(_status);
@@ -146,10 +146,10 @@ namespace Project_Apollo.Hooks
                                 matchedFilter = acct.IsOnline;
                                 break;
                             case "friends":
-                                matchedFilter = acct.IsFriend(pRequestingAcct);
+                                matchedFilter = pRequestingAcct != null && acct.IsFriend(pRequestingAcct);
                                 break;
                             case "connections":
-                                matchedFilter = acct.IsConnected(pRequestingAcct);
+                                matchedFilter = pRequestingAcct != null && acct.IsConnected(pRequestingAcct);
                                 break;
                             default:
                                 break;
@@ -202,8 +202,8 @@ namespace Project_Apollo.Hooks
     public class AccountScopeFilter
     {
         private static readonly string _logHeader = "[AccountScopeInfo]";
-        AccountEntity _contextAccount;
-        bool _asAdmin = false;
+        readonly AccountEntity _contextAccount;
+        readonly bool _asAdmin = false;
         public AccountScopeFilter(RESTRequestData pReq, AccountEntity pAccount)
         {
             _asAdmin = pReq.Queries.TryGetValue("asAdmin", out _);

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Xml;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
@@ -23,12 +24,99 @@ using Project_Apollo.Registry;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RandomNameGeneratorLibrary;
+using System.Linq;
 
 namespace Project_Apollo.Hooks
 {
     public class APIDomains
     {
         public static readonly string _logHeader = "[APIDomains]";
+
+        // ===GET /api/v1/domains =================================================
+        public struct bodyDomainsReply
+        {
+            public bodyDomainInfo[] domains;
+        }
+        public struct bodyDomainInfo
+        {
+            public string domainid;
+            public string place_name;
+            public string public_key;
+            public string sponser_accountid;
+            public string ice_server;
+            public string version;
+            public string protocol_version;
+            public string network_addr;
+            public string networking_mode;
+            public bool restricted;
+            public int num_users;
+            public int anon_users;
+            public int total_users;
+            public int capacity;
+            public string description;
+            public string maturity;
+            public string restriction;
+            public string[] hosts;
+            public string[] tags;
+            public string time_of_last_heartbeat;
+            public string last_sender_key;
+            public string addr_of_first_contact;
+            public string when_domain_entry_created;
+
+            public bodyDomainInfo(DomainEntity pDomain)
+            {
+                domainid = pDomain.DomainID;
+                place_name = pDomain.PlaceName;
+                public_key = pDomain.Public_Key;
+                sponser_accountid = pDomain.SponserAccountID;
+                ice_server = pDomain.IceServerAddr;
+                version = pDomain.Version;
+                protocol_version = pDomain.Protocol;
+                network_addr = pDomain.NetworkAddr;
+                networking_mode = pDomain.NetworkingMode;
+                restricted = pDomain.Restricted;
+                num_users = pDomain.NumUsers;
+                anon_users = pDomain.AnonUsers;
+                total_users = pDomain.TotalUsers;
+                capacity = pDomain.Capacity;
+                description = pDomain.Description;
+                maturity = pDomain.Maturity;
+                restriction = pDomain.Restriction;
+                hosts = pDomain.Hosts;
+                tags = pDomain.Tags;
+                time_of_last_heartbeat = XmlConvert.ToString(pDomain.TimeOfLastHeartbeat, XmlDateTimeSerializationMode.Utc);
+                last_sender_key = pDomain.LastSenderKey;
+                addr_of_first_contact = pDomain.IPAddrOfFirstContact;
+                when_domain_entry_created = XmlConvert.ToString(pDomain.WhenDomainEntryCreated, XmlDateTimeSerializationMode.Utc);
+            }
+        }
+        [APIPath("/api/v1/domains", "GET", true)]
+        public RESTReplyData get_domains(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                PaginationInfo pagination = new PaginationInfo(pReq);
+
+                respBody.Data = new bodyDomainsReply()
+                {
+                    domains = pagination.Filter<DomainEntity>(Domains.Instance.Enumerate()).Select(dom =>
+                    {
+                        return new bodyDomainInfo(dom);
+                    }).ToArray()
+                };
+            }
+            else
+            {
+                respBody.RespondFailure();
+                replyData.Status = (int)HttpStatusCode.Unauthorized;
+            }
+
+            replyData.Body = respBody;
+            return replyData;
+        }
 
         // ===GET /api/v1/domains/% =================================================
 
@@ -71,10 +159,8 @@ namespace Project_Apollo.Hooks
             {
                 // return nothing!
                 respBody.RespondFailure();
-                respBody.Data = new Dictionary<string, string>()
-                {
-                    {  "domain", "there is no domain with that ID" }
-                };
+                respBody.ErrorData("domain", "there is no domain with that ID");
+
                 replyData.Status = (int)HttpStatusCode.NotFound;
                 replyData.Body = respBody;
                 // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
@@ -84,6 +170,8 @@ namespace Project_Apollo.Hooks
         }
 
         // ===PUT /api/v1/domains/% ==========================================
+        // Used by domains as a "heartbeat" to update status information
+
         /* Not using structures because fields are optional and cannot differentiate non-specified and null.
         public struct domainMetadataUsers
         {
@@ -197,6 +285,7 @@ namespace Project_Apollo.Hooks
             // replyData.Body = respBody; there is no body in the response
             return replyData;
         }
+
         /// <summary>
         /// A domain is either using an apikey (if not registered with a user account) or is
         /// using a user authtoken (if registered). This routine checks whether this
@@ -251,6 +340,43 @@ namespace Project_Apollo.Hooks
             }
             return ret;
         }
+
+        // == DELETE /api/v1/domains/% ===========================================
+        [APIPath("/api/v1/domains/%", "DELETE", true)]
+        public RESTReplyData admin_domain_delete(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+            ResponseBody respBody = new ResponseBody();     // The request's "data" response info
+
+            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
+            {
+                if (aAccount.IsAdmin)
+                {
+                    string domainID = pArgs.Count == 1 ? pArgs[0] : null;
+                    if (Domains.Instance.TryGetDomainWithID(domainID, out DomainEntity aDomain))
+                    {
+                        Domains.Instance.RemoveDomain(aDomain);
+                    }
+                    else
+                    {
+                        respBody.RespondFailure();
+                    }
+                }
+                else
+                {
+                    respBody.RespondFailure();
+                    replyData.Status = (int)HttpStatusCode.Unauthorized;
+                }
+
+            }
+            else
+            {
+                respBody.RespondFailure();
+                replyData.Status = (int)HttpStatusCode.NotFound;
+            }
+            return replyData;
+        }
+
         // == PUT /api/v1/domains/%/ice_server_address ===========================
         public struct bodyIceServerPutData
         {

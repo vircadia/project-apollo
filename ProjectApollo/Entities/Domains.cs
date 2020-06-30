@@ -13,15 +13,10 @@
 //   limitations under the License.
 
 using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 
-using Newtonsoft.Json;
 using Project_Apollo.Configuration;
-using RandomNameGeneratorLibrary;
 
 namespace Project_Apollo.Entities
 {
@@ -154,6 +149,23 @@ namespace Project_Apollo.Entities
                 ActiveDomains.Add(pDomainID, pDomainEntity);
                 pDomainEntity.Updated();
             }
+        }
+        public void RemoveDomain(DomainEntity pDomainEntity)
+        {
+            lock (_domainsLock)
+            {
+                ActiveDomains.Remove(pDomainEntity.DomainID);
+            }
+        }
+
+        public IEnumerable<DomainEntity> Enumerate()
+        {
+            List<DomainEntity> aEntities;
+            lock (_domainsLock)
+            {
+                aEntities = new List<DomainEntity>(ActiveDomains.Values);
+            }
+            return aEntities.AsEnumerable();
         }
     }
 

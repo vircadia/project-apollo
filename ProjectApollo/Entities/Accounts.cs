@@ -194,7 +194,7 @@ namespace Project_Apollo.Entities
 
         // Return an IEnumerable of all the accounts.
         // This takes a snapshot of the current account list and returns those.
-        public IEnumerable<AccountEntity> AllAccountEntities()
+        public IEnumerable<AccountEntity> Enumerate()
         {
             List<AccountEntity> aEntities;
             lock (_accountLock)

@@ -89,8 +89,8 @@ namespace Project_Apollo.Registry
                                             _path.AssignedMethod = mi;
                                             foundPaths.Add(_path);
 
-                                            Context.Log.Debug("{0} Discovered: {1}; {2}",
-                                                        _logHeader, _path.PathLike, mi.Name);
+                                            Context.Log.Debug("{0} Discovered: {1} {2}; {3}",
+                                                        _logHeader, _path.HTTPMethod, _path.PathLike, mi.Name);
                                         }
                                     }
                                 }

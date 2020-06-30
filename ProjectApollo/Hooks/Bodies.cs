@@ -34,7 +34,7 @@ namespace Project_Apollo.Hooks
         public string Status;
         // NOTE: 'Data' is an object that  will be serialized by JSON!
         public object Data;
-        private Dictionary<string, object> _additionalFields = new Dictionary<string, object>();
+        private readonly Dictionary<string, object> _additionalFields = new Dictionary<string, object>();
 
         public ResponseBody()
         {
@@ -59,6 +59,13 @@ namespace Project_Apollo.Hooks
         {
             Status = "fail";
             return this;
+        }
+        public void ErrorData(string pBase, string pMessage)
+        {
+            Data = new Dictionary<string, string>()
+            {
+                { pBase, pMessage }
+            };
         }
 
         public void AddExtraTopLevelField(string pName, object pValue)

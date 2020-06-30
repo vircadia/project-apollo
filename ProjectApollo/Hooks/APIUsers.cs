@@ -142,13 +142,13 @@ namespace Project_Apollo.Hooks
             RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
             ResponseBody respBody = new ResponseBody();     // The request's "data" response info
 
-            PaginationInfo pagination = new PaginationInfo(pReq);
-            AccountFilterInfo acctFilter = new AccountFilterInfo(pReq);
-
             SessionEntity aSession = Sessions.Instance.GetSession(pReq.SenderKey);
+
+            PaginationInfo pagination = new PaginationInfo(pReq);
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
+                AccountFilterInfo acctFilter = new AccountFilterInfo(pReq);
                 AccountScopeFilter scopeFilter = new AccountScopeFilter(pReq, aAccount);
 
                 respBody.Data = new bodyUsersReply() {

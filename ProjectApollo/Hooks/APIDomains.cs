@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -308,7 +308,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 // If the domain passed an auth token, get access with that
-                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount))
+                if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity oAccount, AuthTokenInfo.ScopeCode.domain))
                 {
                     // Make sure this domain and this account are working together
                     if (String.IsNullOrEmpty(pDomain.SponserAccountID))

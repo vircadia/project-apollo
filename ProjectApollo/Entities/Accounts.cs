@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -96,7 +96,8 @@ namespace Project_Apollo.Entities
         /// <param name="pAccountID"></param>
         /// <param name="oAccount">AccountEntity found</param>
         /// <returns></returns>
-        public bool TryGetAccountWithAuthToken(string pAuthToken, out AccountEntity oAccount)
+        public bool TryGetAccountWithAuthToken(string pAuthToken, out AccountEntity oAccount,
+                            AuthTokenInfo.ScopeCode pScope = AuthTokenInfo.ScopeCode.any)
         {
             if (pAuthToken != null)
             {
@@ -105,7 +106,7 @@ namespace Project_Apollo.Entities
                     foreach (var kvp in ActiveAccounts)
                     {
                         // TODO: decide if we shoud only look for 'owner' auth tokens
-                        if (kvp.Value.TryGetAuthTokenInfo(pAuthToken, out _, AuthTokenInfo.ScopeCode.any))
+                        if (kvp.Value.TryGetAuthTokenInfo(pAuthToken, out _, pScope))
                         {
                             oAccount = kvp.Value;
                             return true;

@@ -31,7 +31,7 @@ Authorization to make the calls is through access tokens that are
 included in the "Authorization:" HTTP header of the REST request.
 Access tokens are aquired by giving user account information
 (currently limited to account/password). See the
-[/oauth/token](./API-Token.md#post-oauthtoken)
+[/oauth/token](./API-Tokens.md#post-oauthtoken)
 request.
 
 ## Metaverse_info
@@ -60,7 +60,7 @@ but these are the default items returned.
 
 User access to the metaverse-server starts by getting an access token.
 The
-[/oauth/token](./API-Token.md#post-oauthtoken)
+[/oauth/token](./API-Tokens.md#post-oauthtoken)
 request accepts a username and password and returns an access token.
 The token comes with a type (usually "Bearer") and a refresh token.
 The refresh token is used to extend an access token's expiration time.

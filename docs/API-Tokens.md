@@ -4,8 +4,11 @@ Requests that create and manage access tokens.
 
 User access is mostly controlled by the "Authorization:" header
 containing a bearer token. Once an account is created
-(see [API-Accounts] /api/v1/users ), a requestor can get an initial
-account token with `/oauth/token` request.
+(see [GET /api/v1/users](./API-Accounts.md#get-apiv1users) ),
+a requestor can get an initial
+account token with
+[POST /oauth/token](./API-Tokens.md@post-oauthtoken)
+request.
 
 Tokens expire and can be refreshed using the refresh token returned
 with the token and a "refresh_token" request to `/oauth/token`.

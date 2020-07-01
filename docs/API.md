@@ -31,7 +31,7 @@ Authorization to make the calls is through access tokens that are
 included in the "Authorization:" HTTP header of the REST request.
 Access tokens are aquired by giving user account information
 (currently limited to account/password). See the
-[/oauth/token]("./API-Token.md#post-oauthtoken")
+[/oauth/token](./API-Token.md#post-oauthtoken)
 request.
 
 ## Metaverse_info
@@ -60,7 +60,7 @@ but these are the default items returned.
 
 User access to the metaverse-server starts by getting an access token.
 The
-[/oauth/token]("./API-Token.md#post-oauthtoken")
+[/oauth/token](./API-Token.md#post-oauthtoken)
 request accepts a username and password and returns an access token.
 The token comes with a type (usually "Bearer") and a refresh token.
 The refresh token is used to extend an access token's expiration time.
@@ -78,15 +78,15 @@ accounts will have wide access to the information on the metaverse server
 while plain user accounts will be limited to their connections and personal information.
 
 With the access token, requests are made for information on
-[Accounts]("./API-Accounts.md"),
-[Users]("./API-Users.md"),
+[Accounts](./API-Accounts.md),
+[Users](./API-Users.md),
 and
-[Tokens]("./API-Tokens.md")
+[Tokens](./API-Tokens.md)
 
 ## Account Creation
 
 A new account can be created with the
-[POST /api/v1/users]("./API-Accounts.md#post-apiv1users")
+[POST /api/v1/users](./API-Accounts.md#post-apiv1users)
 request.
 This accepts basic user information (username, password, and email)
 and creates an account.

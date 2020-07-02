@@ -335,7 +335,7 @@ namespace Project_Apollo.Hooks
             };
             if (!ret)
             {
-                Context.Log.Debug("{0} VerifyDomainAccess: failed auth. DomainID={1}, domain.apikey= {2}, AuthToken={3}, apikey={4}",
+                Context.Log.Debug("{0} VerifyDomainAccess: failed auth. DomainID={1}, domain.apikey={2}, AuthToken={3}, apikey={4}",
                                     _logHeader, pDomain.DomainID, pDomain.API_Key, pReq.AuthToken, pPossibleApiKey);
             }
             return ret;

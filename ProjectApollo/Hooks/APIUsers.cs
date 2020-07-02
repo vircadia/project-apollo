@@ -23,6 +23,8 @@ using Project_Apollo.Registry;
 
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Hooks
 {
@@ -187,7 +189,7 @@ namespace Project_Apollo.Hooks
             if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.ACCOUNT_CREATE))
             {
                 respBody.RespondFailure();
-                respBody.ErrorData("operation", "throttled");
+                respBody.ErrorData("error", "throttled");
             }
             else
             {
@@ -199,22 +201,38 @@ namespace Project_Apollo.Hooks
                     string userPassword = requestData.user["password"];
                     string userEmail = requestData.user["email"];
 
-                    Context.Log.Debug("{0} Creating account {1}/{2}", _logHeader, userName, userEmail);
-
-                    AccountEntity newAcct = Accounts.Instance.CreateAccount(userName, userPassword, userEmail);
-                    if (newAcct == null)
+                    if (CheckUsernameFormat(userName))
                     {
-                        respBody.RespondFailure();
-                        respBody.ErrorData("username", "already exists");
-                        Context.Log.Debug("{0} Failed acct creation. Username already exists. User={1}",
-                                        _logHeader, userName);
+                        if (CheckEmailFormat(userEmail))
+                        {
+                            Context.Log.Debug("{0} Creating account {1}/{2}", _logHeader, userName, userEmail);
+
+                            AccountEntity newAcct = Accounts.Instance.CreateAccount(userName, userPassword, userEmail);
+                            if (newAcct == null)
+                            {
+                                respBody.RespondFailure();
+                                respBody.ErrorData("username", "already exists");
+                                Context.Log.Debug("{0} Failed acct creation. Username already exists. User={1}",
+                                                _logHeader, userName);
+                            }
+                            else
+                            {
+                                // Successful account creation
+                                newAcct.IPAddrOfCreator = pReq.SenderKey;
+                                newAcct.Updated();
+                                Context.Log.Debug("{0} Successful acct creation. User={1}", _logHeader, userName);
+                            }
+                        }
+                        else
+                        {
+                            respBody.RespondFailure();
+                            respBody.ErrorData("error", "bad format for email");
+                        }
                     }
                     else
                     {
-                        // Successful account creation
-                        newAcct.IPAddrOfCreator = pReq.SenderKey;
-                        newAcct.Updated();
-                        Context.Log.Debug("{0} Successful acct creation. User={1}", _logHeader, userName);
+                        respBody.RespondFailure();
+                        respBody.ErrorData("error", "bad format for username");
                     }
                 }
                 catch (Exception e)
@@ -227,6 +245,35 @@ namespace Project_Apollo.Hooks
             replyData.Body = respBody;
             return replyData;
 
+        }
+
+        private bool CheckUsernameFormat(string pUsername)
+        {
+            try
+            {
+                return Regex.IsMatch(pUsername, Context.Params.P<string>(AppParams.P_ACCOUNT_USERNAME_FORMAT),
+                                RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(20));
+            }
+            catch (Exception e)
+            {
+                Context.Log.Error("{0} CheckUsernameFormat: exception checking username {1}: {2}",
+                                _logHeader, pUsername, e);
+            }
+            return false;
+        }
+        private bool CheckEmailFormat(string pEmail)
+        {
+            try
+            {
+                return Regex.IsMatch(pEmail, Context.Params.P<string>(AppParams.P_ACCOUNT_EMAIL_FORMAT),
+                                RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(20));
+            }
+            catch (Exception e)
+            {
+                Context.Log.Error("{0} CheckUsernameFormat: exception checking email {1}: {2}",
+                                _logHeader, pEmail, e);
+            }
+            return false;
         }
 
         // = POST /api/v1/user/locker ==================================================

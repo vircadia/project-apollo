@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -69,6 +69,8 @@ namespace Project_Apollo.Configuration
 
         public static readonly string P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS = "Account.AuthToken.Lifetime";
         public static readonly string P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS = "Account.AuthTokenExpirationCheckSeconds";
+        public static readonly string P_ACCOUNT_USERNAME_FORMAT = "Account.Username.Format";
+        public static readonly string P_ACCOUNT_EMAIL_FORMAT = "Account.Email.Format";
 
         public static readonly string P_DOMAIN_TOKENGEN_URL = "Domain.TokenGenURL";
 
@@ -143,6 +145,8 @@ namespace Project_Apollo.Configuration
 
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKEN_LIFETIME_HOURS, "Hours that an AuthToken is allowed to live", 12));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_ACCOUNT_AUTHTOKENEXPIRATIONCHECKSECONDS, "Seconds between times checking for authtoken flushing", 60));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_ACCOUNT_USERNAME_FORMAT, "Regex for username format", @"^[0-9a-z_+-\.]+$"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_ACCOUNT_EMAIL_FORMAT, "Regex for email format", @"^[0-9a-z_+-\.]+@[0-9a-z-\.]+$"));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_DOMAIN_TOKENGEN_URL, "URL for user domain token generation", "/static/DomainTokenLogin.html"));
 

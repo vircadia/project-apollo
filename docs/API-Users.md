@@ -41,6 +41,7 @@ The response body is an "applicaton/json" structure that contains an array of us
             "users": [
                 {
                     "username": username,
+                    "accountid": stringAccountId,
                     "connection": bool,
                     "images": {
                         "Hero": heroImageURL,
@@ -85,6 +86,7 @@ The response body is an "applicaton/json" structure that contains an array of us
         "data": {
             "user": {
                 "username": userName,
+                "accountid": stringAccountId,
                 "xmpp_password": stringDeprecatedPassword,
                 "discourse_api_key": stringDeprecatedAPIKey,
                 "wallet_id": stringWalletId

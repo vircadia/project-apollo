@@ -285,14 +285,11 @@ namespace Project_Apollo.Registry
         public RESTReplyData()
         {
             Status = (int)HttpStatusCode.OK;   // Assume successful response
-            MIMEType = "text/json";
+            MIMEType = "application/json";
             CustomOutputHeaders = new Dictionary<string, string>();
         }
-        public RESTReplyData(string pBody)
+        public RESTReplyData(string pBody) : this()
         {
-            Status = (int)HttpStatusCode.OK;   // Assume successful response
-            MIMEType = "text/json";
-            CustomOutputHeaders = new Dictionary<string, string>();
             Body = pBody;
         }
     }

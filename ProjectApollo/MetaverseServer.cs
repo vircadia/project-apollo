@@ -258,33 +258,68 @@ namespace Project_Apollo
 
             // Find the processor for this request and do the operation
             // If the processing created any error, it will return reply data with the error.
-            RESTReplyData _reply = Context.PathRegistry.ProcessInbound(new RESTRequestData(pCtx));
+            RESTRequestData requestInfo = new RESTRequestData(pCtx);
+            RESTReplyData replyInfo = Context.PathRegistry.ProcessInbound(requestInfo);
 
-            pCtx.Response.Headers.Add("Server", Context.Params.P<string>(AppParams.P_LISTENER_RESPONSE_HEADER_SERVER));
-            
-            pCtx.Response.StatusCode = _reply.Status;
-            if (_reply.CustomStatus != null) pCtx.Response.StatusDescription = _reply.CustomStatus;
-
-            if(_reply.CustomOutputHeaders != null)
+            // Add optional 'Server' parameter
+            string serverHeader = Context.Params.P<string>(AppParams.P_LISTENER_RESPONSE_HEADER_SERVER);
+            if (!String.IsNullOrEmpty(serverHeader))
             {
-                foreach(KeyValuePair<string,string> kvp in _reply.CustomOutputHeaders)
+                pCtx.Response.Headers.Add("Server", serverHeader);
+            }
+            
+            // Set the request status code to what the processor returned
+            pCtx.Response.StatusCode = replyInfo.Status;
+            if (replyInfo.CustomStatus != null)
+            {
+                pCtx.Response.StatusDescription = replyInfo.CustomStatus;
+            }
+
+            // The processor could have returned some extra headers
+            if(replyInfo.CustomOutputHeaders != null)
+            {
+                foreach(var kvp in replyInfo.CustomOutputHeaders)
                 {
                     pCtx.Response.Headers[kvp.Key] = kvp.Value;
                 }
             }
 
-            if (_reply.Body != null)
+            // Return CORS control headers
+            switch (Context.Params.P<string>(AppParams.P_LISTENER_CORS_PROCESSING))
             {
-                pCtx.Response.AddHeader("Content-Type", _reply.MIMEType);
+                case "ORIGIN":
+                    // Return the specified origin of the request
+                    if (requestInfo.Headers.TryGetValue("Origin", out string originValue))
+                    {
+                        pCtx.Response.AddHeader("Access-Control-Allow-Origin", originValue);
+                        pCtx.Response.AddHeader("Vary", "Origin");  // tells caches that origin could be changing
+                    }
+                    break;
+                case "STAR":
+                    // Anybody can talk to me
+                    pCtx.Response.AddHeader("Access-Control-Allow-Origin", "*");
+                    break;
+                default:
+                    // default is to do nothing
+                    break;
+            }
+
+            // No matter who is talking to us, allow them to send credentials
+            pCtx.Response.AddHeader("Access-Control-Allow-Credentials", "true");
+
+            // If there is a body, set the type and return the bytes
+            if (!String.IsNullOrEmpty(replyInfo.Body))
+            {
+                pCtx.Response.AddHeader("Content-Type", replyInfo.MIMEType);
 
                 // This presumes that all requests only return text
-                byte[] buffer = Encoding.UTF8.GetBytes("\n"+_reply.Body);
+                byte[] buffer = Encoding.UTF8.GetBytes("\n"+replyInfo.Body);
                 pCtx.Response.ContentLength64 = buffer.Length;
                 using (Stream output = pCtx.Response.OutputStream)
                 {
                     output.Write(buffer, 0, buffer.Length);
                 }
-                pCtx.Response.ContentType = _reply.MIMEType;
+                pCtx.Response.ContentType = replyInfo.MIMEType;
             }
 
             pCtx.Response.Close();

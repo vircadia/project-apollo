@@ -62,6 +62,7 @@ namespace Project_Apollo.Configuration
         public static readonly string P_LISTENER_HOST = "Listener.Host";
         public static readonly string P_LISTENER_PORT = "Listener.Port";
         public static readonly string P_LISTENER_RESPONSE_HEADER_SERVER = "Listener.Response.Header.Server";
+        public static readonly string P_LISTENER_CORS_PROCESSING = "Listener.CORS.Processing";
 
         public static readonly string P_STORAGE_DIR = "Storage.Dir";
         public static readonly string P_ENTITY_DIR = "Storage.Entity.Dir";
@@ -138,6 +139,7 @@ namespace Project_Apollo.Configuration
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_HOST, "HttpListener host", "+"));
             ret.Add(new ParamBlock.ParameterDefn<int>(P_LISTENER_PORT, "HttpListener port", 9400));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_RESPONSE_HEADER_SERVER, "What to return as 'Server: header field", "1.5"));
+            ret.Add(new ParamBlock.ParameterDefn<string>(P_LISTENER_CORS_PROCESSING, "CORS response header. One of 'NONE', 'ORIGIN', 'STAR'", "STAR"));
 
             ret.Add(new ParamBlock.ParameterDefn<string>(P_STORAGE_DIR, "Root of storage", "."));
             ret.Add(new ParamBlock.ParameterDefn<string>(P_ENTITY_DIR, "Root of entity storage", "Entities"));

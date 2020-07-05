@@ -14,9 +14,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
 using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities
@@ -235,7 +235,8 @@ namespace Project_Apollo.Entities
                 }
                 if (toDelete.Count > 0)
                 {
-                    Context.Log.Debug("{0} Expiring {1} sessions", _logHeader, toDelete.Count);
+                    Context.Log.Debug("{0} Expiring {1} sessions from {2}", _logHeader, toDelete.Count,
+                                String.Join(",", toDelete.Select( sess => { return sess.SenderKey; }).ToArray()) );
                     foreach (var sess in toDelete)
                     {
                         ActiveSessions.Remove(sess.SessionID);

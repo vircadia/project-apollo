@@ -1,0 +1,187 @@
+openapi: "3.0.1"
+info:
+  version: 1.0.1
+  title: Vircadia MetaverseAPI - Tokens
+  description: Vircadia metaverse-server API for Token fetch and management.
+  contact:
+    name: Vircadia project
+    url: https://vircadia.com/
+    email: vircadia@vircadia.com
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+paths:
+  /oauth/token:
+    post:
+      description: |
+        API which mimics the oauth token fetch interface.
+        Used to get initial access token for user access -- that is, user "log in".
+      tags:
+        - tokens
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required:
+                - grant_type
+              properties:
+                grant_type:
+                  description: specifies the type of token request
+                  type: string
+                  enum:
+                    - password
+                    - authorization-code
+                    - refresh-token
+                username:
+                  type: string
+                password:
+                  type: string
+                scope:
+                  type: string
+                  enum:
+                    - owner
+                    - domain
+                refresh_token:
+                    description: if grant_type is "refresh-token" this is the refresh token to use
+                    type: string
+      responses:
+        200:
+          description: Token successfully allocate
+          content:
+            "application/json":
+              schema:
+                type: object
+                required:
+                  - access_token
+                  - refresh_token
+                  - token_type
+                  - scope
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    description: type of token. Usually "Bearer".
+                  expires_in:
+                    type: integer
+                    description: seconds until expiration time
+                  refresh_token:
+                    type: string
+                    description: token to use to extend the main token's expiration time
+                  scope:
+                    type: string
+                    description: token scope. Either "owner" for account access, or "domain" for domain access.
+                  created_at:
+                    type: integer
+                    description: seconds since 1970-01-01
+        401:
+          description: The domainID is not known and the DomainServer should get temp name
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: reason for unauthorized failure
+
+  /api/v1/token/new:
+    parameters:
+      - name: scope
+        in: query
+        description: Type of token being created. Either "owner" or "domain"
+        schema:
+          type: string
+          enum:
+            - owner
+            - domain
+    post:
+      description: |
+        Get a new authorization toekn associated with a logged in account.
+        The account identified in the "Authorization:" field is the keeper of the  token.
+        A "scope" is specified in the query. Most often  that will be "domain" as this
+        request is most often used to get a new domain-server's access token.
+      tags:
+        - tokens
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: token successfully created
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: the allocted token
+                      token_id:
+                        type: string
+                        description: an ID that identifies the token
+                      refresh_token:
+                        type: string
+                        description: a token to use to extend the expiration period of the main token
+                      token_expiration_seconds:
+                        type: integer
+                        description: number of seconds this token is good for
+                      account_name:
+                        type: string
+                        description: the username of the account the token was created under
+                      account_id:
+                        type: string
+                        description: the account id of the account the token was created under
+
+  /user/tokens/new:
+    parameters:
+      - name: for_domain_server
+        in: query
+        description: parameter signifying token is for a domain server.
+        schema:
+          type: boolean
+    get:
+      description: |
+        Request used by the domain-server to get domain tokens as part of
+        the "associate domain with account" logic.
+        This returns a human readable HTML response.
+
+        This request exists for backwards compatability and will probably be
+        deprecated when someone re-works the domain-server administration pages.
+      tags:
+        - tokens
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Token was allocated
+          content:
+            "text/html":
+              schema:
+                type: string
+                description: |
+                  Human readable HTML displaying the generated domain token.
+
+                  <center><h2>Your domain's access token is: TOKEN</h2></center>
+        302:
+          description: |
+            The account authorization is not present or is not valid. Redirect to login sight.
+            The "Location:" header is returned as "/static/DomainTokenLogin.html" which redirects
+            to a page to login and get the domain token. This returned URL can be changed
+            with the "Domain.TokenGenURL" parameter in the metaverse-server.
+
+# vim: tabstop=2 shiftwidth=2 autoindent expandtab

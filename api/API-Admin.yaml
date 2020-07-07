@@ -1,0 +1,313 @@
+openapi: "3.0.1"
+info:
+  version: 1.0.1
+  title: Vircadia MetaverseAPI - Administration of Acconts
+  description: Vircadia metaverse-server API for Account listing and management
+  contact:
+    name: Vircadia project
+    url: https://vircadia.com/
+    email: vircadia@vircadia.com
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    perPageParam:
+      name: per_page
+      description: number of accounts to return
+      in: query
+      schema:
+        type: integer
+        format: int32
+    pageParam:
+      name: page
+      description: group of "per_page" accounts to return. Page 3 of 10 per_page returns accounts 21-30.
+      in: query
+      schema:
+        type: integer
+        format: int32
+    filterParam:
+      name: filter
+      description: limit types of acccounts. Comma separated list of "online", "friends", "connections".
+      in: query
+      schema:
+        type: string
+    statusParam:
+      name: status
+      description: limit accounts based on status. One of "online"
+      in: query
+      schema:
+        type: string
+    searchParam:
+      name: search
+      description: limit accounts based on search. Unimplimented.
+      in: query
+      schema:
+        type: string
+    accountidParam:
+      name: accountid
+      description: specifying a particular account. Either the account ID (uuid) or username
+      in: path
+      required: true
+      schema:
+        type: string
+    tokenidParam:
+      name: tokenid
+      description: specifying a particular token
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+paths:
+  /api/v1/accounts:
+    description: |
+      Fetch account information.
+      In general,
+    get:
+      tags:
+        - admin
+        - accounts
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/perPageParam"
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/filterParam"
+        - $ref: "#/components/parameters/statusParam"
+        - $ref: "#/components/parameters/searchParam"
+      responses:
+        200:
+          description: successful account information fetch.
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+                  data:
+                    type: object
+                    properties:
+                      accounts:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            accountid:
+                              type: string
+                            username:
+                              type: string
+                            email:
+                              type: string
+                            public_key:
+                              type: string
+                            images:
+                              type: object
+                              properties:
+                                hero:
+                                  type: string
+                                thumbnail:
+                                  type: string
+                                tiny:
+                                  type: string
+                            location:
+                              type: object
+                              properties:
+                                connected:
+                                  type: boolean
+                                path:
+                                  type: string
+                                placeid:
+                                  type: string
+                                  format: uuid
+                                domainid:
+                                  type: string
+                                  format: uuid
+                                availability:
+                                  type: string
+                                  enum:
+                                    - none
+                                    - friends
+                                    - connections
+                                    - all
+                            friends:
+                              type: array
+                              items:
+                                type: string
+                            connections:
+                              type: array
+                              items:
+                                type: string
+                            administrator:
+                              type: boolean
+                              default: false
+                            when_account_created:
+                              type: string
+                              format: date-time
+                            time_of_last_heartbeat:
+                              type: string
+                              format: date-time
+
+  /api/v1/account/{accountid}:
+    parameters:
+      - $ref: "#/components/parameters/accountidParam"
+    post:
+      description: |
+        Request to change account property values.
+        Only some properties can be changed.
+        The requestor's authorization must be either the account being
+        changed or an administrator account.
+      tags:
+        - accounts
+        - admin
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              properties:
+                accounts:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    email:
+                      type: string
+                    public_key:
+                      type: string
+                    images:
+                      type: object
+                      properties:
+                        hero:
+                          type: string
+                        thumbnail:
+                          type: string
+                        tiny:
+                          type: string
+      responses:
+        200:
+          description: successfully set
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+    delete:
+      description: |
+        Delete an account and its associated data.
+        The requestor must be an administrator account.
+      tags:
+        - admin
+        - accounts
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: account deleted
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+
+  /api/v1/account/{accountid}/tokens:
+    parameters:
+      - $ref: "#/components/parameters/accountidParam"
+    get:
+      description: |
+        Get tokens for an account.
+        This returns all the tokens associated with this account.
+        The requesting account must be either the account or an administrator account.
+      tags:
+        - admin
+        - tokens
+      parameters:
+        - $ref: "#/components/parameters/perPageParam"
+        - $ref: "#/components/parameters/pageParam"
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          content:
+            "application/json":
+              schema:
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+                  data:
+                    type: object
+                    properties:
+                      tokens:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tokenid:
+                              type: string
+                              format: uuid
+                            token:
+                              type: string
+                            refresh_token:
+                              type: string
+                            token_creation_time:
+                              type: string
+                              format: date-time
+                            token_expiration_time:
+                              type: string
+                              format: date-time
+                            scope:
+                              type: string
+                              enum:
+                                - owner
+                                - domain
+
+  /api/v1/account/{accountid}/token/{tokenid}:
+    parameters:
+      - $ref: "#/components/parameters/accountidParam"
+      - $ref: "#/components/parameters/tokenidParam"
+    get:
+      description: |
+        Delete the identified token.
+        The requesting account must be either the account or an administrator account.
+      tags:
+        - admin
+        - tokens
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          content:
+            "application/json":
+              schema:
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+
+# vim: tabstop=2 shiftwidth=2 autoindent expandtab

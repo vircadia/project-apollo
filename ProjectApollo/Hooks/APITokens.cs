@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -64,14 +64,17 @@ namespace Project_Apollo.Hooks
                         // string userPassword = reqArgs["oculus_id"];
 
                         AuthTokenInfo.ScopeCode userScope = AuthTokenInfo.ScopeCode.owner;
-                        try
+                        if (reqArgs.ContainsKey("scope"))
                         {
-                            userScope = Enum.Parse<AuthTokenInfo.ScopeCode>(reqArgs["scope"] ?? "owner");
-                        }
-                        catch
-                        {
-                            Context.Log.Error("{0} /oauth/token: unknown scope code: {1}", _logHeader, reqArgs["scope"]);
-                            userScope = AuthTokenInfo.ScopeCode.owner;
+                            try
+                            {
+                                userScope = Enum.Parse<AuthTokenInfo.ScopeCode>(reqArgs["scope"] ?? "owner");
+                            }
+                            catch
+                            {
+                                Context.Log.Error("{0} /oauth/token: unknown scope code: {1}", _logHeader, reqArgs["scope"]);
+                                userScope = AuthTokenInfo.ScopeCode.owner;
+                            }
                         }
 
                         // Context.Log.Debug("{0} Get access token for {1} with password", _logHeader, userName);

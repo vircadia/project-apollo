@@ -229,7 +229,7 @@ namespace Project_Apollo.Hooks
 
             if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.TOKEN_CREATE))
             {
-                respBody.RespondFailure();
+                respBody.RespondFailure("Throttled");
                 respBody.Data = new
                 {
                     operation = "throttled"
@@ -270,13 +270,13 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        respBody.RespondFailure();
+                        respBody.RespondFailure("Token could not be generated. Bad scope?");
                     }
                 }
                 else
                 {
                     // Not a known account.
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Unknown requesting account");
                 }
             }
             replyData.Body = respBody;

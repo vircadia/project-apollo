@@ -79,7 +79,7 @@ namespace Project_Apollo.Hooks
                 {
                     // Who is this clown?
                     replyData.Status = (int)HttpStatusCode.Unauthorized;
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Unauthorized");
                     Context.Log.Error("{0} Heartbeat from account with non-matching token. Sender={1}",
                                         _logHeader, pReq.SenderKey);
                 }
@@ -190,7 +190,7 @@ namespace Project_Apollo.Hooks
 
             if (Sessions.Instance.ShouldBeThrottled(pReq.SenderKey, Sessions.Op.ACCOUNT_CREATE))
             {
-                respBody.RespondFailure();
+                respBody.RespondFailure("Throttled");
                 respBody.ErrorData("error", "throttled");
             }
             else
@@ -212,8 +212,8 @@ namespace Project_Apollo.Hooks
                             AccountEntity newAcct = Accounts.Instance.CreateAccount(userName, userPassword, userEmail);
                             if (newAcct == null)
                             {
-                                respBody.RespondFailure();
-                                respBody.ErrorData("username", "already exists");
+                                respBody.RespondFailure("Username already exists");
+                                respBody.ErrorData("username", "already exists");   // legacy HiFi compatibility
                                 Context.Log.Debug("{0} Failed acct creation. Username already exists. User={1}",
                                                 _logHeader, userName);
                             }
@@ -227,13 +227,13 @@ namespace Project_Apollo.Hooks
                         }
                         else
                         {
-                            respBody.RespondFailure();
+                            respBody.RespondFailure("Bad format for email");
                             respBody.ErrorData("error", "bad format for email");
                         }
                     }
                     else
                     {
-                        respBody.RespondFailure();
+                        respBody.RespondFailure("Bad format for username");
                         respBody.ErrorData("error", "bad format for username");
                     }
                 }
@@ -293,7 +293,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 Context.Log.Error("{0} POST user/locker requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -313,7 +313,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 Context.Log.Error("{0} GET user/locker requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -341,7 +341,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -374,14 +374,14 @@ namespace Project_Apollo.Hooks
                 {
                     Context.Log.Error("{0} user_friends_post: attempt to add friend that does not exist. Requestor={1}, friend={2}",
                                                 _logHeader, aAccount.Username, friendname);
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Attempt to add friend that does not exist");
                 }
             }
             else
             {
                 Context.Log.Error("{0} GET user/friends requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -404,7 +404,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} DELETE user/friends requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -425,7 +425,7 @@ namespace Project_Apollo.Hooks
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
                 // Not implemented
-                respBody.RespondFailure();
+                respBody.RespondFailure("Not implemented");
                 Context.Log.Debug("{0} user/connection_request: user={1}, body={2}",
                                 _logHeader, aAccount.Username, pReq.RequestBody);
             }
@@ -433,7 +433,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} POST user/connection_request for unauthorized user. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -467,14 +467,14 @@ namespace Project_Apollo.Hooks
                 {
                     Context.Log.Error("{0} user_friends_post: attempt to add friend that does not exist. Requestor={1}, friend={2}",
                                                 _logHeader, aAccount.Username, connectionname);
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Attempt to add friend that does not exist");
                 }
             }
             else
             {
                 Context.Log.Error("{0} GET user/connections requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -497,7 +497,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} DELETE user/connections requested without auth token. Token={1}",
                                         _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -516,16 +516,16 @@ namespace Project_Apollo.Hooks
                 {
                     GetAccountLocationIfSpecified(aAccount, pReq);
                 }
-                catch
+                catch (Exception e)
                 {
-                    Context.Log.Error("{0} PUT user/location Failed body parsing. Acct={1}",
-                                        _logHeader, aAccount.AccountID);
-                    respBody.RespondFailure();
+                    Context.Log.Error("{0} PUT user/location Failed body parsing. Acct={1}: {2}",
+                                        _logHeader, aAccount.AccountID, e);
+                    respBody.RespondFailure("failed location parsing", e.ToString());
                 }
             }
             else
             {
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -589,18 +589,18 @@ namespace Project_Apollo.Hooks
                     }
                     else
                     {
-                        respBody.RespondFailure();
+                        respBody.RespondFailure("No such username");
                     }
                 }
                 else
                 {
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Target account not included in URL");
                 }
             }
             else
             {
                 Context.Log.Error("{0} GET user/location requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;
@@ -698,7 +698,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 Context.Log.Error("{0} GET user/profile requested without auth token. Token={1}", _logHeader, pReq.AuthToken);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             // Context.Log.Debug("{0} GET user/profile. Response={1}", _logHeader, replyData.Body);
@@ -755,6 +755,7 @@ namespace Project_Apollo.Hooks
                     {
                         Context.Log.Error("{0} PUT user/set_public_key requested without APIKey. APIKey={1}",
                                                 _logHeader, includedAPIKey);
+                        respBody.RespondFailure("APIkey does not work");
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                     }
                 }
@@ -768,6 +769,7 @@ namespace Project_Apollo.Hooks
                     {
                         Context.Log.Error("{0} PUT user/set_public_key requested but could not find acct. Token={1}",
                                                 _logHeader, pReq.AuthToken);
+                        respBody.RespondFailure("AuthToken unauthorized");
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                     }
                 }
@@ -775,7 +777,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 Context.Log.Error("{0} PUT user/set_public_key failure parsing", _logHeader);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Multi-part body failed parsing");
             }
 
             replyData.Body = respBody;
@@ -809,7 +811,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} GET fetch of user public key for unknown acct. SenderKey: {1}, Username: {2}",
                                         _logHeader, pReq.SenderKey, username);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unknown username");
             }
 
             replyData.Body = respBody;

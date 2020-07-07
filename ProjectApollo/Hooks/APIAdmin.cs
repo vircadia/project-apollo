@@ -96,7 +96,7 @@ namespace Project_Apollo.Hooks
             else
             {
                 Context.Log.Error("{0} GET accounts requested with bad auth", _logHeader);
-                respBody.RespondFailure();
+                respBody.RespondFailure("Bad authorization");
             }
             replyData.Body = respBody;
             return replyData;
@@ -133,7 +133,7 @@ namespace Project_Apollo.Hooks
                 {
                     Context.Log.Error("{0} POST /api/v1/account/%: exception parsing body '{1}' from {2} account {3}",
                                 _logHeader, pReq.RequestBody, pReq.SenderKey, pSrcAcct.Username);
-                    pRespBody.RespondFailure();
+                    pRespBody.RespondFailure("Exception parsing message body", e.ToString());
                     pRespBody.ErrorData("error", "parse body failure");
                 }
             });
@@ -146,7 +146,7 @@ namespace Project_Apollo.Hooks
             {
                 Context.Log.Error("{0} UNIMPLIMENTED: DELETE /api/v1/account/%. From={1}",
                                 _logHeader, pReq.SenderKey);
-                pRespBody.RespondFailure();
+                pRespBody.RespondFailure("Not implemented");
             });
         }
 
@@ -256,24 +256,24 @@ namespace Project_Apollo.Hooks
                         }
                         else
                         {
-                            respBody.RespondFailure();
+                            respBody.RespondFailure("Not account or administrator");
                             replyData.Status = (int)HttpStatusCode.Unauthorized;
                         };
                     }
                     else
                     {
-                        respBody.RespondFailure();
+                        respBody.RespondFailure("No such account");
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                     };
                 }
                 else
                 {
-                    respBody.RespondFailure();
+                    respBody.RespondFailure("Account not included in request URL");
                 }
             }
             else
             {
-                respBody.RespondFailure();
+                respBody.RespondFailure("Unauthorized");
             }
             replyData.Body = respBody;
             return replyData;

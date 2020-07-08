@@ -31,6 +31,7 @@ namespace Project_Apollo.Hooks
     /// </summary>
     public class ResponseBody
     {
+        public bool Failure;    // 'true' if request failed
         public string Status;
         // NOTE: 'Data' is an object that  will be serialized by JSON!
         public object Data;
@@ -38,20 +39,12 @@ namespace Project_Apollo.Hooks
 
         public ResponseBody()
         {
-            Status = "success"; // assume success
+            this.RespondSuccess();  // assume success
         }
-        public ResponseBody(object pDataContents) {
-            Data = pDataContents;
-        }
-
-        public ResponseBody(string pStatus, object pDataContents) {
-            Status = pStatus;
-            Data = pDataContents;
-        }
-
         public ResponseBody RespondSuccess()
         {
             Status = "success";
+            Failure = false;
             return this;
         }
 

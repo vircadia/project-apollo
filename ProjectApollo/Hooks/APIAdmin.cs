@@ -98,7 +98,7 @@ namespace Project_Apollo.Hooks
                 Context.Log.Error("{0} GET accounts requested with bad auth", _logHeader);
                 respBody.RespondFailure("Bad authorization");
             }
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -275,7 +275,7 @@ namespace Project_Apollo.Hooks
             {
                 respBody.RespondFailure("Unauthorized");
             }
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 

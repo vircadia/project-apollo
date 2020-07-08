@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ namespace Project_Apollo.Hooks
             {
                 if (File.Exists(filename))
                 {
-                    replyData.Body = File.ReadAllText(filename);
+                    replyData.SetBody( File.ReadAllText(filename) );
                     string exten = Path.GetExtension(filename);
                     var mimeType = exten switch
                     {

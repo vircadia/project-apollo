@@ -270,10 +270,6 @@ namespace Project_Apollo
             
             // Set the request status code to what the processor returned
             pCtx.Response.StatusCode = replyInfo.Status;
-            if (replyInfo.CustomStatus != null)
-            {
-                pCtx.Response.StatusDescription = replyInfo.CustomStatus;
-            }
 
             // The processor could have returned some extra headers
             if(replyInfo.CustomOutputHeaders != null)
@@ -308,12 +304,12 @@ namespace Project_Apollo
             pCtx.Response.AddHeader("Access-Control-Allow-Credentials", "true");
 
             // If there is a body, set the type and return the bytes
-            if (!String.IsNullOrEmpty(replyInfo.Body))
+            if (replyInfo.hasBody)
             {
                 pCtx.Response.AddHeader("Content-Type", replyInfo.MIMEType);
 
                 // This presumes that all requests only return text
-                byte[] buffer = Encoding.UTF8.GetBytes("\n"+replyInfo.Body);
+                byte[] buffer = Encoding.UTF8.GetBytes("\n" + replyInfo.GetBody());
                 pCtx.Response.ContentLength64 = buffer.Length;
                 using (Stream output = pCtx.Response.OutputStream)
                 {

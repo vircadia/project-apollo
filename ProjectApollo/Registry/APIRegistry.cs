@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ using System.Reflection;
 using System.IO;
 using Newtonsoft.Json;
 using Project_Apollo.Configuration;
+using Project_Apollo.Hooks;
 
 namespace Project_Apollo.Registry
 {
@@ -219,17 +220,12 @@ namespace Project_Apollo.Registry
             if (_replyData == null)
             {
                 // The request does not match any path, return error
-                _replyData = new RESTReplyData
-                {
-                    Status = 200
-                };
-                Dictionary<string, string> notFoundDefault = new Dictionary<string, string>
-                {
-                    { "status", "not_found" },
-                    { "data", "Needs more water!" }
-                };
-                string notFoundDef = JsonConvert.SerializeObject(notFoundDefault);
-                _replyData.Body = notFoundDef;
+                _replyData = new RESTReplyData();
+                ResponseBody respBody = new ResponseBody();
+
+                respBody.RespondFailure("operation not found");
+
+                _replyData.SetBody(respBody, pReq);
             }
 
             return _replyData;

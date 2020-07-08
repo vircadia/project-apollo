@@ -114,7 +114,7 @@ namespace Project_Apollo.Hooks
                 replyData.Status = (int)HttpStatusCode.Unauthorized;
             }
 
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -151,9 +151,6 @@ namespace Project_Apollo.Hooks
                         name = dobj.PlaceName
                     }
                 };
-                replyData.Body = respBody;  // serializes JSON
-                // Context.Log.Debug("{0} get_domain GET: domain{1}, returning: {2}",
-                //                     _logHeader, domainID, replyData.Body);
             }
             else
             {
@@ -162,10 +159,9 @@ namespace Project_Apollo.Hooks
                 respBody.ErrorData("domain", "there is no domain with that ID");
 
                 replyData.Status = (int)HttpStatusCode.NotFound;
-                replyData.Body = respBody;
-                // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
 
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -285,7 +281,7 @@ namespace Project_Apollo.Hooks
                 replyData.Status = (int)HttpStatusCode.NotFound; // this will trigger a new temporary domain name
             }
 
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -388,7 +384,7 @@ namespace Project_Apollo.Hooks
                 respBody.RespondFailure("Authorization token not found");
                 replyData.Status = (int)HttpStatusCode.Unauthorized;
             }
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -469,7 +465,7 @@ namespace Project_Apollo.Hooks
                     api_key = newDomain.API_Key
                 }
             };
-            replyData.Body = respBody;  // serializes JSON
+            replyData.SetBody(respBody, pReq);
             Context.Log.Debug("{0} Returning temporary domain: id={1}, name={2}",
                         _logHeader, newDomain.DomainID, newDomain.PlaceName);
             
@@ -532,7 +528,7 @@ namespace Project_Apollo.Hooks
                 respBody.RespondFailure("unknown domain");
             }
 
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
 
@@ -564,7 +560,7 @@ namespace Project_Apollo.Hooks
                 // Context.Log.Debug("{0} get_domain GET: no domain! Returning: {1}", _logHeader, replyData.Body);
             }
 
-            replyData.Body = respBody;  // serializes JSON
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
     }

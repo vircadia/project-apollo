@@ -88,13 +88,13 @@ namespace Project_Apollo.Hooks
                                 AuthTokenInfo authInfo = aAccount.CreateAccessToken(userScope, pReq.SenderKey + ";" + userName);
 
                                 // The response does not follow the usual {status: , data: } form.
-                                replyData.Body = OAuthTokenResponseBody(authInfo);
+                                replyData.SetBody( OAuthTokenResponseBody(authInfo) );
                             }
                             else
                             {
                                 Context.Log.Debug("{0} Login failed for user {1}", _logHeader, userName);
                                 // The password doesn't work.
-                                replyData.Body = OAuthResponseError("Login failed");
+                                replyData.SetBody( OAuthResponseError("Login failed") );
                                 replyData.Status = (int)HttpStatusCode.Unauthorized;
                             }
                         }
@@ -102,7 +102,8 @@ namespace Project_Apollo.Hooks
                         {
                             Context.Log.Error("{0} Attempt to get token for unknown user {1}. Sender={2}",
                                             _logHeader, userName, pReq.SenderKey);
-                            replyData.Body = OAuthResponseError("Unknown user");
+                            replyData.SetBody( OAuthResponseError("Unknown user") );
+                            replyData.Status = (int)HttpStatusCode.BadRequest;
                         }
                         break;
                     }
@@ -115,7 +116,7 @@ namespace Project_Apollo.Hooks
 
                         Context.Log.Error("{0} Attempt to login with 'authorization_code'. clientID={1}",
                                             _logHeader, clientID);
-                        replyData.Body = OAuthResponseError("Cannot process 'authorization_code'");
+                        replyData.SetBody( OAuthResponseError("Cannot process 'authorization_code'") );
                         replyData.Status = (int)HttpStatusCode.Unauthorized;
                         break;
                     }
@@ -130,25 +131,27 @@ namespace Project_Apollo.Hooks
                             AuthTokenInfo refreshToken = aAccount.RefreshAccessToken(refreshingToken);
                             if (refreshToken != null)
                             {
-                                replyData.Body = OAuthTokenResponseBody(refreshToken);
+                                replyData.SetBody( OAuthTokenResponseBody(refreshToken) );
                             }
                             else
                             {
-                                replyData.Body = OAuthResponseError("Cannot refresh");
+                                replyData.SetBody( OAuthResponseError("Cannot refresh") );
+                                replyData.Status = (int)HttpStatusCode.BadRequest;
                             }
 
                         }
                         else
                         {
                             Context.Log.Error("{0} Attempt to refresh token for not logged in user", _logHeader);
-                            replyData.Body = OAuthResponseError("Unknown user");
+                            replyData.SetBody( OAuthResponseError("Unknown user") );
+                            replyData.Status = (int)HttpStatusCode.BadRequest;
                         }
                         break;
                     }
                 default:
                     Context.Log.Error("{0} Attempt to login with unknown grant type. Type={1}",
                                         _logHeader, accessGrantType);
-                    replyData.Body = OAuthResponseError("Unknown grant type: " + accessGrantType);
+                    replyData.SetBody( OAuthResponseError("Unknown grant type: " + accessGrantType) );
                     replyData.Status = (int)HttpStatusCode.Unauthorized;
                     break;
             }
@@ -200,7 +203,7 @@ namespace Project_Apollo.Hooks
                         // The domain/account association is permenant... expiration is far from now
                         token.TokenExpirationTime = new DateTime(2999, 12, 31);
 
-                        replyData.Body = $"<center><h2>Your domain's access token is: {token.Token}</h2></center>";
+                        replyData.SetBody( $"<center><h2>Your domain's access token is: {token.Token}</h2></center>" );
                         replyData.MIMEType = "text/html";
                     }
                     else
@@ -279,7 +282,7 @@ namespace Project_Apollo.Hooks
                     respBody.RespondFailure("Unknown requesting account");
                 }
             }
-            replyData.Body = respBody;
+            replyData.SetBody(respBody, pReq);
             return replyData;
         }
     }

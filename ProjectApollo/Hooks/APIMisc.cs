@@ -66,7 +66,7 @@ namespace Project_Apollo.Hooks
                 }
             }   
 
-            replyData.Body = JsonConvert.SerializeObject(jo, Formatting.Indented);
+            replyData.SetBody( JsonConvert.SerializeObject(jo, Formatting.Indented) );
 
             return replyData;
         }

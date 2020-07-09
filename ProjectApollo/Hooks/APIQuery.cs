@@ -201,7 +201,7 @@ namespace Project_Apollo.Hooks
     /// </summary>
     public class AccountScopeFilter
     {
-        private static readonly string _logHeader = "[AccountScopeInfo]";
+        // private static readonly string _logHeader = "[AccountScopeInfo]";
         readonly AccountEntity _contextAccount;
         readonly bool _asAdmin = false;
         public AccountScopeFilter(RESTRequestData pReq, AccountEntity pAccount)

@@ -70,5 +70,44 @@ namespace Project_Apollo.Hooks
 
             return replyData;
         }
+
+        // == OPTIONS /api/ ==================================
+        // Kludge to handle the pre-flight OPTIONS requests with the HttpListener router.
+        [APIPath("/api", "OPTIONS", false)]
+        public RESTReplyData get_api_options1(RESTRequestData pReq, List<string> pArgs)
+        {
+            return get_api_options(pReq, pArgs);
+        }
+        [APIPath("/api/%", "OPTIONS", false)]
+        public RESTReplyData get_api_options2(RESTRequestData pReq, List<string> pArgs)
+        {
+            return get_api_options(pReq, pArgs);
+        }
+        [APIPath("/api/%/%", "OPTIONS", false)]
+        public RESTReplyData get_api_options3(RESTRequestData pReq, List<string> pArgs)
+        {
+            return get_api_options(pReq, pArgs);
+        }
+        [APIPath("/api/%/%/%", "OPTIONS", false)]
+        public RESTReplyData get_api_options4(RESTRequestData pReq, List<string> pArgs)
+        {
+            return get_api_options(pReq, pArgs);
+        }
+        [APIPath("/api/%/%/%/%", "OPTIONS", false)]
+        public RESTReplyData get_api_options5(RESTRequestData pReq, List<string> pArgs)
+        {
+            return get_api_options(pReq, pArgs);
+        }
+        [APIPath("/api/%/%/%/%/%", "OPTIONS", false)]
+        public RESTReplyData get_api_options(RESTRequestData pReq, List<string> pArgs)
+        {
+            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
+
+            replyData.CustomOutputHeaders.Add("Access-Control-Allow-Origin", "*");
+            replyData.CustomOutputHeaders.Add("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS");
+            replyData.CustomOutputHeaders.Add("Access-Control-Allow-Headers", "Content-Type, " + RESTReplyData.ERROR_HEADER);
+
+            return replyData;
+        }
     }
 }

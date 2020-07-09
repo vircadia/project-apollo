@@ -292,7 +292,7 @@ namespace Project_Apollo.Registry
             Body = pBody;
         }
 
-        public const string ERROR_HEADER = "x-vircadia-error-handle";
+        public static string ERROR_HEADER = "x-vircadia-error-handle";
         /// <summary>
         /// Set the body of the response from the 'ResponseBody'
         /// If a request header is passed, an extra check is made to see if

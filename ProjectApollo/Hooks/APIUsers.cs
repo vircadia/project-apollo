@@ -413,8 +413,12 @@ namespace Project_Apollo.Hooks
         // = POST /api/v1/user/connection_request ==================================================
         public struct bodyUserConnectionRequestPost
         {
-            string node_id;
-            string proposed_node_id;
+            public bodyUserConnectionRequestInfo user_connection_request;
+        }
+        public struct bodyUserConnectionRequestInfo
+        {
+            public string node_id;              // the sessionUUID of the requestor
+            public string proposed_node_id;     // the sessionUUID of the other avatar
         }
         [APIPath("/api/v1/user/connection_request", "POST", true)]
         public RESTReplyData user_connections_request_post(RESTRequestData pReq, List<string> pArgs)
@@ -424,6 +428,23 @@ namespace Project_Apollo.Hooks
 
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
+                bodyUserConnectionRequestPost request = pReq.RequestBodyObject<bodyUserConnectionRequestPost>();
+                // Work-in-progress
+                // The script looks for two types of 'connection' responses.
+                //    If is sees data.connection == "pending", it trys again and eventually times out
+                //    If data.connection has an object, it uses 'new_connection' and 'username'
+                respBody.Data = new
+                {
+                    connection = new
+                    {
+                        new_connection = true,      // says whether a new or pre-existing connection
+                        username = "othersUsername"
+                    }
+                };
+                respBody.Data = new Dictionary<string, string>()
+                {
+                    {  "connection", "pending" }
+                };
                 // Not implemented
                 respBody.RespondFailure("Not implemented");
                 Context.Log.Debug("{0} user/connection_request: user={1}, body={2}",

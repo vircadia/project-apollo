@@ -91,3 +91,40 @@ request.
 This accepts basic user information (username, password, and email)
 and creates an account.
 The account can then aquire an access token.
+
+## Error Handling
+
+Most requests return the results of the operation as a HTTP "200 OK" response with
+the JSON structure:
+
+```
+    {
+        "status": "success",
+        "data": JSON-Object-Results
+    }
+```
+
+Where "JSON-Object-Results" is a JSON formatted object with the results of the request.
+
+If there is an error, though, the "200 OK" structure returned is:
+
+```
+    {
+        "status": "fail",
+        "error": "error explanation"
+    }
+```
+
+Thus, every API invocation must check the returned structure for "status" equaling "success".
+
+A hack has been added to cause all errors to be returned with a HTTP "400 Bad Request" response.
+The same "status"/"fail" JSON object is returned -- it is just the HTTP response code that changes.
+This hack is enabled when the request has a specific header:
+
+```
+    x-vircadia-error-handle: badrequest
+```
+
+If this header is in the API request, errors, that would have normally been returned with
+an HTTP "200 OK" will be returned with a "400 Bad Request". All other operation is unchanged.
+

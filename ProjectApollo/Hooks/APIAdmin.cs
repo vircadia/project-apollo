@@ -38,7 +38,7 @@ namespace Project_Apollo.Hooks
             public string username;
             public string email;
             public string public_key;
-            public UserImages images;
+            public object images;
             public object location;
             public string[] friends;
             public string[] connections;
@@ -52,14 +52,19 @@ namespace Project_Apollo.Hooks
                 username = pAcct.Username;
                 email = pAcct.Email;
                 public_key = pAcct.Public_Key;
-                images = pAcct.Images;
-                location = new Dictionary<string, object>()
+                images = new
                 {
-                    { "connected", pAcct.Location.Connected.ToString() },
-                    { "path", pAcct.Location.Path },
-                    { "placeid", pAcct.Location.PlaceID },
-                    { "domainid", pAcct.Location.DomainID },
-                    { "availability", pAcct.Location.Availability.ToString() }
+                    hero = pAcct.Images.Hero,
+                    thumbnail = pAcct.Images.Thumbnail,
+                    tiny = pAcct.Images.Tiny
+                };
+                location = new 
+                {
+                    connected = pAcct.Location.Connected.ToString(),
+                    path = pAcct.Location.Path,
+                    placeid = pAcct.Location.PlaceID,
+                    domainid = pAcct.Location.DomainID,
+                    availability = pAcct.Location.Availability.ToString()
                 };
                 friends = pAcct.Friends.ToArray();
                 connections = pAcct.Connections.ToArray();

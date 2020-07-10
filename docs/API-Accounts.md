@@ -38,7 +38,7 @@ are returned (limited by pagination).
                     },
                     "location": {
                         "connected": false,             // whether currently active
-                        "path": "X,Y,Z/X,Y,Z,W",
+                        "path": "/X,Y,Z/X,Y,Z,W",
                         "placeid": stringIdOfPlace,
                         "domainid": stringIdOfDomain,
                         "availability": stringWhoCanSee // one of "all", "none", "connections", "friends"

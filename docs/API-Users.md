@@ -61,7 +61,7 @@ The response body is an "applicaton/json" structure that contains an array of us
                             },
                             "name": placeName
                         },
-                        "path": stringXYZXYZW
+                        "path": "/X,Y,Z/X,Y,Z,W",
                         "online": bool
                     }
                 },
@@ -176,7 +176,7 @@ The `username` is percent-encoded for inclusion to the URL.
                     },
                     "name": placeName,
                 },
-                "path": stringXYZXYZW
+                "path": "/X,Y,Z/X,Y,Z,W",
                 "online": bool
             }
         }

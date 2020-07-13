@@ -14,18 +14,17 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Text.RegularExpressions;
 using System.Web;
 
 using Project_Apollo.Entities;
 using Project_Apollo.Registry;
+using Project_Apollo.Configuration;
 
 using Newtonsoft.Json.Linq;
-using System.Linq;
-using System.Text.RegularExpressions;
-using Project_Apollo.Configuration;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Project_Apollo.Hooks
 {

@@ -25,6 +25,7 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Project_Apollo.Configuration;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Project_Apollo.Hooks
 {
@@ -429,26 +430,147 @@ namespace Project_Apollo.Hooks
             if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
             {
                 bodyUserConnectionRequestPost request = pReq.RequestBodyObject<bodyUserConnectionRequestPost>();
-                // Work-in-progress
                 // The script looks for two types of 'connection' responses.
                 //    If is sees data.connection == "pending", it trys again and eventually times out
                 //    If data.connection has an object, it uses 'new_connection' and 'username'
-                respBody.Data = new
+
+                // Connection handles are the in-world nodeId's
+                string thisNode = request.user_connection_request.node_id;
+                string otherNode = request.user_connection_request.proposed_node_id;
+
+                // BEGIN sanity check DEBUG DEBUG
                 {
-                    connection = new
+                    // Connections use node id's to identify the two avatars, I guess because, the
+                    //    world does not have access to the account identity.
+                    // This debugging code prints out whether the passed nodeIds match the loction
+                    //    nodeIds that we have to verify that the connection nodeIds are really the
+                    //    same ones as passed in the location.
+                    // All this debugging output can go away once nodeId usage is understood.
+                    Context.Log.Debug("{0} connection_request: request from account '{1}' node={2}, proposed={3}",
+                                        _logHeader, aAccount.Username, thisNode, otherNode);
+                    if (aAccount.Location != null)
                     {
-                        new_connection = true,      // says whether a new or pre-existing connection
-                        username = "othersUsername"
+                        if (aAccount.Location.NodeID == thisNode)
+                        {
+                            Context.Log.Debug("{0} connection_request: request from account '{1}' and Location.NodeId matches main node",
+                                                _logHeader, aAccount.Username);
+                        }
+                        else
+                        {
+                            if (aAccount.Location.NodeID == otherNode)
+                            {
+                                Context.Log.Debug("{0} connection_request: request from account '{1}' and Location.NodeId matches proposed node",
+                                                _logHeader, aAccount.Username);
+                            }
+                            else
+                            {
+                                Context.Log.Debug("{0} connection_request: request from account '{1}' and Location.NodeId does not match either nodes",
+                                                _logHeader, aAccount.Username);
+                            }
+                        }
                     }
-                };
-                respBody.Data = new Dictionary<string, string>()
+                    else
+                    {
+                        Context.Log.Debug("{0} connection_request: request from account '{1}' and no location info",
+                                                _logHeader, aAccount.Username);
+                    }
+                }
+                // END sanity check DEBUG DEBUG
+                try
                 {
-                    {  "connection", "pending" }
-                };
-                // Not implemented
-                respBody.RespondFailure("Not implemented");
-                Context.Log.Debug("{0} user/connection_request: user={1}, body={2}",
-                                _logHeader, aAccount.Username, pReq.RequestBody);
+                    // This returns all the RequestConnection's that have my ID in them
+                    RequestConnection previousAsk = RequestConnection.GetNodeRequests(thisNode)
+                        // Find the ones that have me and the other requestor
+                        .Where(req =>
+                        {
+                            return (req.Body.node_id == thisNode && req.Body.proposed_node_id == otherNode)
+                                || (req.Body.node_id == otherNode && req.Body.proposed_node_id == thisNode);
+                        // Pick the one (there should be only one)
+                        }).FirstOrDefault();
+
+                    if (previousAsk != null)
+                    {
+                        Context.Log.Debug("{0} connection_request: existing request found", _logHeader);
+                        // We have a pending connection request for this person
+                        // Mark myself as accepting
+                        if (previousAsk.Body.node_id == thisNode)
+                        {
+                            if (!previousAsk.Body.node_accepted)
+                            {
+                                previousAsk.Body.node_accepted = true;
+                                previousAsk.Updated();
+                            }
+                        }
+                        else
+                        {
+                            if (!previousAsk.Body.proposed_node_accepted)
+                            {
+                                previousAsk.Body.proposed_node_accepted = true;
+                                previousAsk.Updated();
+                            }
+                            // I'm in the 'proposed node' position.
+                            // Straighten out the node variables for simplier logic after this
+                            var tmp = otherNode;
+                            otherNode = thisNode;
+                            thisNode = tmp;     // after this, "thisNode" is always this account
+                            Context.Log.Debug("{0} connection_request: found request was from other account", _logHeader);
+                        }
+                        // If both accepted, the connection is complete
+                        if (previousAsk.Body.node_accepted && previousAsk.Body.proposed_node_accepted)
+                        {
+                            if (Accounts.Instance.TryGetAccountWithNodeId(otherNode, out AccountEntity oOtherAccount))
+                            {
+                                aAccount.AddConnection(oOtherAccount);
+                                aAccount.Updated();
+                                oOtherAccount.AddConnection(aAccount);
+                                oOtherAccount.Updated();
+                                respBody.Data = new
+                                {
+                                    connection = new
+                                    {
+                                        new_connection = true,      // says whether a new or pre-existing connection
+                                        username = oOtherAccount.Username
+                                    }
+                                };
+                            }
+                            else
+                            {
+                                // Can't find the other account... shouldn't happen
+                                respBody.RespondFailure("Both agreed but cannot find other account entity");
+                            }
+                        }
+                        else
+                        {
+                            // Both haven't accepted so tell the requestor that the request is pending
+                            respBody.Data = new Dictionary<string, string>()
+                            {
+                                {  "connection", "pending" }
+                            };
+                        }
+                    }
+                    else
+                    {
+                        // There was no previous ask so create the request.
+                        Context.Log.Debug("{0} connection_request: creating connection request from '{1}",
+                                        _logHeader, aAccount.Username);
+                        RequestConnection newReq = new RequestConnection();
+                        newReq.Body.node_id = thisNode;
+                        newReq.Body.requestor_accountId = aAccount.AccountID;
+                        newReq.Body.proposed_node_id = otherNode;
+                        newReq.Body.node_accepted = true;
+                        newReq.ExpireIn(TimeSpan.FromSeconds(Context.Params.P<int>(AppParams.P_CONNECTION_REQUEST_SECONDS)));
+                        newReq.AddAndUpdate();
+
+                        // Both haven't accepted so tell the requestor that the request is pending
+                        respBody.Data = new Dictionary<string, string>()
+                        {
+                            {  "connection", "pending" }
+                        };
+                    }
+                }
+                catch
+                {
+                }
             }
             else
             {
@@ -456,47 +578,7 @@ namespace Project_Apollo.Hooks
                                         _logHeader, pReq.AuthToken);
                 respBody.RespondFailure("Unauthorized");
             }
-            replyData.SetBody(respBody, pReq);
-            return replyData;
-        }
-        // = POST /api/v1/user/connections ==================================================
-        public struct bodyUserConnectionsPost
-        {
-            public string username;
-        }
-        [APIPath("/api/v1/user/connections", "POST", true)]
-        public RESTReplyData user_connections_post(RESTRequestData pReq, List<string> pArgs)
-        {
-            RESTReplyData replyData = new RESTReplyData();  // The HTTP response info
-            ResponseBody respBody = new ResponseBody();
 
-            if (Accounts.Instance.TryGetAccountWithAuthToken(pReq.AuthToken, out AccountEntity aAccount))
-            {
-                // TODO: Should put something
-                bodyUserConnectionsPost body = pReq.RequestBodyObject<bodyUserConnectionsPost>();
-                string connectionname = body.username;
-                Context.Log.Debug("{0} user_connections_post: adding connection {1} for user {2}",
-                                _logHeader, body.username, aAccount.Username);
-                if (Accounts.Instance.TryGetAccountWithUsername(connectionname, out AccountEntity _))
-                {
-                    if (!aAccount.Connections.Contains(connectionname))
-                    {
-                        aAccount.Connections.Add(connectionname);
-                    }
-                }
-                else
-                {
-                    Context.Log.Error("{0} user_friends_post: attempt to add friend that does not exist. Requestor={1}, friend={2}",
-                                                _logHeader, aAccount.Username, connectionname);
-                    respBody.RespondFailure("Attempt to add friend that does not exist");
-                }
-            }
-            else
-            {
-                Context.Log.Error("{0} GET user/connections requested without auth token. Token={1}",
-                                        _logHeader, pReq.AuthToken);
-                respBody.RespondFailure("Unauthorized");
-            }
             replyData.SetBody(respBody, pReq);
             return replyData;
         }

@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq.Expressions;
+
 using Newtonsoft.Json;
+
 using Project_Apollo.Configuration;
 
 namespace Project_Apollo.Entities

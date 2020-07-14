@@ -25,6 +25,7 @@ using Project_Apollo.Registry;
 using Project_Apollo.Configuration;
 
 using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace Project_Apollo.Hooks
 {
@@ -155,7 +156,7 @@ namespace Project_Apollo.Hooks
                 AccountScopeFilter scopeFilter = new AccountScopeFilter(pReq, aAccount);
 
                 respBody.Data = new bodyUsersReply() {
-                    users = pagination.Filter<AccountEntity>(scopeFilter.Filter(acctFilter.Filter(aAccount))).Select(acct =>
+                    users = Accounts.Instance.Enumerate(pagination, acctFilter, scopeFilter).Select (acct =>
                     {
                         bodyUser ret = new bodyUser()
                         {

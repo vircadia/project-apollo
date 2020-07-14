@@ -102,7 +102,7 @@ namespace Project_Apollo.Hooks
 
                 respBody.Data = new bodyDomainsReply()
                 {
-                    domains = pagination.Filter<DomainEntity>(Domains.Instance.Enumerate()).Select(dom =>
+                    domains = Domains.Instance.Enumerate(pagination).Select(dom =>
                     {
                         return new bodyDomainInfo(dom);
                     }).ToArray()

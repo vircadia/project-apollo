@@ -1,4 +1,4 @@
-//   Copyright 2020 Vircadia
+﻿//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -158,12 +158,14 @@ namespace Project_Apollo.Entities
             }
         }
 
-        public IEnumerable<DomainEntity> Enumerate()
+        public IEnumerable<DomainEntity> Enumerate(PaginationInfo pPager = null)
         {
+            PaginationInfo pager = pPager ?? new PaginationInfo();
+
             List<DomainEntity> aEntities;
             lock (_domainsLock)
             {
-                aEntities = new List<DomainEntity>(ActiveDomains.Values);
+                aEntities = new List<DomainEntity>(pager.Filter<DomainEntity>(ActiveDomains.Values));
             }
             return aEntities.AsEnumerable();
         }

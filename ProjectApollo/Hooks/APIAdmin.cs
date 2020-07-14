@@ -92,7 +92,7 @@ namespace Project_Apollo.Hooks
                 AccountScopeFilter scopeFilter = new AccountScopeFilter(pReq, aAccount);
 
                 respBody.Data = new bodyAccountsReply() {
-                    accounts = pagination.Filter<AccountEntity>(scopeFilter.Filter(acctFilter.Filter(aAccount))).Select(acct =>
+                    accounts = Accounts.Instance.Enumerate(pagination, acctFilter, scopeFilter).Select( acct =>
                     {
                         return new bodyAccountInfo(acct);
                     }).ToArray()
@@ -186,7 +186,7 @@ namespace Project_Apollo.Hooks
                 PaginationInfo pagination = new PaginationInfo(pReq);
                 pRespBody.Data = new bodyTokensReply()
                 {
-                    tokens = pagination.Filter<AuthTokenInfo>(pTargetAcct.AuthTokens.Enumerate()).Select(tok =>
+                    tokens = pTargetAcct.AuthTokens.Enumerate(pagination).Select(tok =>
                     {
                         return new bodyTokenInfo(tok);
                     }).ToArray()

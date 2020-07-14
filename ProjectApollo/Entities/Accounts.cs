@@ -222,12 +222,12 @@ namespace Project_Apollo.Entities
 
         // Return an IEnumerable of all the accounts.
         // This takes a snapshot of the current account list and returns those.
-        public IEnumerable<AccountEntity> Enumerate()
+        public IEnumerable<AccountEntity> Enumerate(PaginationInfo pPager, AccountFilterInfo pAcctr, AccountScopeFilter pScoper)
         {
             List<AccountEntity> aEntities;
             lock (_accountLock)
             {
-                aEntities = new List<AccountEntity>(ActiveAccounts.Values);
+                aEntities = new List<AccountEntity>(pPager.Filter<AccountEntity>(pAcctr.Filter(pScoper.Filter(ActiveAccounts.Values))));
             }
             return aEntities.AsEnumerable();
         }
@@ -530,12 +530,13 @@ namespace Project_Apollo.Entities
                 this.Remove(pToRemove);
             }
         }
-        public IEnumerable<T> Enumerate()
+        public IEnumerable<T> Enumerate(PaginationInfo pPager = null)
         {
+            PaginationInfo pager = pPager ?? new PaginationInfo();
             List<T> copyOf;
             lock (this)
             {
-                copyOf = new List<T>(this);
+                copyOf = new List<T>(pager.Filter<T>(this));
             }
             return copyOf.AsEnumerable<T>();
         }

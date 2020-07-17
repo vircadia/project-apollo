@@ -302,6 +302,7 @@ namespace Project_Apollo
 
             // No matter who is talking to us, allow them to send credentials
             pCtx.Response.AddHeader("Access-Control-Allow-Credentials", "true");
+            pCtx.Response.AddHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Accept, Content-Type, " + RESTReplyData.ERROR_HEADER);
 
             // If there is a body, set the type and return the bytes
             if (replyInfo.hasBody)

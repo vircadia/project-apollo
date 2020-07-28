@@ -1,4 +1,4 @@
-﻿//   Copyright 2020 Vircadia
+//   Copyright 2020 Vircadia
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -376,6 +376,10 @@ namespace Project_Apollo.Entities
                 ret = true;
             }
             return ret;
+        }
+        public string GetAccountType()
+        {
+            return this.Administrator ? "admin" : "user";
         }
         // Add a friend to the friend list.
         // Since a friend must also be a connection, we add the connection.

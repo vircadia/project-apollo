@@ -36,6 +36,9 @@ namespace Project_Apollo.Hooks
             public string refresh_token;
             public string scope;
             public Int64 created_at;
+            public string account_id;
+            public string account_name;
+            public string account_type;
         }
         [APIPath("/oauth/token", "POST", true)]
         public RESTReplyData user_login(RESTRequestData pReq, List<string> pArgs)
@@ -88,7 +91,7 @@ namespace Project_Apollo.Hooks
                                 AuthTokenInfo authInfo = aAccount.CreateAccessToken(userScope, pReq.SenderKey + ";" + userName);
 
                                 // The response does not follow the usual {status: , data: } form.
-                                replyData.SetBody( OAuthTokenResponseBody(authInfo) );
+                                replyData.SetBody( OAuthTokenResponseBody(aAccount, authInfo) );
                             }
                             else
                             {
@@ -131,7 +134,7 @@ namespace Project_Apollo.Hooks
                             AuthTokenInfo refreshToken = aAccount.RefreshAccessToken(refreshingToken);
                             if (refreshToken != null)
                             {
-                                replyData.SetBody( OAuthTokenResponseBody(refreshToken) );
+                                replyData.SetBody( OAuthTokenResponseBody(aAccount, refreshToken) );
                             }
                             else
                             {
@@ -168,7 +171,7 @@ namespace Project_Apollo.Hooks
                 { "error", pMsg }
             });
         }
-        private string OAuthTokenResponseBody(AuthTokenInfo pTokenInfo)
+        private string OAuthTokenResponseBody(AccountEntity pAccount, AuthTokenInfo pTokenInfo)
         {
             return JsonConvert.SerializeObject(new bodyLoginReply()
             {
@@ -177,7 +180,10 @@ namespace Project_Apollo.Hooks
                 expires_in = (int)(pTokenInfo.TokenExpirationTime - pTokenInfo.TokenCreationTime).TotalSeconds,
                 refresh_token = pTokenInfo.RefreshToken,
                 scope = pTokenInfo.Scope.ToString(),
-                created_at = ((DateTimeOffset)pTokenInfo.TokenCreationTime).ToUnixTimeSeconds()
+                created_at = ((DateTimeOffset)pTokenInfo.TokenCreationTime).ToUnixTimeSeconds(),
+                account_id = pAccount.AccountID,
+                account_name = pAccount.Username,
+                account_type = pAccount.GetAccountType()
             });
         }
 
@@ -268,7 +274,9 @@ namespace Project_Apollo.Hooks
                             token_id = token.TokenId,
                             refresh_token = token.RefreshToken,
                             token_expiration_seconds = (int)(token.TokenExpirationTime - token.TokenCreationTime).TotalSeconds,
-                            account_name = oAccount.Username
+                            account_name = oAccount.Username,
+                            account_type = oAccount.GetAccountType(),
+                            account_id = oAccount.AccountID
                         };
                     }
                     else

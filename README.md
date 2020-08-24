@@ -17,20 +17,9 @@ their own personal portion of the Metaverse.
 For building and running this code,
 refer to [Notes On Development] for that information.
 
-As of 20200616 (June 16, 2020), there is an experimental version
-of the Project Apollo metaverse-server running at `http://metaverse.bluestuff.org`.
-To use that setup to either test the metaverse-server implementation
-or to test a domain-server, follow the information in
-[test setup].
-
-## Docker Image
-
-A Docker image is made of the latest release.
-As of 20200611, the Docker image is stored at
-hub.docker.com with the name "misterblue/vircadia-metaverse-server".
-Someday CI will be integrated with this project and then the image may move.
-
-Refer to [instructions for running Docker image] for details.
+As of 20200824 (August 24, 2020), most of the new metaverse-server
+development has moved to the [Iamus] project which is a
+metaverse-server implemented in NodeJS/ExpressJS/MongoDB.
 
 ## Troubleshooting
 
@@ -68,6 +57,7 @@ the [3-Clause BSD License].
 **LookingGlass Viewer** is Copyright 2008, Robert Adams and is licensed under
 the [3-Clause BSD License].
 
+[Iamus]: https://github.com/kasenvr/Iamus
 [Apache License, Version 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [MIT License]: https://opensource.org/licenses/MIT
 [3-Clause BSD License]: https://opensource.org/licenses/BSD-3-Clause
